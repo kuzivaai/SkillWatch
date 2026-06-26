@@ -1,6 +1,5 @@
 """Terminal output formatting."""
 
-import json
 import sys
 
 
@@ -128,12 +127,9 @@ def format_alert_detail(alert: dict) -> str:
 
     flags = alert.get("flags", [])
     if flags:
-        lines.append(f"  Flags:")
+        lines.append("  Flags:")
         for f in flags:
-            if isinstance(f, str):
-                lines.append(f"    - {f}")
-            else:
-                lines.append(f"    - {f}")
+            lines.append(f"    - {f}")
 
     if alert.get("diff_text"):
         lines.append("")

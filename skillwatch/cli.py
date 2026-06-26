@@ -2,16 +2,16 @@
 
 import argparse
 import sys
-from pathlib import Path
+import time
 
 from . import __version__
 from .detector import detect_suspicious_changes, max_severity
-from .differ import content_changed, generate_diff, diff_stats
+from .differ import content_changed, generate_diff
 from .fetcher import fetch_url
 from .formatter import (
     bold, dim, green, red, yellow,
     format_alert_detail, format_history, format_scan_result,
-    format_scan_summary, format_url_table,
+    format_scan_summary, format_url_table, severity_icon, severity_label,
 )
 from .parser import extract_urls_from_file
 from .store import Store
@@ -104,14 +104,12 @@ def _cmd_add(store: Store, args: argparse.Namespace) -> int:
         print(yellow(f"  No URLs found in {args.file}"))
         return 0
 
-    added = 0
     for u in urls:
-        url_id = store.add_url(u["url"], u["source_type"], u["source_path"])
-        added += 1
+        store.add_url(u["url"], u["source_type"], u["source_path"])
         print(f"  {green('+')}  {u['url']}")
 
-    print(f"\n  Added {bold(str(added))} URL(s) from {args.file}")
-    print(dim(f"  Run 'skillwatch scan' to perform the initial check."))
+    print(f"\n  Added {bold(str(len(urls)))} URL(s) from {args.file}")
+    print(dim("  Run 'skillwatch scan' to perform the initial check."))
     return 0
 
 
@@ -126,7 +124,7 @@ def _cmd_add_url(store: Store, args: argparse.Namespace) -> int:
 
     store.add_url(args.url, "manual")
     print(f"  {green('+')}  {args.url}")
-    print(dim(f"  Run 'skillwatch scan' to perform the initial check."))
+    print(dim("  Run 'skillwatch scan' to perform the initial check."))
     return 0
 
 
@@ -151,8 +149,6 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
     changed = 0
     alerts_created = 0
     errors = 0
-
-    import time
 
     for i, url_record in enumerate(urls):
         if i > 0 and args.delay > 0:
@@ -262,7 +258,6 @@ def _cmd_alerts(store: Store, args: argparse.Namespace) -> int:
     print(bold(f"\n  {len(alerts)} alert(s)\n"))
     for a in alerts:
         severity = a.get("severity", "info")
-        from .formatter import severity_label, severity_icon
         icon = severity_icon(severity)
         flags = a.get("flags", [])
         flag_str = ", ".join(flags) if isinstance(flags, list) else str(flags)

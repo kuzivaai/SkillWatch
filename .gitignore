@@ -5,6 +5,14 @@ dist/
 build/
 .venv/
 .pytest_cache/
+.ruff_cache/
 *.db
 .coverage
 htmlcov/
+
+# Research docs (not part of the tool)
+PREMISE.md
+PMF-ASSESSMENT.md
+COMPETITORS.md
+DISTRIBUTION.md
+ECONOMICS.md

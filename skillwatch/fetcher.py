@@ -2,7 +2,6 @@
 
 import hashlib
 import re
-import time
 
 import requests
 import trafilatura
@@ -10,16 +9,11 @@ import trafilatura
 from .ssrf import SSRFError, validate_url
 
 _DEFAULT_TIMEOUT = 10
-_DEFAULT_DELAY = 1.0
 _MAX_RESPONSE_SIZE = 5 * 1024 * 1024  # 5 MB
-_DEFAULT_USER_AGENT = "SkillWatch/0.1 (+https://github.com/kuzivaai/skillwatch)"
+_DEFAULT_USER_AGENT = "SkillWatch/0.1 (+https://github.com/kuzivaai/SkillWatch)"
 
 # Strip ANSI escape sequences from fetched content
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*[a-zA-Z]")
-
-
-class FetchError(Exception):
-    """Raised when a URL cannot be fetched."""
 
 
 class FetchResult:
@@ -79,16 +73,19 @@ def fetch_url(
                 return FetchResult(url=url, error=f"Final redirect blocked: {exc}")
 
         # Read with size limit
-        content_bytes = b""
+        chunks = []
+        total_size = 0
         for chunk in resp.iter_content(chunk_size=8192):
-            content_bytes += chunk
-            if len(content_bytes) > max_size:
+            chunks.append(chunk)
+            total_size += len(chunk)
+            if total_size > max_size:
                 return FetchResult(
                     url=url,
                     status_code=resp.status_code,
                     error=f"Response exceeds {max_size // (1024*1024)} MB limit",
                 )
 
+        content_bytes = b"".join(chunks)
         resp.close()
 
         if resp.status_code >= 400:
@@ -134,21 +131,6 @@ def fetch_url(
         raw_html_hash=raw_html_hash,
         status_code=resp.status_code,
     )
-
-
-def fetch_urls(
-    urls: list[str],
-    delay: float = _DEFAULT_DELAY,
-    timeout: int = _DEFAULT_TIMEOUT,
-    user_agent: str = _DEFAULT_USER_AGENT,
-) -> list[FetchResult]:
-    """Fetch multiple URLs with a delay between requests."""
-    results = []
-    for i, url in enumerate(urls):
-        if i > 0 and delay > 0:
-            time.sleep(delay)
-        results.append(fetch_url(url, timeout=timeout, user_agent=user_agent))
-    return results
 
 
 def _normalise_whitespace(text: str) -> str:
