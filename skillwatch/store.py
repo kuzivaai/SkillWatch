@@ -52,6 +52,12 @@ class Store:
         self._conn.row_factory = sqlite3.Row
         self._conn.executescript(_SCHEMA)
 
+    def __enter__(self) -> "Store":
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        self.close()
+
     def close(self) -> None:
         self._conn.close()
 

@@ -15,7 +15,15 @@ Existing tools like [MCP-Scan](https://github.com/invariantlabs-ai/mcp-scan) mon
 ## Install
 
 ```bash
-pip install skillwatch
+pip install git+https://github.com/kuzivaai/SkillWatch.git
+```
+
+Or from source:
+
+```bash
+git clone https://github.com/kuzivaai/SkillWatch.git
+cd SkillWatch
+pip install .
 ```
 
 Requires Python 3.10+.
@@ -98,13 +106,13 @@ SkillWatch fetches arbitrary URLs, so it includes SSRF protection:
 
 - **False positives**: A legitimate documentation update that adds a code example with `pip install` will trigger an alert. Review alerts manually.
 - **Dynamic pages**: SPAs and heavily personalised pages may show false changes. trafilatura handles most documentation pages well but is not perfect.
-- **Evasion**: An attacker who serves different content based on User-Agent can evade detection. The `--user-agent` flag allows customisation but this is a fundamental limitation.
+- **Evasion**: An attacker who serves different content based on User-Agent can evade detection. This is a fundamental limitation of any HTTP-based monitoring approach.
 
 ## Development
 
 ```bash
-git clone https://github.com/kuzivaai/skillwatch.git
-cd skillwatch
+git clone https://github.com/kuzivaai/SkillWatch.git
+cd SkillWatch
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
