@@ -2,6 +2,7 @@
 
 import hashlib
 import re
+from urllib.parse import urljoin
 
 import requests
 import trafilatura
@@ -10,10 +11,20 @@ from .ssrf import SSRFError, validate_url
 
 _DEFAULT_TIMEOUT = 10
 _MAX_RESPONSE_SIZE = 5 * 1024 * 1024  # 5 MB
+_MAX_REDIRECTS = 5
 _DEFAULT_USER_AGENT = "SkillWatch/0.1 (+https://github.com/kuzivaai/SkillWatch)"
 
-# Strip ANSI escape sequences from fetched content
-_ANSI_RE = re.compile(r"\x1b\[[0-9;]*[a-zA-Z]")
+# Strip ANSI/VT escape sequences from fetched content.
+# Covers CSI, OSC (clipboard write risk), DCS, C1 control codes.
+_ESCAPE_RE = re.compile(
+    r"\x1b\[[0-9;]*[ -/]*[@-~]"       # CSI sequences
+    r"|\x1b\][^\x07\x1b]*[\x07]"       # OSC sequences (BEL-terminated)
+    r"|\x1b\][^\x1b]*\x1b\\"           # OSC sequences (ST-terminated)
+    r"|\x1bP[^\x1b]*\x1b\\"            # DCS sequences
+    r"|\x1b[@-Z\\-_]"                  # Fe sequences
+    r"|\x9b[0-9;]*[@-~]"              # C1 CSI (8-bit)
+    r"|\x9d[^\x9c]*\x9c"              # C1 OSC (8-bit)
+)
 
 
 class FetchResult:
@@ -44,33 +55,40 @@ def fetch_url(
     max_size: int = _MAX_RESPONSE_SIZE,
 ) -> FetchResult:
     """Fetch a URL, extract text content, and compute hashes."""
-    # SSRF check
+    # SSRF check on initial URL
     try:
         validate_url(url)
     except SSRFError as exc:
         return FetchResult(url=url, error=str(exc))
 
-    # Fetch
+    # Fetch with manual redirect following (validate each hop BEFORE following)
     try:
-        resp = requests.get(
-            url,
-            timeout=timeout,
-            headers={"User-Agent": user_agent},
-            allow_redirects=True,
-            stream=True,
-        )
+        current_url = url
+        for _ in range(_MAX_REDIRECTS + 1):
+            resp = requests.get(
+                current_url,
+                timeout=timeout,
+                headers={"User-Agent": user_agent},
+                allow_redirects=False,
+                stream=True,
+            )
 
-        # Check redirects for SSRF
-        if resp.history:
-            for r in resp.history:
+            if resp.is_redirect:
+                location = resp.headers.get("Location", "")
+                if not location:
+                    return FetchResult(url=url, error="Redirect with no Location header")
+                next_url = urljoin(current_url, location)
                 try:
-                    validate_url(r.url)
+                    validate_url(next_url)
                 except SSRFError as exc:
                     return FetchResult(url=url, error=f"Redirect blocked: {exc}")
-            try:
-                validate_url(resp.url)
-            except SSRFError as exc:
-                return FetchResult(url=url, error=f"Final redirect blocked: {exc}")
+                resp.close()
+                current_url = next_url
+                continue
+
+            break
+        else:
+            return FetchResult(url=url, error=f"Too many redirects (>{_MAX_REDIRECTS})")
 
         # Read with size limit
         chunks = []
@@ -108,15 +126,13 @@ def fetch_url(
     extracted = trafilatura.extract(raw_html, include_links=True, include_tables=True)
 
     if not extracted:
-        # Fallback: use raw text (strip HTML tags roughly)
         extracted = trafilatura.extract(raw_html, include_links=True, no_fallback=False)
 
     if not extracted:
-        # Last resort: just note we got HTML but couldn't extract
         extracted = f"[SkillWatch: could not extract text from {len(raw_html)} bytes of HTML]"
 
-    # Clean extracted text
-    extracted = _ANSI_RE.sub("", extracted)
+    # Strip escape sequences (defence layer 1 — also stripped at display time)
+    extracted = strip_escape_sequences(extracted)
     extracted = _normalise_whitespace(extracted)
 
     # Compute hashes
@@ -131,6 +147,11 @@ def fetch_url(
         raw_html_hash=raw_html_hash,
         status_code=resp.status_code,
     )
+
+
+def strip_escape_sequences(text: str) -> str:
+    """Strip ANSI/VT escape sequences from text. Used at fetch and display time."""
+    return _ESCAPE_RE.sub("", text)
 
 
 def _normalise_whitespace(text: str) -> str:
