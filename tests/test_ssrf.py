@@ -2,15 +2,21 @@
 
 import pytest
 
-from skillwatch.ssrf import SSRFError, validate_url
+from skillwatch.ssrf import SSRFError, ValidatedURL, validate_url
 
 
 class TestSSRFValidation:
     def test_allows_public_https(self):
-        assert validate_url("https://docs.python.org/3/") == "https://docs.python.org/3/"
+        result = validate_url("https://docs.python.org/3/")
+        assert isinstance(result, ValidatedURL)
+        assert result.url == "https://docs.python.org/3/"
+        assert result.resolved_ip  # non-empty
 
     def test_allows_public_http(self):
-        assert validate_url("http://example.com") == "http://example.com"
+        result = validate_url("http://example.com")
+        assert isinstance(result, ValidatedURL)
+        assert result.url == "http://example.com"
+        assert result.port == 80
 
     def test_blocks_private_10(self):
         with pytest.raises(SSRFError, match="private"):
