@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "skillwatch"
+version = "0.1.0"
+description = "Continuous URL content monitoring for AI skills and MCP tools"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+authors = [
+    { name = "Kuziva Muzondo" },
+]
+keywords = ["ai", "security", "mcp", "skills", "monitoring"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+]
+dependencies = [
+    "trafilatura>=2.0",
+    "requests>=2.31",
+    "beautifulsoup4>=4.12",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+skillwatch = "skillwatch.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov",
+    "responses>=0.25",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
