@@ -104,11 +104,20 @@ def _cmd_add(store: Store, args: argparse.Namespace) -> int:
         print(yellow(f"  No URLs found in {args.file}"))
         return 0
 
+    added = 0
+    skipped = 0
     for u in urls:
-        store.add_url(u["url"], u["source_type"], u["source_path"])
-        print(f"  {green('+')}  {u['url']}")
+        _, is_new = store.add_url(u["url"], u["source_type"], u["source_path"])
+        if is_new:
+            added += 1
+            print(f"  {green('+')}  {u['url']}")
+        else:
+            skipped += 1
 
-    print(f"\n  Added {bold(str(len(urls)))} URL(s) from {args.file}")
+    parts = [f"Added {bold(str(added))} URL(s) from {args.file}"]
+    if skipped:
+        parts.append(f"{skipped} already monitored")
+    print(f"\n  {', '.join(parts)}")
     print(dim("  Run 'skillwatch scan' to perform the initial check."))
     return 0
 
@@ -122,8 +131,11 @@ def _cmd_add_url(store: Store, args: argparse.Namespace) -> int:
         print(red(f"  Blocked: {exc}"), file=sys.stderr)
         return 1
 
-    store.add_url(args.url, "manual")
-    print(f"  {green('+')}  {args.url}")
+    _, is_new = store.add_url(args.url, "manual")
+    if is_new:
+        print(f"  {green('+')}  {args.url}")
+    else:
+        print(f"  {dim('=')}  {args.url} (already monitored)")
     print(dim("  Run 'skillwatch scan' to perform the initial check."))
     return 0
 
@@ -170,14 +182,15 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
         # Get previous snapshot
         prev = store.get_latest_snapshot(url_id)
 
-        # Store new snapshot
+        # Store new snapshot (including raw HTML for future old-vs-new comparison)
         new_snap_id = store.add_snapshot(
             url_id, result.content_hash, result.content_text,
+            raw_html=result.raw_html,
             raw_html_hash=result.raw_html_hash, status_code=result.status_code,
         )
 
-        if prev is None or prev.get("error") or not prev.get("content_hash"):
-            # First scan — no comparison possible
+        if prev is None or prev.get("error") is not None:
+            # First scan or previous scan errored — no comparison possible
             unchanged += 1
             if not args.quiet:
                 print(format_scan_result(url, False))
@@ -201,6 +214,7 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
             old_text=prev.get("content_text"),
             new_text=result.content_text or "",
             diff_text=diff_text,
+            old_html=prev.get("raw_html"),
             new_html=result.raw_html,
         )
 

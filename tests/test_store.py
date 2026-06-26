@@ -12,20 +12,22 @@ from skillwatch.store import Store
 def store():
     with tempfile.TemporaryDirectory() as tmpdir:
         db_path = Path(tmpdir) / "test.db"
-        s = Store(db_path=db_path)
-        yield s
-        s.close()
+        with Store(db_path=db_path) as s:
+            yield s
 
 
 class TestURLStorage:
     def test_add_url(self, store):
-        url_id = store.add_url("https://example.com/docs", "manual")
+        url_id, is_new = store.add_url("https://example.com/docs", "manual")
         assert url_id > 0
+        assert is_new is True
 
     def test_add_duplicate_url(self, store):
-        id1 = store.add_url("https://example.com/docs", "manual")
-        id2 = store.add_url("https://example.com/docs", "manual")
+        id1, new1 = store.add_url("https://example.com/docs", "manual")
+        id2, new2 = store.add_url("https://example.com/docs", "manual")
         assert id1 == id2
+        assert new1 is True
+        assert new2 is False
 
     def test_get_urls(self, store):
         store.add_url("https://a.com", "manual")
@@ -52,7 +54,7 @@ class TestURLStorage:
 
 class TestSnapshots:
     def test_add_and_get_snapshot(self, store):
-        url_id = store.add_url("https://example.com", "manual")
+        url_id, _ = store.add_url("https://example.com", "manual")
         snap_id = store.add_snapshot(url_id, "abc123", "Hello world", status_code=200)
         assert snap_id > 0
 
@@ -61,8 +63,16 @@ class TestSnapshots:
         assert latest["content_text"] == "Hello world"
         assert latest["status_code"] == 200
 
+    def test_stores_raw_html(self, store):
+        url_id, _ = store.add_url("https://example.com", "manual")
+        html = "<html><body>Hello</body></html>"
+        store.add_snapshot(url_id, "abc", "Hello", raw_html=html, raw_html_hash="xyz")
+        latest = store.get_latest_snapshot(url_id)
+        assert latest["raw_html"] == html
+        assert latest["raw_html_hash"] == "xyz"
+
     def test_latest_snapshot_is_most_recent(self, store):
-        url_id = store.add_url("https://example.com", "manual")
+        url_id, _ = store.add_url("https://example.com", "manual")
         store.add_snapshot(url_id, "hash1", "Old content")
         store.add_snapshot(url_id, "hash2", "New content")
 
@@ -70,7 +80,7 @@ class TestSnapshots:
         assert latest["content_hash"] == "hash2"
 
     def test_snapshot_history(self, store):
-        url_id = store.add_url("https://example.com", "manual")
+        url_id, _ = store.add_url("https://example.com", "manual")
         store.add_snapshot(url_id, "h1", "v1")
         store.add_snapshot(url_id, "h2", "v2")
         store.add_snapshot(url_id, "h3", "v3")
@@ -80,11 +90,11 @@ class TestSnapshots:
         assert history[0]["content_hash"] == "h3"  # most recent first
 
     def test_no_snapshot(self, store):
-        url_id = store.add_url("https://example.com", "manual")
+        url_id, _ = store.add_url("https://example.com", "manual")
         assert store.get_latest_snapshot(url_id) is None
 
     def test_error_snapshot(self, store):
-        url_id = store.add_url("https://example.com", "manual")
+        url_id, _ = store.add_url("https://example.com", "manual")
         store.add_snapshot(url_id, "", None, error="Timeout")
         latest = store.get_latest_snapshot(url_id)
         assert latest["error"] == "Timeout"
@@ -92,7 +102,7 @@ class TestSnapshots:
 
 class TestAlerts:
     def test_add_and_get_alert(self, store):
-        url_id = store.add_url("https://example.com", "manual")
+        url_id, _ = store.add_url("https://example.com", "manual")
         snap1 = store.add_snapshot(url_id, "h1", "old")
         snap2 = store.add_snapshot(url_id, "h2", "new")
 
@@ -105,7 +115,7 @@ class TestAlerts:
         assert alert["reviewed"] == 0
 
     def test_mark_reviewed(self, store):
-        url_id = store.add_url("https://example.com", "manual")
+        url_id, _ = store.add_url("https://example.com", "manual")
         snap1 = store.add_snapshot(url_id, "h1", "old")
         snap2 = store.add_snapshot(url_id, "h2", "new")
         alert_id = store.add_alert(url_id, snap1, snap2, "diff", [], "info")
@@ -115,7 +125,7 @@ class TestAlerts:
         assert alert["reviewed"] == 1
 
     def test_unreviewed_filter(self, store):
-        url_id = store.add_url("https://example.com", "manual")
+        url_id, _ = store.add_url("https://example.com", "manual")
         snap1 = store.add_snapshot(url_id, "h1", "old")
         snap2 = store.add_snapshot(url_id, "h2", "new")
 
@@ -128,7 +138,7 @@ class TestAlerts:
         assert unreviewed[0]["id"] == a2
 
     def test_remove_url_cascades(self, store):
-        url_id = store.add_url("https://example.com", "manual")
+        url_id, _ = store.add_url("https://example.com", "manual")
         snap1 = store.add_snapshot(url_id, "h1", "old")
         snap2 = store.add_snapshot(url_id, "h2", "new")
         store.add_alert(url_id, snap1, snap2, "diff", [], "info")
@@ -136,3 +146,13 @@ class TestAlerts:
         store.remove_url("https://example.com")
         assert store.url_count() == 0
         assert store.get_alerts() == []
+
+
+class TestContextManager:
+    def test_store_as_context_manager(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            db_path = Path(tmpdir) / "test.db"
+            with Store(db_path=db_path) as s:
+                s.add_url("https://example.com", "manual")
+                assert s.url_count() == 1
+            # Connection is closed — accessing it should fail or be safe

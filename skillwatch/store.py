@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS snapshots (
     fetched_at TEXT NOT NULL DEFAULT (datetime('now')),
     content_hash TEXT NOT NULL,
     content_text TEXT,
+    raw_html TEXT,
     raw_html_hash TEXT,
     status_code INTEGER,
     error TEXT
@@ -63,18 +64,17 @@ class Store:
 
     # --- URLs ---
 
-    def add_url(self, url: str, source_type: str, source_path: str = "") -> int:
-        """Add a URL to monitor. Returns the url id. Ignores duplicates."""
+    def add_url(self, url: str, source_type: str, source_path: str = "") -> tuple[int, bool]:
+        """Add a URL to monitor. Returns (url_id, is_new)."""
         cur = self._conn.execute(
             "INSERT OR IGNORE INTO urls (url, source_type, source_path) VALUES (?, ?, ?)",
             (url, source_type, source_path),
         )
         self._conn.commit()
         if cur.lastrowid and cur.rowcount > 0:
-            return cur.lastrowid
-        # Already exists
+            return cur.lastrowid, True
         row = self._conn.execute("SELECT id FROM urls WHERE url = ?", (url,)).fetchone()
-        return row["id"]
+        return row["id"], False
 
     def get_urls(self) -> list[dict]:
         """Get all monitored URLs."""
@@ -107,13 +107,13 @@ class Store:
 
     def add_snapshot(
         self, url_id: int, content_hash: str, content_text: str | None,
-        raw_html_hash: str | None = None, status_code: int | None = None,
-        error: str | None = None,
+        raw_html: str | None = None, raw_html_hash: str | None = None,
+        status_code: int | None = None, error: str | None = None,
     ) -> int:
         cur = self._conn.execute(
-            "INSERT INTO snapshots (url_id, content_hash, content_text, raw_html_hash, status_code, error) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
-            (url_id, content_hash, content_text, raw_html_hash, status_code, error),
+            "INSERT INTO snapshots (url_id, content_hash, content_text, raw_html, raw_html_hash, status_code, error) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (url_id, content_hash, content_text, raw_html, raw_html_hash, status_code, error),
         )
         self._conn.commit()
         return cur.lastrowid
