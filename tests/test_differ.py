@@ -1,6 +1,6 @@
 """Tests for diff generation and hash comparison."""
 
-from skillwatch.differ import content_changed, generate_diff, diff_stats
+from skillwatch.differ import content_changed, generate_diff
 
 
 class TestContentChanged:
@@ -40,20 +40,3 @@ class TestGenerateDiff:
         assert "+new content" in diff
 
 
-class TestDiffStats:
-    def test_counts_additions_and_removals(self):
-        diff = "--- old\n+++ new\n-removed\n+added1\n+added2\n context\n"
-        stats = diff_stats(diff)
-        assert stats["added"] == 2
-        assert stats["removed"] == 1
-
-    def test_empty_diff(self):
-        stats = diff_stats("")
-        assert stats["added"] == 0
-        assert stats["removed"] == 0
-
-    def test_ignores_header_lines(self):
-        diff = "--- a/file\n+++ b/file\n+real addition\n"
-        stats = diff_stats(diff)
-        assert stats["added"] == 1
-        assert stats["removed"] == 0

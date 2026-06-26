@@ -1,5 +1,6 @@
 """Tests for the URL fetcher with HTTP mocking."""
 
+import requests
 import responses
 
 from skillwatch.fetcher import fetch_url, strip_escape_sequences, _normalise_whitespace
@@ -82,8 +83,8 @@ class TestFetchUrlSSRF:
         assert not result.ok
 
 
-@responses.activate
 class TestFetchUrlHTTP:
+    @responses.activate
     def test_fetches_html_page(self):
         responses.add(
             responses.GET,
@@ -97,6 +98,7 @@ class TestFetchUrlHTTP:
         assert result.content_hash  # non-empty hash
         assert result.raw_html_hash  # non-empty hash
 
+    @responses.activate
     def test_handles_http_404(self):
         responses.add(
             responses.GET,
@@ -108,6 +110,7 @@ class TestFetchUrlHTTP:
         assert result.status_code == 404
         assert "404" in result.error
 
+    @responses.activate
     def test_handles_http_500(self):
         responses.add(
             responses.GET,
@@ -118,16 +121,18 @@ class TestFetchUrlHTTP:
         assert not result.ok
         assert "500" in result.error
 
-    def test_handles_timeout(self):
+    @responses.activate
+    def test_handles_connection_error(self):
         responses.add(
             responses.GET,
             "https://example.com/slow",
-            body=ConnectionError("timeout"),
+            body=requests.exceptions.ConnectionError("Connection refused"),
         )
         result = fetch_url("https://example.com/slow", timeout=1)
         assert not result.ok
-        assert "error" in result.error.lower() or "timeout" in result.error.lower()
+        assert "error" in result.error.lower() or "connection" in result.error.lower()
 
+    @responses.activate
     def test_enforces_size_limit(self):
         # Create a response larger than 1 KB (using small limit for test)
         responses.add(
@@ -140,6 +145,7 @@ class TestFetchUrlHTTP:
         assert not result.ok
         assert "exceeds" in result.error.lower()
 
+    @responses.activate
     def test_follows_redirects_safely(self):
         responses.add(
             responses.GET,
@@ -156,6 +162,7 @@ class TestFetchUrlHTTP:
         result = fetch_url("https://example.com/old")
         assert result.ok
 
+    @responses.activate
     def test_blocks_redirect_to_private_ip(self):
         responses.add(
             responses.GET,
@@ -167,6 +174,7 @@ class TestFetchUrlHTTP:
         assert not result.ok
         assert "Redirect blocked" in result.error or "private" in result.error.lower()
 
+    @responses.activate
     def test_limits_redirect_count(self):
         # Create a chain of 10 redirects (exceeds _MAX_REDIRECTS=5)
         for i in range(10):
@@ -186,6 +194,7 @@ class TestFetchUrlHTTP:
         assert not result.ok
         assert "redirect" in result.error.lower()
 
+    @responses.activate
     def test_content_hash_is_deterministic(self):
         responses.add(
             responses.GET,
@@ -203,6 +212,7 @@ class TestFetchUrlHTTP:
         r2 = fetch_url("https://example.com/docs")
         assert r1.content_hash == r2.content_hash
 
+    @responses.activate
     def test_strips_escape_sequences_from_content(self):
         malicious_html = "<html><body><p>Normal text \x1b]52;c;PAYLOAD\x07 end</p></body></html>"
         responses.add(

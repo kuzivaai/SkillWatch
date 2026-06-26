@@ -23,13 +23,3 @@ def generate_diff(old_text: str, new_text: str, url: str = "") -> str:
     return "\n".join(diff)
 
 
-def diff_stats(diff_text: str) -> dict:
-    """Count added and removed lines in a diff."""
-    added = 0
-    removed = 0
-    for line in diff_text.splitlines():
-        if line.startswith("+") and not line.startswith("+++"):
-            added += 1
-        elif line.startswith("-") and not line.startswith("---"):
-            removed += 1
-    return {"added": added, "removed": removed}
