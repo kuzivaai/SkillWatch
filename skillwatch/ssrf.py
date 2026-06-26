@@ -3,7 +3,7 @@
 import ipaddress
 import socket
 from dataclasses import dataclass
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 from requests.adapters import HTTPAdapter
 
@@ -100,12 +100,10 @@ class PinnedDNSAdapter(HTTPAdapter):
     This prevents DNS rebinding: the hostname is resolved once during
     validation, and the resolved IP is reused for the actual connection.
 
-    The URL is NOT rewritten — the original hostname stays in place so
-    TLS certificate verification and SNI work correctly. Instead, we
-    temporarily override socket.getaddrinfo to return the pinned IP
-    when the target hostname is resolved.
-
-    This is single-threaded safe. SkillWatch does not use threads.
+    The URL is rewritten to use the pinned IP for the TCP connection,
+    while the original hostname is preserved via the Host header and
+    urllib3's assert_hostname/server_hostname for TLS SNI and certificate
+    verification. This approach is thread-safe — no global state is modified.
     """
 
     def __init__(self, pinned_ip: str, hostname: str, **kwargs):
@@ -113,20 +111,30 @@ class PinnedDNSAdapter(HTTPAdapter):
         self._hostname = hostname
         super().__init__(**kwargs)
 
+    def init_poolmanager(self, connections, maxsize, block=False, **kwargs):
+        # Tell urllib3 to use the original hostname for TLS SNI and cert verification,
+        # even though the URL will contain the pinned IP address.
+        kwargs["assert_hostname"] = self._hostname
+        kwargs["server_hostname"] = self._hostname
+        super().init_poolmanager(connections, maxsize, block=block, **kwargs)
+
     def send(self, request, *args, **kwargs):
-        original_getaddrinfo = socket.getaddrinfo
+        parsed = urlparse(request.url)
 
-        pinned_ip = self._pinned_ip
-        target_hostname = self._hostname
+        # Set Host header to the original hostname (for virtual hosting)
+        if "Host" not in request.headers:
+            port_suffix = f":{parsed.port}" if parsed.port and parsed.port not in (80, 443) else ""
+            request.headers["Host"] = f"{parsed.hostname}{port_suffix}"
 
-        def _pinned_getaddrinfo(host, port, *a, **kw):
-            if host == target_hostname:
-                # Return the pre-validated IP instead of re-resolving
-                return original_getaddrinfo(pinned_ip, port, *a, **kw)
-            return original_getaddrinfo(host, port, *a, **kw)
+        # Rewrite URL to use the pinned IP for the actual TCP connection
+        ip = self._pinned_ip
+        netloc = f"[{ip}]" if ":" in ip else ip
+        if parsed.port:
+            netloc = f"{netloc}:{parsed.port}"
 
-        socket.getaddrinfo = _pinned_getaddrinfo
-        try:
-            return super().send(request, *args, **kwargs)
-        finally:
-            socket.getaddrinfo = original_getaddrinfo
+        request.url = urlunparse((
+            parsed.scheme, netloc, parsed.path,
+            parsed.params, parsed.query, parsed.fragment,
+        ))
+
+        return super().send(request, *args, **kwargs)

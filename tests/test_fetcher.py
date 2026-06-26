@@ -1,9 +1,16 @@
 """Tests for the URL fetcher with HTTP mocking."""
 
-import requests
+from unittest.mock import patch
+
+import requests as req_lib
 import responses
 
 from skillwatch.fetcher import fetch_url, strip_escape_sequences, _normalise_whitespace
+from .conftest import MOCK_IP, mock_validate_url
+
+# All HTTP mock tests patch validate_url to skip real DNS and return MOCK_IP.
+# responses library mocks must be registered against https://{MOCK_IP}/path.
+_VALIDATE = "skillwatch.fetcher.validate_url"
 
 
 class TestStripEscapeSequences:
@@ -12,7 +19,6 @@ class TestStripEscapeSequences:
         assert strip_escape_sequences(text) == "hello red world"
 
     def test_strips_osc_bel_terminated(self):
-        # OSC 52 clipboard write attack
         text = "before \x1b]52;c;SGVsbG8=\x07 after"
         assert strip_escape_sequences(text) == "before  after"
 
@@ -87,140 +93,117 @@ class TestFetchUrlHTTP:
     @responses.activate
     def test_fetches_html_page(self):
         responses.add(
-            responses.GET,
-            "https://example.com/docs",
-            body="<html><body><p>Hello world documentation.</p></body></html>",
-            status=200,
+            responses.GET, f"https://{MOCK_IP}/docs",
+            body="<html><body><p>Hello world documentation.</p></body></html>", status=200,
         )
-        result = fetch_url("https://example.com/docs")
+        with patch(_VALIDATE, side_effect=mock_validate_url):
+            result = fetch_url("https://example.com/docs")
         assert result.ok
         assert result.status_code == 200
-        assert result.content_hash  # non-empty hash
-        assert result.raw_html_hash  # non-empty hash
+        assert result.content_hash
+        assert result.raw_html_hash
 
     @responses.activate
     def test_handles_http_404(self):
-        responses.add(
-            responses.GET,
-            "https://example.com/missing",
-            status=404,
-        )
-        result = fetch_url("https://example.com/missing")
+        responses.add(responses.GET, f"https://{MOCK_IP}/missing", status=404)
+        with patch(_VALIDATE, side_effect=mock_validate_url):
+            result = fetch_url("https://example.com/missing")
         assert not result.ok
         assert result.status_code == 404
         assert "404" in result.error
 
     @responses.activate
     def test_handles_http_500(self):
-        responses.add(
-            responses.GET,
-            "https://example.com/error",
-            status=500,
-        )
-        result = fetch_url("https://example.com/error")
+        responses.add(responses.GET, f"https://{MOCK_IP}/error", status=500)
+        with patch(_VALIDATE, side_effect=mock_validate_url):
+            result = fetch_url("https://example.com/error")
         assert not result.ok
         assert "500" in result.error
 
     @responses.activate
     def test_handles_connection_error(self):
         responses.add(
-            responses.GET,
-            "https://example.com/slow",
-            body=requests.exceptions.ConnectionError("Connection refused"),
+            responses.GET, f"https://{MOCK_IP}/slow",
+            body=req_lib.exceptions.ConnectionError("Connection refused"),
         )
-        result = fetch_url("https://example.com/slow", timeout=1)
+        with patch(_VALIDATE, side_effect=mock_validate_url):
+            result = fetch_url("https://example.com/slow", timeout=1)
         assert not result.ok
         assert "error" in result.error.lower() or "connection" in result.error.lower()
 
     @responses.activate
     def test_enforces_size_limit(self):
-        # Create a response larger than 1 KB (using small limit for test)
         responses.add(
-            responses.GET,
-            "https://example.com/large",
-            body="x" * 2000,
-            status=200,
+            responses.GET, f"https://{MOCK_IP}/large",
+            body="x" * 2000, status=200,
         )
-        result = fetch_url("https://example.com/large", max_size=1000)
+        with patch(_VALIDATE, side_effect=mock_validate_url):
+            result = fetch_url("https://example.com/large", max_size=1000)
         assert not result.ok
         assert "exceeds" in result.error.lower()
 
     @responses.activate
     def test_follows_redirects_safely(self):
         responses.add(
-            responses.GET,
-            "https://example.com/old",
-            status=301,
-            headers={"Location": "https://example.com/new"},
+            responses.GET, f"https://{MOCK_IP}/old",
+            status=301, headers={"Location": "https://example.com/new"},
         )
         responses.add(
-            responses.GET,
-            "https://example.com/new",
-            body="<html><body><p>New page content here.</p></body></html>",
-            status=200,
+            responses.GET, f"https://{MOCK_IP}/new",
+            body="<html><body><p>New page content here.</p></body></html>", status=200,
         )
-        result = fetch_url("https://example.com/old")
+        with patch(_VALIDATE, side_effect=mock_validate_url):
+            result = fetch_url("https://example.com/old")
         assert result.ok
 
     @responses.activate
     def test_blocks_redirect_to_private_ip(self):
         responses.add(
-            responses.GET,
-            "https://example.com/redirect",
-            status=302,
-            headers={"Location": "http://192.168.1.1/admin"},
+            responses.GET, f"https://{MOCK_IP}/redirect",
+            status=302, headers={"Location": "http://192.168.1.1/admin"},
         )
-        result = fetch_url("https://example.com/redirect")
+        with patch(_VALIDATE, side_effect=mock_validate_url):
+            result = fetch_url("https://example.com/redirect")
         assert not result.ok
+        # The redirect target (192.168.1.1) fails real validate_url SSRF check
         assert "Redirect blocked" in result.error or "private" in result.error.lower()
 
     @responses.activate
     def test_limits_redirect_count(self):
-        # Create a chain of 10 redirects (exceeds _MAX_REDIRECTS=5)
         for i in range(10):
             responses.add(
-                responses.GET,
-                f"https://example.com/r{i}",
-                status=302,
-                headers={"Location": f"https://example.com/r{i+1}"},
+                responses.GET, f"https://{MOCK_IP}/r{i}",
+                status=302, headers={"Location": f"https://example.com/r{i+1}"},
             )
         responses.add(
-            responses.GET,
-            "https://example.com/r10",
-            body="<html><body>Final</body></html>",
-            status=200,
+            responses.GET, f"https://{MOCK_IP}/r10",
+            body="<html><body>Final</body></html>", status=200,
         )
-        result = fetch_url("https://example.com/r0")
+        with patch(_VALIDATE, side_effect=mock_validate_url):
+            result = fetch_url("https://example.com/r0")
         assert not result.ok
         assert "redirect" in result.error.lower()
 
     @responses.activate
     def test_content_hash_is_deterministic(self):
-        responses.add(
-            responses.GET,
-            "https://example.com/docs",
-            body="<html><body><p>Same content every time.</p></body></html>",
-            status=200,
-        )
-        responses.add(
-            responses.GET,
-            "https://example.com/docs",
-            body="<html><body><p>Same content every time.</p></body></html>",
-            status=200,
-        )
-        r1 = fetch_url("https://example.com/docs")
-        r2 = fetch_url("https://example.com/docs")
+        for _ in range(2):
+            responses.add(
+                responses.GET, f"https://{MOCK_IP}/docs",
+                body="<html><body><p>Same content every time.</p></body></html>", status=200,
+            )
+        with patch(_VALIDATE, side_effect=mock_validate_url):
+            r1 = fetch_url("https://example.com/docs")
+            r2 = fetch_url("https://example.com/docs")
         assert r1.content_hash == r2.content_hash
 
     @responses.activate
     def test_strips_escape_sequences_from_content(self):
         malicious_html = "<html><body><p>Normal text \x1b]52;c;PAYLOAD\x07 end</p></body></html>"
         responses.add(
-            responses.GET,
-            "https://example.com/evil",
-            body=malicious_html,
-            status=200,
+            responses.GET, f"https://{MOCK_IP}/evil",
+            body=malicious_html, status=200,
         )
-        result = fetch_url("https://example.com/evil")
+        with patch(_VALIDATE, side_effect=mock_validate_url):
+            result = fetch_url("https://example.com/evil")
         assert result.ok
         assert "\x1b" not in (result.content_text or "")
