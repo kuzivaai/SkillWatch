@@ -51,3 +51,7 @@ class TestSSRFValidation:
     def test_blocks_zero_ip(self):
         with pytest.raises(SSRFError, match="private"):
             validate_url("http://0.0.0.0/")
+
+    def test_blocks_ipv4_mapped_ipv6_loopback(self):
+        with pytest.raises(SSRFError, match="private"):
+            validate_url("http://[::ffff:127.0.0.1]/")

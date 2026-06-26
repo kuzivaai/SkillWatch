@@ -60,6 +60,11 @@ def validate_url(url: str) -> str:
 
 
 def _check_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address, url: str) -> None:
+    # Check IPv4-mapped IPv6 addresses (e.g. ::ffff:127.0.0.1)
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+        _check_ip(ip.ipv4_mapped, url)
+        return
+
     for network in _BLOCKED_NETWORKS:
         if ip in network:
             raise SSRFError(f"Blocked private/reserved IP {ip} for URL: {url}")
