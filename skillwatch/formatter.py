@@ -132,9 +132,11 @@ def format_alert_detail(alert: dict) -> str:
             lines.append(f"    - {f}")
 
     if alert.get("diff_text"):
+        from .fetcher import strip_escape_sequences
         lines.append("")
         lines.append(bold("  Diff:"))
         for line in alert["diff_text"].splitlines()[:50]:
+            line = strip_escape_sequences(line)  # defence in depth
             if line.startswith("+"):
                 lines.append(f"  {green(line)}")
             elif line.startswith("-"):
