@@ -129,6 +129,114 @@ not-a-url
     Path(f.name).unlink()
 
 
+def test_extract_from_yaml_config():
+    content = """
+mcpServers:
+  myTool:
+    url: https://mcp.example.com/v1
+    docs: https://docs.example.com/yaml-tool
+"""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        f.write(content)
+        f.flush()
+        results = extract_urls_from_file(f.name)
+
+    urls = {r["url"] for r in results}
+    assert "https://mcp.example.com/v1" in urls
+    assert "https://docs.example.com/yaml-tool" in urls
+    assert all(r["source_type"] == "mcp_config" for r in results)
+    Path(f.name).unlink()
+
+
+def test_extract_from_yml_extension():
+    content = """
+servers:
+  - url: https://api.example.com/yml-test
+"""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as f:
+        f.write(content)
+        f.flush()
+        results = extract_urls_from_file(f.name)
+
+    urls = {r["url"] for r in results}
+    assert "https://api.example.com/yml-test" in urls
+    Path(f.name).unlink()
+
+
+def test_extract_yaml_with_list_values():
+    content = """
+tools:
+  - name: tool1
+    docs: https://docs.example.com/tool1
+  - name: tool2
+    docs: https://docs.example.com/tool2
+"""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        f.write(content)
+        f.flush()
+        results = extract_urls_from_file(f.name)
+
+    urls = {r["url"] for r in results}
+    assert "https://docs.example.com/tool1" in urls
+    assert "https://docs.example.com/tool2" in urls
+    Path(f.name).unlink()
+
+
+def test_extract_yaml_with_invalid_yaml():
+    content = "{{invalid yaml: [[[unterminated"
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+        f.write(content)
+        f.flush()
+        results = extract_urls_from_file(f.name)
+
+    # Should not crash — falls back to regex URL extraction
+    assert results == []
+    Path(f.name).unlink()
+
+
+def test_extract_json_with_invalid_json():
+    content = "{ invalid json }"
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        f.write(content)
+        f.flush()
+        results = extract_urls_from_file(f.name)
+
+    # Should not crash — falls back to regex URL extraction
+    assert results == []
+    Path(f.name).unlink()
+
+
+def test_extract_json_with_nested_lists():
+    config = {
+        "tools": [
+            {"urls": ["https://a.example.com/1", "https://b.example.com/2"]},
+            {"url": "https://c.example.com/3"},
+        ]
+    }
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        json.dump(config, f)
+        f.flush()
+        results = extract_urls_from_file(f.name)
+
+    urls = {r["url"] for r in results}
+    assert "https://a.example.com/1" in urls
+    assert "https://b.example.com/2" in urls
+    assert "https://c.example.com/3" in urls
+    Path(f.name).unlink()
+
+
+def test_fallback_to_markdown_for_unknown_extension():
+    content = "See [docs](https://example.com/unknown-ext) for info."
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
+        f.write(content)
+        f.flush()
+        results = extract_urls_from_file(f.name)
+
+    urls = {r["url"] for r in results}
+    assert "https://example.com/unknown-ext" in urls
+    Path(f.name).unlink()
+
+
 def test_file_not_found():
     with pytest.raises(FileNotFoundError):
         extract_urls_from_file("/nonexistent/file.md")
