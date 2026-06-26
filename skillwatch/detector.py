@@ -40,14 +40,6 @@ class Flag:
         self.description = description
         self.evidence = evidence
 
-    def to_dict(self) -> dict:
-        return {
-            "code": self.code,
-            "severity": self.severity,
-            "description": self.description,
-            "evidence": self.evidence,
-        }
-
 
 def detect_suspicious_changes(
     old_text: str | None,

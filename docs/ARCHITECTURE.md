@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS snapshots (
     fetched_at TEXT NOT NULL DEFAULT (datetime('now')),
     content_hash TEXT NOT NULL,
     content_text TEXT,
+    raw_html TEXT,
     raw_html_hash TEXT,
     status_code INTEGER,
     error TEXT
@@ -104,18 +105,6 @@ skillwatch history https://example.com/docs
 skillwatch alert <alert-id>
 ```
 
-## Config File (optional)
+## Configuration
 
-```yaml
-# skillwatch.yaml
-settings:
-  delay_seconds: 2
-  timeout_seconds: 10
-  max_redirects: 3
-  user_agent: "SkillWatch/0.1 (+https://github.com/kuzivaai/skillwatch)"
-  db_path: ~/.skillwatch/skillwatch.db
-
-ignore_patterns:
-  - '\d{4}-\d{2}-\d{2}T\d{2}:\d{2}'  # ISO timestamps
-  - 'v\d+\.\d+\.\d+'                   # Version strings
-```
+All settings are controlled via CLI flags (`--db`, `--delay`, `--timeout`, `--quiet`). There is no config file in v0.1.
