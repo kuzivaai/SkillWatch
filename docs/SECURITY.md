@@ -19,7 +19,9 @@ A security tool must be secure. SkillWatch fetches arbitrary user-supplied URLs,
 - Only allow `http://` and `https://` schemes (reject `file://`, `ftp://`, `gopher://`)
 - Redirects followed manually (max 5 hops), each destination validated BEFORE the request is made
 
-**Residual risk:** DNS rebinding. `validate_url` resolves the hostname to check the IP, but `requests.get` performs a second DNS resolution. Between the two lookups, an attacker controlling a domain could return a public IP first and a private IP second. Full mitigation requires a custom transport adapter that reuses the pre-resolved IP. Not implemented in v0.1.
+**DNS rebinding mitigation:** DNS is resolved exactly once during `validate_url`. The resolved IP is pinned via a custom `requests` transport adapter (`PinnedDNSAdapter`) that overrides `socket.getaddrinfo` for the duration of the request. The original hostname remains in the URL so TLS certificate verification and SNI work correctly. This eliminates the TOCTOU window between validation and fetch.
+
+**Residual risk:** The `getaddrinfo` patch is process-global during each fetch (single-threaded safe; SkillWatch does not use threads). If SkillWatch were made multi-threaded, this approach would need a per-thread or per-connection socket factory instead.
 
 ### 2. Denial of Storage
 

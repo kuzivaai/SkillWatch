@@ -2,12 +2,12 @@
 
 import hashlib
 import re
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 import requests
 import trafilatura
 
-from .ssrf import SSRFError, validate_url
+from .ssrf import PinnedDNSAdapter, SSRFError, ValidatedURL, validate_url
 
 _DEFAULT_TIMEOUT = 10
 _MAX_RESPONSE_SIZE = 5 * 1024 * 1024  # 5 MB
@@ -48,30 +48,52 @@ class FetchResult:
         return self.error is None and self.content_text is not None
 
 
+def _make_pinned_session(validated: ValidatedURL, user_agent: str) -> requests.Session:
+    """Create a requests Session that pins DNS to the pre-resolved IP."""
+    session = requests.Session()
+    session.headers["User-Agent"] = user_agent
+
+    adapter = PinnedDNSAdapter(pinned_ip=validated.resolved_ip, hostname=validated.hostname)
+    prefix = f"{urlparse(validated.url).scheme}://"
+    session.mount(prefix, adapter)
+
+    return session
+
+
 def fetch_url(
     url: str,
     timeout: int = _DEFAULT_TIMEOUT,
     user_agent: str = _DEFAULT_USER_AGENT,
     max_size: int = _MAX_RESPONSE_SIZE,
 ) -> FetchResult:
-    """Fetch a URL, extract text content, and compute hashes."""
-    # SSRF check on initial URL
+    """Fetch a URL, extract text content, and compute hashes.
+
+    DNS is resolved once during SSRF validation. The resolved IP is pinned
+    for the actual connection, preventing DNS rebinding attacks.
+    """
+    # SSRF validate + resolve DNS (single resolution)
     try:
-        validate_url(url)
+        validated = validate_url(url)
     except SSRFError as exc:
         return FetchResult(url=url, error=str(exc))
 
-    # Fetch with manual redirect following (validate each hop BEFORE following)
+    # Fetch with manual redirect following.
+    # Each redirect destination is validated + DNS-pinned before following.
     try:
         current_url = url
+        current_validated = validated
+
         for _ in range(_MAX_REDIRECTS + 1):
-            resp = requests.get(
-                current_url,
-                timeout=timeout,
-                headers={"User-Agent": user_agent},
-                allow_redirects=False,
-                stream=True,
-            )
+            session = _make_pinned_session(current_validated, user_agent)
+            try:
+                resp = session.get(
+                    current_url,
+                    timeout=timeout,
+                    allow_redirects=False,
+                    stream=True,
+                )
+            finally:
+                session.close()
 
             if resp.is_redirect:
                 location = resp.headers.get("Location", "")
@@ -79,11 +101,12 @@ def fetch_url(
                     return FetchResult(url=url, error="Redirect with no Location header")
                 next_url = urljoin(current_url, location)
                 try:
-                    validate_url(next_url)
+                    next_validated = validate_url(next_url)
                 except SSRFError as exc:
                     return FetchResult(url=url, error=f"Redirect blocked: {exc}")
                 resp.close()
                 current_url = next_url
+                current_validated = next_validated
                 continue
 
             break

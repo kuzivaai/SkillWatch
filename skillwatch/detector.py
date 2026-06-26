@@ -24,6 +24,11 @@ _DATA_EXFIL_PATTERN = re.compile(
 
 _DOMAIN_CHANGE_RE = re.compile(r"https?://([a-zA-Z0-9.-]+)")
 
+_SUSPICIOUS_SCRIPT_KEYWORDS = [
+    "eval(", "document.cookie", "fetch(", "xmlhttprequest",
+    "websocket", "atob(", "btoa(",
+]
+
 
 class Flag:
     """A single suspicious finding."""
@@ -48,6 +53,7 @@ def detect_suspicious_changes(
     old_text: str | None,
     new_text: str,
     diff_text: str,
+    old_html: str | None = None,
     new_html: str | None = None,
 ) -> list[Flag]:
     """Analyse content changes and return a list of suspicious flags."""
@@ -118,57 +124,87 @@ def detect_suspicious_changes(
                 evidence=f"Old: {old_len} chars → New: {new_len} chars",
             ))
 
-    # 6. HTML-specific checks (if raw HTML available)
+    # 6. HTML-specific checks — compare old vs new to avoid false positives
     if new_html:
-        flags.extend(_check_html(new_html, old_text))
+        flags.extend(_check_html_changes(old_html, new_html))
 
     return flags
 
 
-def _check_html(html: str, old_text: str | None) -> list[Flag]:
-    """Check raw HTML for suspicious elements."""
-    flags: list[Flag] = []
-    soup = BeautifulSoup(html, "html.parser")
+def _check_html_changes(old_html: str | None, new_html: str) -> list[Flag]:
+    """Compare old and new HTML to flag only NEWLY INTRODUCED suspicious elements.
 
-    # New script tags
-    scripts = soup.find_all("script")
-    suspicious_scripts = [
-        s for s in scripts
-        if s.string and any(kw in s.string.lower() for kw in
-            ["eval(", "document.cookie", "fetch(", "xmlhttprequest", "websocket", "atob("])
-    ]
-    if suspicious_scripts:
+    This prevents false positives from pre-existing scripts, iframes, etc.
+    """
+    flags: list[Flag] = []
+
+    new_soup = BeautifulSoup(new_html, "html.parser")
+    old_suspicious_scripts = set()
+    old_iframe_srcs = set()
+    old_hidden_texts = set()
+
+    if old_html:
+        old_soup = BeautifulSoup(old_html, "html.parser")
+        old_suspicious_scripts = _extract_suspicious_script_contents(old_soup)
+        old_iframe_srcs = {f.get("src", "") for f in old_soup.find_all("iframe")}
+        old_hidden_texts = _extract_hidden_texts(old_soup)
+
+    # Suspicious scripts — only flag NEW ones
+    new_suspicious = _extract_suspicious_script_contents(new_soup)
+    added_scripts = new_suspicious - old_suspicious_scripts
+    if added_scripts:
+        sample = next(iter(added_scripts))
         flags.append(Flag(
             code="suspicious_script",
             severity="critical",
-            description=f"{len(suspicious_scripts)} script tag(s) with suspicious content",
-            evidence=suspicious_scripts[0].string[:100] if suspicious_scripts[0].string else "",
+            description=f"{len(added_scripts)} new script(s) with suspicious content",
+            evidence=sample[:100],
         ))
 
-    # Iframes
-    iframes = soup.find_all("iframe")
-    if iframes:
-        srcs = [f.get("src", "no src") for f in iframes[:3]]
+    # Iframes — only flag NEW ones
+    new_iframe_srcs = {f.get("src", "") for f in new_soup.find_all("iframe")}
+    added_iframes = new_iframe_srcs - old_iframe_srcs
+    if added_iframes:
         flags.append(Flag(
             code="iframe_detected",
             severity="warning",
-            description=f"{len(iframes)} iframe(s) detected",
-            evidence="; ".join(srcs),
+            description=f"{len(added_iframes)} new iframe(s) detected",
+            evidence="; ".join(sorted(added_iframes)[:3]),
         ))
 
-    # Hidden elements with content
-    hidden = soup.find_all(style=re.compile(r"display:\s*none|visibility:\s*hidden"))
-    if hidden:
-        hidden_text = " ".join(h.get_text(strip=True) for h in hidden if h.get_text(strip=True))
-        if hidden_text:
-            flags.append(Flag(
-                code="hidden_content",
-                severity="info",
-                description="Hidden HTML elements contain text",
-                evidence=hidden_text[:200],
-            ))
+    # Hidden elements — only flag NEW ones
+    new_hidden_texts = _extract_hidden_texts(new_soup)
+    added_hidden = new_hidden_texts - old_hidden_texts
+    if added_hidden:
+        flags.append(Flag(
+            code="hidden_content",
+            severity="info",
+            description="New hidden HTML elements contain text",
+            evidence=next(iter(added_hidden))[:200],
+        ))
 
     return flags
+
+
+def _extract_suspicious_script_contents(soup: BeautifulSoup) -> set[str]:
+    """Extract text content of suspicious script tags as a set for comparison."""
+    result = set()
+    for script in soup.find_all("script"):
+        if script.string:
+            lower = script.string.lower()
+            if any(kw in lower for kw in _SUSPICIOUS_SCRIPT_KEYWORDS):
+                result.add(script.string.strip())
+    return result
+
+
+def _extract_hidden_texts(soup: BeautifulSoup) -> set[str]:
+    """Extract text from hidden elements as a set for comparison."""
+    result = set()
+    for elem in soup.find_all(style=re.compile(r"display:\s*none|visibility:\s*hidden")):
+        text = elem.get_text(strip=True)
+        if text:
+            result.add(text)
+    return result
 
 
 def severity_rank(severity: str) -> int:
