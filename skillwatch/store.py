@@ -88,15 +88,15 @@ class Store:
         return [dict(r) for r in rows]
 
     def remove_url(self, url: str) -> bool:
-        """Remove a URL and its snapshots/alerts."""
+        """Remove a URL and its snapshots/alerts atomically."""
         row = self._conn.execute("SELECT id FROM urls WHERE url = ?", (url,)).fetchone()
         if not row:
             return False
         url_id = row["id"]
-        self._conn.execute("DELETE FROM alerts WHERE url_id = ?", (url_id,))
-        self._conn.execute("DELETE FROM snapshots WHERE url_id = ?", (url_id,))
-        self._conn.execute("DELETE FROM urls WHERE id = ?", (url_id,))
-        self._conn.commit()
+        with self._conn:
+            self._conn.execute("DELETE FROM alerts WHERE url_id = ?", (url_id,))
+            self._conn.execute("DELETE FROM snapshots WHERE url_id = ?", (url_id,))
+            self._conn.execute("DELETE FROM urls WHERE id = ?", (url_id,))
         return True
 
     def url_count(self) -> int:
@@ -114,6 +114,12 @@ class Store:
             "INSERT INTO snapshots (url_id, content_hash, content_text, raw_html, raw_html_hash, status_code, error) "
             "VALUES (?, ?, ?, ?, ?, ?, ?)",
             (url_id, content_hash, content_text, raw_html, raw_html_hash, status_code, error),
+        )
+        # Prune old snapshots to prevent unbounded disk growth (keep most recent 50)
+        self._conn.execute(
+            "DELETE FROM snapshots WHERE url_id = ? AND id NOT IN "
+            "(SELECT id FROM snapshots WHERE url_id = ? ORDER BY id DESC LIMIT 50)",
+            (url_id, url_id),
         )
         self._conn.commit()
         return cur.lastrowid

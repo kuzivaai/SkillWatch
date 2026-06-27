@@ -3,6 +3,12 @@
 import sys
 
 
+def _safe_url(url: str) -> str:
+    """Strip escape sequences from URLs before terminal display."""
+    from .fetcher import strip_escape_sequences
+    return strip_escape_sequences(url)
+
+
 # ANSI colour codes (disabled if not a TTY)
 def _supports_colour() -> bool:
     return hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
@@ -71,7 +77,8 @@ def format_url_table(urls: list[dict]) -> str:
 
     for u in urls:
         status = status_icon(u.get("open_alerts", 0), u.get("last_checked"))
-        url_display = u["url"][:58] + ".." if len(u["url"]) > 60 else u["url"]
+        raw_url = _safe_url(u["url"])
+        url_display = raw_url[:58] + ".." if len(raw_url) > 60 else raw_url
         last = u.get("last_checked", "never") or "never"
         if last != "never":
             last = last[:19]  # trim microseconds
@@ -84,8 +91,9 @@ def format_url_table(urls: list[dict]) -> str:
 
 def format_scan_result(url: str, changed: bool, flags: list | None = None, error: str | None = None) -> str:
     """Format a single scan result line."""
+    url = _safe_url(url)
     if error:
-        return f"  {red('ERR')}  {url}\n       {dim(error)}"
+        return f"  {red('ERR')}  {url}\n       {dim(_safe_url(error))}"
 
     if not changed:
         return f"  {green('OK ')}  {url}"
@@ -119,7 +127,7 @@ def format_alert_detail(alert: dict) -> str:
     lines = [
         "",
         bold(f"  Alert #{alert['id']}"),
-        f"  URL:      {alert['url']}",
+        f"  URL:      {_safe_url(alert['url'])}",
         f"  Detected: {alert['detected_at']}",
         f"  Severity: {severity_label(alert['severity'])}",
         f"  Reviewed: {'Yes' if alert['reviewed'] else 'No'}",
@@ -153,10 +161,10 @@ def format_alert_detail(alert: dict) -> str:
 def format_history(url: str, snapshots: list[dict]) -> str:
     """Format snapshot history for a URL."""
     if not snapshots:
-        return dim(f"  No history for {url}")
+        return dim(f"  No history for {_safe_url(url)}")
 
     lines = [
-        bold(f"  History for {url}"),
+        bold(f"  History for {_safe_url(url)}"),
         f"  {'Fetched At':<22}  {'Hash':<16}  {'Status'}",
         "  " + "-" * 60,
     ]
@@ -166,7 +174,7 @@ def format_history(url: str, snapshots: list[dict]) -> str:
         ts = s["fetched_at"][:19]
         h = s["content_hash"][:12] + ".."
         if s.get("error"):
-            status = red(f"error: {s['error']}")
+            status = red(f"error: {_safe_url(s['error'])}")
         elif prev_hash and s["content_hash"] != prev_hash:
             status = yellow("CHANGED")
         elif prev_hash is None:

@@ -29,6 +29,8 @@ def mock_validate_url(url):
         raise SSRFError(f"Blocked scheme: {parsed.scheme}:// (only http/https allowed)")
     if not parsed.hostname:
         raise SSRFError(f"No hostname in URL: {url}")
+    if parsed.username or parsed.password:
+        raise SSRFError(f"Credentials in URL not permitted: {url}")
 
     hostname = parsed.hostname
 
