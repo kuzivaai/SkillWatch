@@ -61,3 +61,31 @@ class TestSSRFValidation:
     def test_blocks_ipv4_mapped_ipv6_loopback(self):
         with pytest.raises(SSRFError, match="private"):
             validate_url("http://[::ffff:127.0.0.1]/")
+
+    def test_blocks_credentials_in_url(self):
+        with pytest.raises(SSRFError, match="Credentials"):
+            validate_url("http://user:pass@example.com/")
+
+    def test_blocks_ipv6_multicast(self):
+        with pytest.raises(SSRFError, match="private"):
+            validate_url("http://[ff02::1]/")
+
+    def test_blocks_6to4(self):
+        with pytest.raises(SSRFError, match="private"):
+            validate_url("http://[2002:7f00:1::]/")
+
+    def test_blocks_nat64(self):
+        with pytest.raises(SSRFError, match="private"):
+            validate_url("http://[64:ff9b::127.0.0.1]/")
+
+    def test_blocks_decimal_ip(self):
+        with pytest.raises(SSRFError, match="numeric"):
+            validate_url("http://2130706433/")
+
+    def test_blocks_hex_ip(self):
+        with pytest.raises(SSRFError, match="numeric"):
+            validate_url("http://0x7f000001/")
+
+    def test_handles_unicode_hostname_error(self):
+        with pytest.raises(SSRFError, match="Cannot resolve"):
+            validate_url("http://.localhost/")

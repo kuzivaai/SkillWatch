@@ -22,6 +22,7 @@ Input (SKILL.md / MCP config / URL list)
 | Module | Responsibility | Dependencies |
 |---|---|---|
 | `cli.py` | argparse entry point: add, scan, list, history | all modules |
+| `ssrf.py` | SSRF validation, DNS pinning, PinnedDNSAdapter | ipaddress, socket, requests |
 | `parser.py` | Extract URLs from SKILL.md, MCP configs, URL lists | re, json, yaml |
 | `fetcher.py` | Fetch URL content, extract text via trafilatura | requests, trafilatura |
 | `store.py` | SQLite read/write: URLs, snapshots, alerts | sqlite3 (stdlib) |
