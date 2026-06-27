@@ -88,7 +88,7 @@ def fetch_url(
             try:
                 resp = session.get(
                     current_url,
-                    timeout=timeout,
+                    timeout=(timeout, timeout * 3),  # (connect, read) timeout
                     allow_redirects=False,
                     stream=True,
                 )

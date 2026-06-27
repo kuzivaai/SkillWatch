@@ -7,7 +7,7 @@ import time
 from . import __version__
 from .detector import detect_suspicious_changes, max_severity
 from .differ import content_changed, generate_diff
-from .fetcher import fetch_url
+from .fetcher import fetch_url, strip_escape_sequences
 from .formatter import (
     bold, dim, green, red, yellow,
     format_alert_detail, format_history, format_scan_result,
@@ -15,6 +15,11 @@ from .formatter import (
 )
 from .parser import extract_urls_from_file
 from .store import Store
+
+
+def _safe(url: str) -> str:
+    """Strip escape sequences from a URL before printing to terminal."""
+    return strip_escape_sequences(url)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -110,7 +115,7 @@ def _cmd_add(store: Store, args: argparse.Namespace) -> int:
         _, is_new = store.add_url(u["url"], u["source_type"], u["source_path"])
         if is_new:
             added += 1
-            print(f"  {green('+')}  {u['url']}")
+            print(f"  {green('+')}  {_safe(u['url'])}")
         else:
             skipped += 1
 
@@ -133,16 +138,16 @@ def _cmd_add_url(store: Store, args: argparse.Namespace) -> int:
 
     _, is_new = store.add_url(args.url, "manual")
     if is_new:
-        print(f"  {green('+')}  {args.url}")
+        print(f"  {green('+')}  {_safe(args.url)}")
     else:
-        print(f"  {dim('=')}  {args.url} (already monitored)")
+        print(f"  {dim('=')}  {_safe(args.url)} (already monitored)")
     print(dim("  Run 'skillwatch scan' to perform the initial check."))
     return 0
 
 
 def _cmd_remove(store: Store, args: argparse.Namespace) -> int:
     if store.remove_url(args.url):
-        print(f"  {red('-')}  Removed {args.url}")
+        print(f"  {red('-')}  Removed {_safe(args.url)}")
     else:
         print(yellow(f"  URL not found: {args.url}"))
     return 0
@@ -276,7 +281,7 @@ def _cmd_alerts(store: Store, args: argparse.Namespace) -> int:
         flags = a.get("flags", [])
         flag_str = ", ".join(flags) if isinstance(flags, list) else str(flags)
         reviewed = " (reviewed)" if a.get("reviewed") else ""
-        print(f"  {icon} #{a['id']}  {a['url'][:60]}  {severity_label(severity)}  {dim(flag_str)}{dim(reviewed)}")
+        print(f"  {icon} #{a['id']}  {_safe(a['url'])[:60]}  {severity_label(severity)}  {dim(flag_str)}{dim(reviewed)}")
 
     print(f"\n  Run {bold('skillwatch alert <id>')} for details.")
     return 0

@@ -1,6 +1,7 @@
 """SSRF protection — validate URLs and pin DNS resolution."""
 
 import ipaddress
+import re
 import socket
 from dataclasses import dataclass
 from urllib.parse import urlparse, urlunparse
@@ -9,6 +10,7 @@ from requests.adapters import HTTPAdapter
 
 
 _BLOCKED_NETWORKS = [
+    # IPv4
     ipaddress.ip_network("0.0.0.0/8"),
     ipaddress.ip_network("10.0.0.0/8"),
     ipaddress.ip_network("100.64.0.0/10"),
@@ -17,12 +19,21 @@ _BLOCKED_NETWORKS = [
     ipaddress.ip_network("172.16.0.0/12"),
     ipaddress.ip_network("192.168.0.0/16"),
     ipaddress.ip_network("224.0.0.0/4"),
-    ipaddress.ip_network("::1/128"),
-    ipaddress.ip_network("fe80::/10"),
-    ipaddress.ip_network("fc00::/7"),
+    # IPv6
+    ipaddress.ip_network("::/128"),        # unspecified
+    ipaddress.ip_network("::1/128"),       # loopback
+    ipaddress.ip_network("fe80::/10"),     # link-local unicast
+    ipaddress.ip_network("fc00::/7"),      # unique local
+    ipaddress.ip_network("ff00::/8"),      # multicast
+    ipaddress.ip_network("2002::/16"),     # 6to4 (can wrap private IPv4)
+    ipaddress.ip_network("64:ff9b::/96"), # NAT64
 ]
 
 _ALLOWED_SCHEMES = {"http", "https"}
+
+# Reject hostnames that look like non-standard numeric IP notation
+# (decimal, octal, hex) which getaddrinfo may resolve on some systems
+_NUMERIC_HOST_RE = re.compile(r"^(\d+|0[xX][0-9a-fA-F]+)$")
 
 
 class SSRFError(Exception):
@@ -52,8 +63,17 @@ def validate_url(url: str) -> ValidatedURL:
     if not parsed.hostname:
         raise SSRFError(f"No hostname in URL: {url}")
 
+    # Reject credentials in URLs (prevents userinfo-based SSRF confusion)
+    if parsed.username or parsed.password:
+        raise SSRFError(f"Credentials in URL not permitted: {url}")
+
     hostname = parsed.hostname
     port = parsed.port or (443 if parsed.scheme == "https" else 80)
+
+    # Reject non-standard numeric IP notation (decimal, hex, octal)
+    # that getaddrinfo may resolve to private IPs on some systems
+    if _NUMERIC_HOST_RE.match(hostname):
+        raise SSRFError(f"Non-standard numeric hostname not permitted: {hostname}")
 
     # Try to parse as IP literal first
     try:
@@ -66,7 +86,7 @@ def validate_url(url: str) -> ValidatedURL:
     # Resolve hostname to IP — this is the ONLY DNS resolution that should happen
     try:
         infos = socket.getaddrinfo(hostname, port, socket.AF_UNSPEC, socket.SOCK_STREAM)
-    except socket.gaierror as exc:
+    except (socket.gaierror, UnicodeError) as exc:
         raise SSRFError(f"Cannot resolve hostname: {hostname}") from exc
 
     if not infos:
@@ -112,8 +132,6 @@ class PinnedDNSAdapter(HTTPAdapter):
         super().__init__(**kwargs)
 
     def init_poolmanager(self, connections, maxsize, block=False, **kwargs):
-        # Tell urllib3 to use the original hostname for TLS SNI and cert verification,
-        # even though the URL will contain the pinned IP address.
         kwargs["assert_hostname"] = self._hostname
         kwargs["server_hostname"] = self._hostname
         super().init_poolmanager(connections, maxsize, block=block, **kwargs)
@@ -121,10 +139,9 @@ class PinnedDNSAdapter(HTTPAdapter):
     def send(self, request, *args, **kwargs):
         parsed = urlparse(request.url)
 
-        # Set Host header to the original hostname (for virtual hosting)
-        if "Host" not in request.headers:
-            port_suffix = f":{parsed.port}" if parsed.port and parsed.port not in (80, 443) else ""
-            request.headers["Host"] = f"{parsed.hostname}{port_suffix}"
+        # Always set Host header to the original hostname
+        port_suffix = f":{parsed.port}" if parsed.port and parsed.port not in (80, 443) else ""
+        request.headers["Host"] = f"{parsed.hostname}{port_suffix}"
 
         # Rewrite URL to use the pinned IP for the actual TCP connection
         ip = self._pinned_ip

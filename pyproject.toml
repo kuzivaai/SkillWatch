@@ -20,7 +20,7 @@ classifiers = [
 ]
 dependencies = [
     "trafilatura>=2.0",
-    "requests>=2.31",
+    "requests>=2.32.4",
     "beautifulsoup4>=4.12",
     "pyyaml>=6.0",
 ]

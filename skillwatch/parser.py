@@ -51,15 +51,20 @@ def _extract_from_markdown(path: Path) -> list[dict]:
     return extract_urls_from_text(text, "skill_md", str(path))
 
 
+_MAX_CONFIG_SIZE = 1_000_000  # 1 MB cap for config files (billion-laughs mitigation)
+
+
 def _extract_from_json(path: Path) -> list[dict]:
     text = path.read_text(encoding="utf-8", errors="replace")
     urls = set()
 
-    # Extract URLs from JSON values recursively
+    if len(text) > _MAX_CONFIG_SIZE:
+        return _build_results(urls, "mcp_config", str(path))
+
     try:
         data = json.loads(text)
         _walk_json(data, urls)
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, RecursionError):
         pass
 
     # Also extract any raw URLs from the text (catches URLs in string values)
@@ -73,11 +78,14 @@ def _extract_from_yaml(path: Path) -> list[dict]:
     text = path.read_text(encoding="utf-8", errors="replace")
     urls = set()
 
+    if len(text) > _MAX_CONFIG_SIZE:
+        return _build_results(urls, "mcp_config", str(path))
+
     try:
         data = yaml.safe_load(text)
-        if isinstance(data, dict):
+        if isinstance(data, (dict, list)):
             _walk_json(data, urls)
-    except yaml.YAMLError:
+    except (yaml.YAMLError, RecursionError, MemoryError):
         pass
 
     for match in _RAW_URL_RE.finditer(text):
@@ -96,17 +104,19 @@ def _extract_from_url_list(path: Path) -> list[dict]:
     return _build_results(urls, "manual", str(path))
 
 
-def _walk_json(obj: object, urls: set[str]) -> None:
+def _walk_json(obj: object, urls: set[str], _depth: int = 0) -> None:
     """Recursively extract URLs from JSON-like structures."""
+    if _depth > 50:
+        return
     if isinstance(obj, str):
         for match in _RAW_URL_RE.finditer(obj):
             urls.add(match.group(1))
     elif isinstance(obj, dict):
         for v in obj.values():
-            _walk_json(v, urls)
+            _walk_json(v, urls, _depth + 1)
     elif isinstance(obj, list):
         for item in obj:
-            _walk_json(item, urls)
+            _walk_json(item, urls, _depth + 1)
 
 
 def _build_results(urls: set[str], source_type: str, source_path: str) -> list[dict]:
