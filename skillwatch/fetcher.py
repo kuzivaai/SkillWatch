@@ -137,13 +137,9 @@ def fetch_url(
                 error=f"HTTP {resp.status_code}",
             )
 
-        # Detect encoding from content rather than trusting server's Content-Type
-        # charset (which an attacker could set to cp037/EBCDIC to garble text).
-        # charset_normalizer (installed with requests) detects from byte content.
-        from charset_normalizer import from_bytes
-        detected = from_bytes(content_bytes).best()
-        encoding = str(detected.encoding) if detected else "utf-8"
-        raw_html = content_bytes.decode(encoding, errors="replace")
+        # Decode raw HTML with UTF-8 (for storage and HTML-level checks).
+        # Do NOT trust resp.encoding (server-controlled, can be set to EBCDIC).
+        raw_html = content_bytes.decode("utf-8", errors="replace")
 
     except requests.exceptions.Timeout:
         return FetchResult(url=url, error=f"Timeout after {timeout}s")
@@ -152,11 +148,12 @@ def fetch_url(
     except requests.exceptions.RequestException as exc:
         return FetchResult(url=url, error=f"Request error: {exc}")
 
-    # Extract text via trafilatura
-    extracted = trafilatura.extract(raw_html, include_links=True, include_tables=True)
+    # Extract text via trafilatura. Pass raw bytes so trafilatura uses its
+    # own encoding detection (charset_normalizer) rather than server-declared charset.
+    extracted = trafilatura.extract(content_bytes, include_links=True, include_tables=True)
 
     if not extracted:
-        extracted = trafilatura.extract(raw_html, include_links=True, no_fallback=False)
+        extracted = trafilatura.extract(content_bytes, include_links=True, no_fallback=False)
 
     if not extracted:
         extracted = f"[SkillWatch: could not extract text from {len(raw_html)} bytes of HTML]"
