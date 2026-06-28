@@ -237,6 +237,20 @@ def test_fallback_to_markdown_for_unknown_extension():
     Path(f.name).unlink()
 
 
+def test_extract_url_with_balanced_parens():
+    text = "[Wikipedia](https://en.wikipedia.org/wiki/URL_(disambiguation))"
+    results = extract_urls_from_text(text)
+    urls = [r["url"] for r in results]
+    assert "https://en.wikipedia.org/wiki/URL_(disambiguation)" in urls
+
+
+def test_extract_url_with_nested_parens():
+    text = "[link](https://example.com/a(b)c)"
+    results = extract_urls_from_text(text)
+    urls = [r["url"] for r in results]
+    assert "https://example.com/a(b)c" in urls
+
+
 def test_file_not_found():
     with pytest.raises(FileNotFoundError):
         extract_urls_from_file("/nonexistent/file.md")

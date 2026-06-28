@@ -8,8 +8,9 @@ from urllib.parse import urlparse
 
 import yaml
 
-# Matches markdown links [text](url) and raw URLs
-_MD_LINK_RE = re.compile(r"\[.*?\]\((https?://[^\s\)]+)\)")
+# Matches markdown links [text](url).
+# Allows one level of balanced parentheses inside the URL (CommonMark spec).
+_MD_LINK_RE = re.compile(r"\[.*?\]\((https?://(?:[^\s()]*\([^\s()]*\))*[^\s()]*)\)")
 _RAW_URL_RE = re.compile(r"(?<!\()(https?://[^\s\)\]\"'>]+)")
 
 
