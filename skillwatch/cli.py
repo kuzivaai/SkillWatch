@@ -49,6 +49,11 @@ def main(argv: list[str] | None = None) -> int:
     scan_p.add_argument("--delay", type=float, default=1.0, help="Delay between requests (seconds)")
     scan_p.add_argument("--timeout", type=int, default=10, help="Request timeout (seconds)")
     scan_p.add_argument("--quiet", action="store_true", help="Only show changes and errors")
+    scan_p.add_argument(
+        "--ignore-pattern", action="append", default=[],
+        help="Regex pattern to strip from content before hashing (repeatable). "
+             "Use to suppress timestamps, build hashes, etc.",
+    )
 
     # list
     sub.add_parser("list", help="List all monitored URLs")
@@ -174,7 +179,7 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
         url = url_record["url"]
         url_id = url_record["id"]
 
-        result = fetch_url(url, timeout=args.timeout)
+        result = fetch_url(url, timeout=args.timeout, ignore_patterns=args.ignore_pattern or None)
 
         if not result.ok:
             errors += 1
@@ -184,8 +189,9 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
                 print(format_scan_result(url, False, error=result.error))
             continue
 
-        # Get previous snapshot
-        prev = store.get_latest_snapshot(url_id)
+        # Get previous SUCCESSFUL snapshot (skip errors so a transient
+        # network blip doesn't mask a real content change)
+        prev = store.get_latest_good_snapshot(url_id)
 
         # Store new snapshot (including raw HTML for future old-vs-new comparison)
         new_snap_id = store.add_snapshot(
@@ -194,8 +200,8 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
             raw_html_hash=result.raw_html_hash, status_code=result.status_code,
         )
 
-        if prev is None or prev.get("error") is not None:
-            # First scan or previous scan errored — no comparison possible
+        if prev is None:
+            # First successful scan — no comparison possible
             unchanged += 1
             if not args.quiet:
                 print(format_scan_result(url, False))

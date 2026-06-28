@@ -131,6 +131,15 @@ class Store:
         ).fetchone()
         return dict(row) if row else None
 
+    def get_latest_good_snapshot(self, url_id: int) -> dict | None:
+        """Get the most recent snapshot that was NOT an error."""
+        row = self._conn.execute(
+            "SELECT * FROM snapshots WHERE url_id = ? AND error IS NULL "
+            "ORDER BY id DESC LIMIT 1",
+            (url_id,),
+        ).fetchone()
+        return dict(row) if row else None
+
     def get_snapshot_history(self, url_id: int, limit: int = 20) -> list[dict]:
         rows = self._conn.execute(
             "SELECT * FROM snapshots WHERE url_id = ? ORDER BY id DESC LIMIT ?",
