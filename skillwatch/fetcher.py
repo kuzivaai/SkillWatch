@@ -65,6 +65,7 @@ def fetch_url(
     timeout: int = _DEFAULT_TIMEOUT,
     user_agent: str = _DEFAULT_USER_AGENT,
     max_size: int = _MAX_RESPONSE_SIZE,
+    ignore_patterns: list[str] | None = None,
 ) -> FetchResult:
     """Fetch a URL, extract text content, and compute hashes.
 
@@ -136,7 +137,13 @@ def fetch_url(
                 error=f"HTTP {resp.status_code}",
             )
 
-        raw_html = content_bytes.decode(resp.encoding or "utf-8", errors="replace")
+        # Detect encoding from content rather than trusting server's Content-Type
+        # charset (which an attacker could set to cp037/EBCDIC to garble text).
+        # charset_normalizer (installed with requests) detects from byte content.
+        from charset_normalizer import from_bytes
+        detected = from_bytes(content_bytes).best()
+        encoding = str(detected.encoding) if detected else "utf-8"
+        raw_html = content_bytes.decode(encoding, errors="replace")
 
     except requests.exceptions.Timeout:
         return FetchResult(url=url, error=f"Timeout after {timeout}s")
@@ -158,8 +165,17 @@ def fetch_url(
     extracted = strip_escape_sequences(extracted)
     extracted = _normalise_whitespace(extracted)
 
+    # Apply ignore patterns before hashing (strips timestamps, build hashes, etc.)
+    hash_text = extracted
+    if ignore_patterns:
+        for pattern in ignore_patterns:
+            try:
+                hash_text = re.sub(pattern, "", hash_text)
+            except re.error:
+                pass  # Invalid pattern — skip silently
+
     # Compute hashes
-    content_hash = hashlib.sha256(extracted.encode("utf-8")).hexdigest()
+    content_hash = hashlib.sha256(hash_text.encode("utf-8")).hexdigest()
     raw_html_hash = hashlib.sha256(raw_html.encode("utf-8")).hexdigest()
 
     return FetchResult(

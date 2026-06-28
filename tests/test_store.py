@@ -93,6 +93,17 @@ class TestSnapshots:
         url_id, _ = store.add_url("https://example.com", "manual")
         assert store.get_latest_snapshot(url_id) is None
 
+    def test_get_latest_good_snapshot_skips_errors(self, store):
+        url_id, _ = store.add_url("https://example.com", "manual")
+        store.add_snapshot(url_id, "good_hash", "Good content")
+        store.add_snapshot(url_id, "", None, error="Timeout")
+
+        latest = store.get_latest_snapshot(url_id)
+        assert latest["error"] == "Timeout"  # most recent is error
+
+        good = store.get_latest_good_snapshot(url_id)
+        assert good["content_hash"] == "good_hash"  # skips error, returns last good
+
     def test_error_snapshot(self, store):
         url_id, _ = store.add_url("https://example.com", "manual")
         store.add_snapshot(url_id, "", None, error="Timeout")

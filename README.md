@@ -77,7 +77,7 @@ crontab -e
 | `skillwatch add <file>` | Extract and monitor URLs from SKILL.md, .json, .yaml, or .txt |
 | `skillwatch add-url <url>` | Monitor a single URL |
 | `skillwatch remove <url>` | Stop monitoring a URL |
-| `skillwatch scan` | Scan all URLs for content changes |
+| `skillwatch scan` | Scan all URLs for content changes (`--ignore-pattern` strips noise) |
 | `skillwatch list` | Show all monitored URLs and their status |
 | `skillwatch history <url>` | Show change history for a URL |
 | `skillwatch alerts` | Show unreviewed alerts |
@@ -102,11 +102,27 @@ SkillWatch fetches arbitrary URLs, so it includes SSRF protection:
 - Guarantee detection of all attacks (sophisticated evasion exists)
 - Provide real-time protection (it's periodic, not a proxy)
 
+## Reducing false positives
+
+For pages that include timestamps, build hashes, or other content that changes on every load:
+
+```bash
+# Strip ISO timestamps before hashing
+skillwatch scan --ignore-pattern '\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}'
+
+# Strip version strings
+skillwatch scan --ignore-pattern 'v\d+\.\d+\.\d+'
+
+# Multiple patterns
+skillwatch scan --ignore-pattern '\d{4}-\d{2}-\d{2}' --ignore-pattern 'Build: [a-f0-9]+'
+```
+
 ## Limitations
 
-- **False positives**: A legitimate documentation update that adds a code example with `pip install` will trigger an alert. Review alerts manually.
-- **Dynamic pages**: SPAs and heavily personalised pages may show false changes. trafilatura handles most documentation pages well but is not perfect.
-- **Evasion**: An attacker who serves different content based on User-Agent can evade detection. This is a fundamental limitation of any HTTP-based monitoring approach.
+- **False positives**: A legitimate docs update that adds `pip install` will trigger an alert. Review alerts manually.
+- **Dynamic pages**: SPAs and heavily personalised pages may show false changes. Use `--ignore-pattern` to strip volatile content.
+- **Evasion**: An attacker who serves different content based on User-Agent can evade detection. This is a fundamental limitation of any HTTP-based monitoring.
+- **Trafilatura version**: Upgrading trafilatura may change text extraction results, causing one-time false alerts across all monitored URLs.
 
 ## Development
 
