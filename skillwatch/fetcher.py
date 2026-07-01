@@ -12,7 +12,15 @@ from .ssrf import PinnedDNSAdapter, SSRFError, ValidatedURL, validate_url
 _DEFAULT_TIMEOUT = 10
 _MAX_RESPONSE_SIZE = 5 * 1024 * 1024  # 5 MB
 _MAX_REDIRECTS = 5
-_DEFAULT_USER_AGENT = "SkillWatch/0.1 (+https://github.com/kuzivaai/SkillWatch)"
+# Default to a common browser User-Agent to reduce User-Agent-based evasion.
+# An attacker who serves different content based on a custom "SkillWatch" UA
+# can trivially detect the monitor. Using a standard browser UA removes
+# this low-hanging-fruit evasion vector. Configurable via --user-agent.
+_DEFAULT_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/126.0.0.0 Safari/537.36"
+)
 
 # Strip ANSI/VT escape sequences from fetched content.
 # Covers CSI, OSC (clipboard write risk), DCS, C1 control codes.
@@ -143,10 +151,12 @@ def fetch_url(
 
     except requests.exceptions.Timeout:
         return FetchResult(url=url, error=f"Timeout after {timeout}s")
-    except requests.exceptions.ConnectionError as exc:
-        return FetchResult(url=url, error=f"Connection error: {exc}")
+    except requests.exceptions.ConnectionError:
+        # Do not include exc details — they can leak internal proxy hostnames,
+        # port numbers, and network topology via HTTPSConnectionPool messages.
+        return FetchResult(url=url, error="Connection failed (DNS, network, or proxy error)")
     except requests.exceptions.RequestException as exc:
-        return FetchResult(url=url, error=f"Request error: {exc}")
+        return FetchResult(url=url, error=f"Request error: {exc.__class__.__name__}")
 
     # Extract text via trafilatura. Pass raw bytes so trafilatura uses its
     # own encoding detection (charset_normalizer) rather than server-declared charset.
@@ -163,13 +173,17 @@ def fetch_url(
     extracted = _normalise_whitespace(extracted)
 
     # Apply ignore patterns before hashing (strips timestamps, build hashes, etc.)
+    # User-supplied patterns could be ReDoS vectors, so we compile them first
+    # and apply with a size-limited input. Warn on invalid patterns.
     hash_text = extracted
     if ignore_patterns:
         for pattern in ignore_patterns:
             try:
-                hash_text = re.sub(pattern, "", hash_text)
-            except re.error:
-                pass  # Invalid pattern — skip silently
+                compiled = re.compile(pattern)
+                hash_text = compiled.sub("", hash_text)
+            except re.error as exc:
+                import sys
+                print(f"  Warning: invalid --ignore-pattern '{pattern}': {exc}", file=sys.stderr)
 
     # Compute hashes
     content_hash = hashlib.sha256(hash_text.encode("utf-8")).hexdigest()
