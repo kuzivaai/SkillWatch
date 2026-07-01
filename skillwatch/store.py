@@ -110,18 +110,20 @@ class Store:
         raw_html: str | None = None, raw_html_hash: str | None = None,
         status_code: int | None = None, error: str | None = None,
     ) -> int:
-        cur = self._conn.execute(
-            "INSERT INTO snapshots (url_id, content_hash, content_text, raw_html, raw_html_hash, status_code, error) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (url_id, content_hash, content_text, raw_html, raw_html_hash, status_code, error),
-        )
-        # Prune old snapshots to prevent unbounded disk growth (keep most recent 50)
-        self._conn.execute(
-            "DELETE FROM snapshots WHERE url_id = ? AND id NOT IN "
-            "(SELECT id FROM snapshots WHERE url_id = ? ORDER BY id DESC LIMIT 50)",
-            (url_id, url_id),
-        )
-        self._conn.commit()
+        # Single transaction: INSERT + prune together to prevent intermediate
+        # states where snapshot count exceeds 50 under concurrent access.
+        with self._conn:
+            cur = self._conn.execute(
+                "INSERT INTO snapshots (url_id, content_hash, content_text, raw_html, raw_html_hash, status_code, error) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (url_id, content_hash, content_text, raw_html, raw_html_hash, status_code, error),
+            )
+            # Prune old snapshots to prevent unbounded disk growth (keep most recent 50)
+            self._conn.execute(
+                "DELETE FROM snapshots WHERE url_id = ? AND id NOT IN "
+                "(SELECT id FROM snapshots WHERE url_id = ? ORDER BY id DESC LIMIT 50)",
+                (url_id, url_id),
+            )
         return cur.lastrowid
 
     def get_latest_snapshot(self, url_id: int) -> dict | None:

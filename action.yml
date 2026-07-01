@@ -1,0 +1,71 @@
+name: "SkillWatch Scan"
+description: "Monitor AI agent skill URLs for bait-and-switch content changes"
+author: "Kuziva Muzondo"
+
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  files:
+    description: "Space-separated list of SKILL.md, MCP config, or URL list files to monitor"
+    required: true
+  preset:
+    description: "Ignore pattern preset (docs or none)"
+    required: false
+    default: "docs"
+  extra-args:
+    description: "Additional arguments passed to skillwatch scan"
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install SkillWatch
+      shell: bash
+      run: pip install skillwatch
+
+    - name: Restore scan database
+      uses: actions/cache@v4
+      with:
+        path: ~/.skillwatch
+        key: skillwatch-db-${{ hashFiles(inputs.files) }}
+        restore-keys: skillwatch-db-
+
+    - name: Add URLs
+      shell: bash
+      run: |
+        for f in ${{ inputs.files }}; do
+          if [ -f "$f" ]; then
+            skillwatch add "$f" || true
+          fi
+        done
+
+    - name: Scan
+      shell: bash
+      run: |
+        skillwatch scan \
+          --delay 0.5 \
+          --preset ${{ inputs.preset }} \
+          --output json \
+          ${{ inputs.extra-args }} \
+          | tee /tmp/skillwatch-results.json
+        exit_code=${PIPESTATUS[0]}
+        if [ "$exit_code" -eq 1 ]; then
+          echo "::warning::SkillWatch found suspicious content changes"
+        fi
+        exit $exit_code
+
+    - name: Upload results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: skillwatch-results
+        path: /tmp/skillwatch-results.json
+        retention-days: 30

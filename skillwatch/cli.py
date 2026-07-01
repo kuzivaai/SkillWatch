@@ -1,13 +1,14 @@
 """SkillWatch CLI — continuous URL content monitoring for AI skills."""
 
 import argparse
+import json as json_mod
 import sys
 import time
 
 from . import __version__
 from .detector import detect_suspicious_changes, max_severity
 from .differ import content_changed, generate_diff
-from .fetcher import fetch_url, strip_escape_sequences
+from .fetcher import _DEFAULT_USER_AGENT, fetch_url, strip_escape_sequences
 from .formatter import (
     bold, dim, green, red, yellow,
     format_alert_detail, format_history, format_scan_result,
@@ -16,10 +17,35 @@ from .formatter import (
 from .parser import extract_urls_from_file
 from .store import Store
 
+# Built-in ignore pattern presets. These cover the most common sources
+# of false positives on documentation and setup pages.
+_PRESETS: dict[str, list[str]] = {
+    "docs": [
+        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}",              # ISO 8601 timestamps
+        r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b",  # UUIDs
+        r"\b[0-9]{10,13}\b",                                    # Unix timestamps (sec/ms)
+        r"[?&](?:v|ver|version|_)=[\w.]+",                      # Query version params
+        r"\b[a-f0-9]{20,40}\b",                                 # Build/commit hashes
+        r"nonce=['\"][^'\"]+['\"]",                              # CSRF nonces
+    ],
+}
+
 
 def _safe(url: str) -> str:
     """Strip escape sequences from a URL before printing to terminal."""
     return strip_escape_sequences(url)
+
+
+def _add_db_arg(p: argparse.ArgumentParser) -> None:
+    """Add --db to a subparser with SUPPRESS default.
+
+    Using SUPPRESS means the attribute is only set if the user provides
+    the flag, so it won't override the value from the parent parser.
+    This lets --db work both before and after the subcommand:
+      skillwatch --db /path scan
+      skillwatch scan --db /path
+    """
+    p.add_argument("--db", type=str, default=argparse.SUPPRESS, help="Path to SQLite database")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -35,14 +61,17 @@ def main(argv: list[str] | None = None) -> int:
     # add
     add_p = sub.add_parser("add", help="Add URLs from a SKILL.md, MCP config, or URL list")
     add_p.add_argument("file", help="Path to SKILL.md, .json, .yaml, or .txt file")
+    _add_db_arg(add_p)
 
     # add-url
     add_url_p = sub.add_parser("add-url", help="Add a single URL to monitor")
     add_url_p.add_argument("url", help="URL to monitor")
+    _add_db_arg(add_url_p)
 
     # remove
     rm_p = sub.add_parser("remove", help="Stop monitoring a URL")
     rm_p.add_argument("url", help="URL to remove")
+    _add_db_arg(rm_p)
 
     # scan
     scan_p = sub.add_parser("scan", help="Scan all monitored URLs for changes")
@@ -50,31 +79,49 @@ def main(argv: list[str] | None = None) -> int:
     scan_p.add_argument("--timeout", type=int, default=10, help="Request timeout (seconds)")
     scan_p.add_argument("--quiet", action="store_true", help="Only show changes and errors")
     scan_p.add_argument(
+        "--output", choices=["text", "json"], default="text",
+        help="Output format: text (default) or json (machine-readable, for piping to jq/webhooks)",
+    )
+    scan_p.add_argument(
+        "--user-agent", type=str, default=None,
+        help="Custom User-Agent string for HTTP requests",
+    )
+    scan_p.add_argument(
+        "--preset", choices=["docs", "none"], default="none",
+        help="Built-in ignore pattern preset: 'docs' strips timestamps, UUIDs, build hashes",
+    )
+    scan_p.add_argument(
         "--ignore-pattern", action="append", default=[],
         help="Regex pattern to strip from content before hashing (repeatable). "
              "Use to suppress timestamps, build hashes, etc.",
     )
+    _add_db_arg(scan_p)
 
     # list
-    sub.add_parser("list", help="List all monitored URLs")
+    list_p = sub.add_parser("list", help="List all monitored URLs")
+    _add_db_arg(list_p)
 
     # history
     hist_p = sub.add_parser("history", help="Show change history for a URL")
     hist_p.add_argument("url", help="URL to show history for")
+    _add_db_arg(hist_p)
 
     # alerts
     alerts_p = sub.add_parser("alerts", help="Show alerts")
     alerts_p.add_argument("--all", action="store_true", help="Include reviewed alerts")
+    _add_db_arg(alerts_p)
 
     # alert
     alert_p = sub.add_parser("alert", help="Show alert details")
     alert_p.add_argument("id", type=int, help="Alert ID")
     alert_p.add_argument("--review", action="store_true", help="Mark as reviewed")
+    _add_db_arg(alert_p)
 
     args = parser.parse_args(argv)
 
     if not args.command:
         parser.print_help()
+        print(dim("\n  Get started: skillwatch add <SKILL.md>  then  skillwatch scan"))
         return 0
 
     store = Store(db_path=args.db)
@@ -160,17 +207,29 @@ def _cmd_remove(store: Store, args: argparse.Namespace) -> int:
 
 def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
     urls = store.get_urls()
+    json_out = args.output == "json"
+
     if not urls:
-        print(dim("  No URLs to scan. Use 'skillwatch add <file>' to start."))
+        if json_out:
+            print(json_mod.dumps({"status": "empty", "message": "No URLs to scan"}))
+        else:
+            print(dim("  No URLs to scan. Use 'skillwatch add <file>' to start."))
         return 0
 
-    print(bold(f"\n  Scanning {len(urls)} URLs...\n"))
+    # Merge preset patterns with user-supplied patterns
+    ignore_patterns = list(args.ignore_pattern)
+    if args.preset != "none" and args.preset in _PRESETS:
+        ignore_patterns = _PRESETS[args.preset] + ignore_patterns
+
+    if not json_out:
+        print(bold(f"\n  Scanning {len(urls)} URLs...\n"))
 
     total = len(urls)
     unchanged = 0
     changed = 0
     alerts_created = 0
     errors = 0
+    json_results: list[dict] = []
 
     for i, url_record in enumerate(urls):
         if i > 0 and args.delay > 0:
@@ -179,21 +238,24 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
         url = url_record["url"]
         url_id = url_record["id"]
 
-        result = fetch_url(url, timeout=args.timeout, ignore_patterns=args.ignore_pattern or None)
+        result = fetch_url(
+            url,
+            timeout=args.timeout,
+            user_agent=args.user_agent or _DEFAULT_USER_AGENT,
+            ignore_patterns=ignore_patterns or None,
+        )
 
         if not result.ok:
             errors += 1
-            # Store error snapshot
             store.add_snapshot(url_id, "", None, error=result.error, status_code=result.status_code)
-            if not args.quiet:
+            if json_out:
+                json_results.append({"url": url, "status": "error", "error": result.error})
+            elif not args.quiet:
                 print(format_scan_result(url, False, error=result.error))
             continue
 
-        # Get previous SUCCESSFUL snapshot (skip errors so a transient
-        # network blip doesn't mask a real content change)
         prev = store.get_latest_good_snapshot(url_id)
 
-        # Store new snapshot (including raw HTML for future old-vs-new comparison)
         new_snap_id = store.add_snapshot(
             url_id, result.content_hash, result.content_text,
             raw_html=result.raw_html,
@@ -201,19 +263,21 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
         )
 
         if prev is None:
-            # First successful scan — no comparison possible
             unchanged += 1
-            if not args.quiet:
+            if json_out:
+                json_results.append({"url": url, "status": "baseline"})
+            elif not args.quiet:
                 print(format_scan_result(url, False))
             continue
 
         if not content_changed(prev["content_hash"], result.content_hash):
             unchanged += 1
-            if not args.quiet:
+            if json_out:
+                json_results.append({"url": url, "status": "unchanged"})
+            elif not args.quiet:
                 print(format_scan_result(url, False))
             continue
 
-        # Content changed — analyse
         changed += 1
         diff_text = generate_diff(
             prev.get("content_text", "") or "",
@@ -232,7 +296,6 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
         severity = max_severity(flags)
         flag_codes = [f.code for f in flags]
 
-        # Create alert
         store.add_alert(
             url_id,
             prev_snapshot_id=prev["id"],
@@ -243,12 +306,27 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
         )
         alerts_created += 1
 
-        print(format_scan_result(url, True, flags))
+        if json_out:
+            json_results.append({
+                "url": url, "status": "changed", "severity": severity,
+                "flags": [{"code": f.code, "severity": f.severity,
+                           "description": f.description, "evidence": f.evidence}
+                          for f in flags],
+            })
+        else:
+            print(format_scan_result(url, True, flags))
 
-    print(format_scan_summary(total, unchanged, changed, alerts_created, errors))
-
-    if alerts_created > 0:
-        print(f"\n  Run {bold('skillwatch alerts')} to view details.")
+    if json_out:
+        print(json_mod.dumps({
+            "version": __version__,
+            "total": total, "unchanged": unchanged, "changed": changed,
+            "alerts": alerts_created, "errors": errors,
+            "results": json_results,
+        }, indent=2))
+    else:
+        print(format_scan_summary(total, unchanged, changed, alerts_created, errors))
+        if alerts_created > 0:
+            print(f"\n  Run {bold('skillwatch alerts')} to view details.")
 
     return 1 if alerts_created > 0 else 0
 

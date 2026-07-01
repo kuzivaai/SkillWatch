@@ -4,26 +4,52 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "skillwatch"
-version = "0.1.0"
-description = "Continuous URL content monitoring for AI skills and MCP tools"
+version = "0.2.0"
+description = "Monitor external URLs referenced by AI agent skills and MCP tools for bait-and-switch content changes"
+readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.10"
 authors = [
     { name = "Kuziva Muzondo" },
 ]
-keywords = ["ai", "security", "mcp", "skills", "monitoring"]
+keywords = [
+    "ai-security",
+    "mcp",
+    "mcp-security",
+    "ai-agent",
+    "supply-chain-security",
+    "url-monitoring",
+    "bait-and-switch",
+    "prompt-injection",
+    "skill-security",
+    "content-monitoring",
+    "homoglyph-detection",
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Security",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Internet :: WWW/HTTP :: Site Management",
+    "Typing :: Typed",
 ]
 dependencies = [
     "trafilatura>=2.0,<3",
     "requests>=2.32.4",
     "beautifulsoup4>=4.12",
     "pyyaml>=6.0",
+    "confusable_homoglyphs>=3.3",
 ]
+
+[project.urls]
+Homepage = "https://github.com/kuzivaai/SkillWatch"
+Repository = "https://github.com/kuzivaai/SkillWatch"
+Issues = "https://github.com/kuzivaai/SkillWatch/issues"
 
 [project.scripts]
 skillwatch = "skillwatch.cli:main"
@@ -33,7 +59,12 @@ dev = [
     "pytest>=8.0",
     "pytest-cov",
     "responses>=0.25",
+    "ruff",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
