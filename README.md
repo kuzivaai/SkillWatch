@@ -1,21 +1,24 @@
 # SkillWatch
 
-Continuous URL content monitoring for AI skills and MCP tools.
+Continuous URL content monitoring for AI agent skills and MCP tools. Detects bait-and-switch attacks where skill-referenced URLs change from legitimate documentation to malicious instructions.
 
-Static scanners check skills once — at install time. But the URLs those skills reference can change afterwards. A skill that pointed to legitimate documentation yesterday can point to malicious instructions today.
+[![CI](https://github.com/kuzivaai/SkillWatch/actions/workflows/ci.yml/badge.svg)](https://github.com/kuzivaai/SkillWatch/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/skillwatch)](https://pypi.org/project/skillwatch/)
+[![Python](https://img.shields.io/pypi/pyversions/skillwatch)](https://pypi.org/project/skillwatch/)
+[![License](https://img.shields.io/github/license/kuzivaai/SkillWatch)](LICENSE)
 
-SkillWatch monitors the **content at external URLs** referenced by your installed skills. It detects when that content changes and flags suspicious patterns like new download commands, script injection, or credential harvesting.
+## Why this exists
 
-## The problem
+Static scanners check AI agent skills once, at install time. But the external URLs those skills reference can change afterwards. In June 2026, [security researchers demonstrated](https://www.air.security/blog-posts/the-story-of-skills) that a fake skill could bypass Cisco, NVIDIA, and skills.sh scanners by keeping its code clean while pointing to an external URL. After distribution, the URL content was swapped from legitimate documentation to malicious instructions.
 
-In June 2026, security researchers demonstrated that a fake AI skill could bypass every major scanner (Cisco, NVIDIA, skills.sh) by keeping its own code clean while pointing to an external URL. After distribution, the URL's content was swapped from legitimate documentation to malicious instructions. Static scanners never re-checked.
+The [ClawHavoc campaign](https://orca.security/resources/blog/ai-agent-skill-supply-chain-security/) compromised 1,184 skills using similar techniques. The [Cloud Security Alliance](https://labs.cloudsecurityalliance.org/research/csa-research-note-skill-md-agent-context-poisoning-20260506/) published a dedicated research note on SKILL.md context poisoning.
 
-Existing tools like [MCP-Scan](https://github.com/invariantlabs-ai/mcp-scan) monitor tool **descriptions** (metadata). SkillWatch monitors what those tools **point to** (URL content). They're complementary.
+Existing tools like [Snyk Agent Scan](https://github.com/snyk/agent-scan) monitor tool descriptions and metadata. SkillWatch monitors what those tools **point to** — the actual content at external URLs. They are complementary.
 
 ## Install
 
 ```bash
-pip install git+https://github.com/kuzivaai/SkillWatch.git
+pip install skillwatch
 ```
 
 Or from source:
@@ -26,7 +29,7 @@ cd SkillWatch
 pip install .
 ```
 
-Requires Python 3.10+.
+Requires Python 3.10+. Five dependencies, all Apache/MIT/BSD licensed.
 
 ## Quick start
 
@@ -41,7 +44,6 @@ skillwatch add-url https://docs.example.com/setup
 skillwatch scan
 
 # Check results
-skillwatch list
 skillwatch alerts
 skillwatch alert 1
 ```
@@ -49,26 +51,39 @@ skillwatch alert 1
 ## How it works
 
 1. **Parse** — Extracts URLs from SKILL.md files, MCP configs (.json/.yaml), or plain URL lists
-2. **Fetch** — Downloads each URL and extracts the main text content (using [trafilatura](https://github.com/adbar/trafilatura))
-3. **Hash** — Computes SHA-256 of the extracted text and stores it locally (SQLite)
+2. **Fetch** — Downloads each URL with SSRF protection and DNS pinning, extracts text via [trafilatura](https://github.com/adbar/trafilatura)
+3. **Hash** — Computes SHA-256 of the extracted text, stores locally in SQLite
 4. **Compare** — On subsequent scans, detects content changes via hash comparison
-5. **Detect** — Flags suspicious patterns in changed content:
-   - New download/execution commands (`curl`, `pip install`, `eval()`, etc.)
-   - New base64-encoded strings (potential obfuscated payloads)
-   - New external domains referenced
-   - Credential/secret keyword references
-   - Major content deletions (>50%)
-   - Suspicious HTML (`<script>` with eval/fetch, `<iframe>`)
+5. **Detect** — Analyses changes against 13 suspicious pattern detectors:
+
+| Pattern | Severity | What it catches |
+|---|---|---|
+| Exec commands | Critical | `curl`, `pip install`, `eval()`, `subprocess`, `powershell` |
+| Prompt injection | Critical | 32 ATR-derived patterns covering 7 languages + obfuscation (base64, zero-width, spaced letters) |
+| Suspicious scripts | Critical | New `<script>` tags with eval/fetch/cookie access |
+| Data URI embeds | Critical | `<iframe src="data:text/html;base64,...">` |
+| Base64 strings | Warning | Obfuscated payloads (40+ character base64 blocks) |
+| Credential keywords | Warning | New references to `api_key`, `token`, `password`, `.env` |
+| New domains | Warning | URLs pointing to domains not in the original content |
+| Unicode homoglyphs | Warning | Cyrillic/Greek characters via Unicode Consortium confusables database |
+| Data URI payloads | Warning | `data:text/html` and `data:application/javascript` in text |
+| Meta refresh | Warning | New `<meta http-equiv="refresh">` redirects |
+| Major deletion | Warning | >50% of original content removed |
+| Iframes | Warning | New `<iframe>` elements |
+| Hidden content | Info | New elements with `display:none` or `visibility:hidden` |
+
+All HTML-level checks are **diff-based** — only newly introduced elements trigger alerts, avoiding false positives from pre-existing scripts or iframes.
+
+Unicode homoglyph detection uses the [Unicode Consortium's official confusables database](https://github.com/vhf/confusable_homoglyphs) covering thousands of lookalike characters across all scripts.
 
 ## Automate with cron
 
-Check every 4 hours:
-
 ```bash
-crontab -e
-# Add:
+# Check every 4 hours
 0 */4 * * * /path/to/skillwatch scan --quiet >> /var/log/skillwatch.log 2>&1
 ```
+
+SkillWatch exits with code 1 when alerts are created, making it easy to chain with notification tools.
 
 ## Commands
 
@@ -77,34 +92,40 @@ crontab -e
 | `skillwatch add <file>` | Extract and monitor URLs from SKILL.md, .json, .yaml, or .txt |
 | `skillwatch add-url <url>` | Monitor a single URL |
 | `skillwatch remove <url>` | Stop monitoring a URL |
-| `skillwatch scan` | Scan all URLs for content changes (`--ignore-pattern` strips noise) |
+| `skillwatch scan` | Scan all URLs for content changes |
 | `skillwatch list` | Show all monitored URLs and their status |
 | `skillwatch history <url>` | Show change history for a URL |
 | `skillwatch alerts` | Show unreviewed alerts |
 | `skillwatch alert <id>` | Show alert details with diff |
 | `skillwatch alert <id> --review` | Mark an alert as reviewed |
 
+### Scan options
+
+| Flag | Description |
+|---|---|
+| `--delay N` | Seconds between requests (default: 1.0) |
+| `--timeout N` | Request timeout in seconds (default: 10) |
+| `--quiet` | Only show changes and errors |
+| `--output text\|json` | Output format: text (default) or JSON for piping to webhooks |
+| `--preset docs` | Built-in ignore patterns for timestamps, UUIDs, build hashes |
+| `--user-agent STRING` | Custom User-Agent for HTTP requests |
+| `--ignore-pattern REGEX` | Strip matching text before hashing (repeatable) |
+| `--db PATH` | Path to SQLite database |
+
+`--db` works before or after the subcommand: `skillwatch --db /path scan` and `skillwatch scan --db /path` are equivalent.
+
 ## Security
 
-SkillWatch fetches arbitrary URLs, so it includes SSRF protection:
+SkillWatch fetches arbitrary URLs, so it includes defence-in-depth:
 
-- Blocks private IPs (`10.x`, `172.16.x`, `192.168.x`), loopback, link-local, and cloud metadata endpoints
-- Only allows `http://` and `https://` schemes
-- Validates redirect targets at each hop
-- Limits response size to 5 MB
-- Strips ANSI escape sequences from fetched content
-- All data stored locally in `~/.skillwatch/skillwatch.db` — nothing is sent externally
-
-## What SkillWatch does NOT do
-
-- Replace MCP-Scan or other static scanners (use both)
-- Monitor tool descriptions or metadata (MCP-Scan does this)
-- Guarantee detection of all attacks (sophisticated evasion exists)
-- Provide real-time protection (it's periodic, not a proxy)
+- **SSRF protection**: Blocks private IPs, loopback, link-local, cloud metadata endpoints
+- **DNS pinning**: Resolves DNS once, pins the IP for the connection (prevents rebinding)
+- **Per-hop redirect validation**: Each redirect target is SSRF-checked before following
+- **Escape stripping**: ANSI/VT escape sequences removed at fetch and display time
+- **Size limits**: 5 MB response limit, 5-hop redirect limit
+- **Local storage only**: All data in `~/.skillwatch/skillwatch.db`, nothing sent externally
 
 ## Reducing false positives
-
-For pages that include timestamps, build hashes, or other content that changes on every load:
 
 ```bash
 # Strip ISO timestamps before hashing
@@ -112,17 +133,21 @@ skillwatch scan --ignore-pattern '\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}'
 
 # Strip version strings
 skillwatch scan --ignore-pattern 'v\d+\.\d+\.\d+'
-
-# Multiple patterns
-skillwatch scan --ignore-pattern '\d{4}-\d{2}-\d{2}' --ignore-pattern 'Build: [a-f0-9]+'
 ```
 
 ## Limitations
 
-- **False positives**: A legitimate docs update that adds `pip install` will trigger an alert. Review alerts manually.
-- **Dynamic pages**: SPAs and heavily personalised pages may show false changes. Use `--ignore-pattern` to strip volatile content.
-- **Evasion**: An attacker who serves different content based on User-Agent can evade detection. This is a fundamental limitation of any HTTP-based monitoring.
-- **Trafilatura version**: Upgrading trafilatura may change text extraction results, causing one-time false alerts across all monitored URLs.
+- **False positives**: Legitimate docs updates that add `pip install` will trigger alerts. Review manually.
+- **Dynamic pages**: SPAs and JS-rendered content may cause false changes. Use `--ignore-pattern`.
+- **Evasion**: Uses a standard browser User-Agent by default (configurable via `--user-agent`). IP-based cloaking, TLS fingerprinting, and JS-only rendering can still evade detection.
+- **Prompt injection**: Keyword-based detection catches common phrasing but not novel formulations or obfuscated injections (ROT13, emoji encoding).
+
+## What SkillWatch does NOT do
+
+- Replace Snyk Agent Scan or other static scanners (use both)
+- Monitor tool descriptions or metadata (Snyk Agent Scan does this)
+- Guarantee detection of all attacks (sophisticated evasion exists)
+- Provide real-time protection (it is periodic, not a proxy)
 
 ## Development
 
@@ -134,6 +159,8 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 pytest
 ```
+
+185 tests, 94% code coverage.
 
 ## Licence
 

