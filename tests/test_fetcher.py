@@ -207,3 +207,28 @@ class TestFetchUrlHTTP:
             result = fetch_url("https://example.com/evil")
         assert result.ok
         assert "\x1b" not in (result.content_text or "")
+
+
+class TestReDoSProtection:
+    """Tests for SEC-001 fix: user-supplied regex timeout."""
+
+    def test_catastrophic_backtracking_bounded(self):
+        """A known ReDoS pattern must not hang; it should time out and return text unchanged."""
+        import re
+        from skillwatch.fetcher import _safe_regex_sub
+
+        # (a+)+$ is a classic ReDoS pattern; on input "a" * 25 + "!" it causes
+        # exponential backtracking that would hang without a timeout.
+        redos_pattern = re.compile(r"(a+)+$")
+        evil_input = "a" * 25 + "!"
+
+        import time
+        start = time.monotonic()
+        result = _safe_regex_sub(redos_pattern, evil_input, "(a+)+$")
+        elapsed = time.monotonic() - start
+
+        # Must return within 10 seconds (the timeout is 2s, plus margin for
+        # thread pool overhead and CPU contention in CI/WSL environments)
+        assert elapsed < 10, f"ReDoS protection failed: took {elapsed:.1f}s"
+        # The text should be returned unchanged (timeout means skip)
+        assert result == evil_input

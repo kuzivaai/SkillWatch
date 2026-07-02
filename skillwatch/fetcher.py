@@ -1,5 +1,6 @@
 """Fetch URL content and extract text using trafilatura."""
 
+import concurrent.futures
 import hashlib
 import re
 from urllib.parse import urljoin, urlparse
@@ -16,7 +17,7 @@ _MAX_REDIRECTS = 5
 # An attacker who serves different content based on a custom "SkillWatch" UA
 # can trivially detect the monitor. Using a standard browser UA removes
 # this low-hanging-fruit evasion vector. Configurable via --user-agent.
-_DEFAULT_USER_AGENT = (
+DEFAULT_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/126.0.0.0 Safari/537.36"
@@ -71,7 +72,7 @@ def _make_pinned_session(validated: ValidatedURL, user_agent: str) -> requests.S
 def fetch_url(
     url: str,
     timeout: int = _DEFAULT_TIMEOUT,
-    user_agent: str = _DEFAULT_USER_AGENT,
+    user_agent: str = DEFAULT_USER_AGENT,
     max_size: int = _MAX_RESPONSE_SIZE,
     ignore_patterns: list[str] | None = None,
 ) -> FetchResult:
@@ -173,17 +174,18 @@ def fetch_url(
     extracted = _normalise_whitespace(extracted)
 
     # Apply ignore patterns before hashing (strips timestamps, build hashes, etc.)
-    # User-supplied patterns could be ReDoS vectors, so we compile them first
-    # and apply with a size-limited input. Warn on invalid patterns.
+    # User-supplied patterns are ReDoS vectors (SEC-001), so each substitution
+    # runs in a worker thread with a 2-second timeout.
     hash_text = extracted
     if ignore_patterns:
         for pattern in ignore_patterns:
             try:
                 compiled = re.compile(pattern)
-                hash_text = compiled.sub("", hash_text)
             except re.error as exc:
                 import sys
                 print(f"  Warning: invalid --ignore-pattern '{pattern}': {exc}", file=sys.stderr)
+                continue
+            hash_text = _safe_regex_sub(compiled, hash_text, pattern)
 
     # Compute hashes
     content_hash = hashlib.sha256(hash_text.encode("utf-8")).hexdigest()
@@ -197,6 +199,32 @@ def fetch_url(
         raw_html_hash=raw_html_hash,
         status_code=resp.status_code,
     )
+
+
+_REGEX_TIMEOUT = 2  # seconds; guards against catastrophic backtracking (SEC-001)
+
+
+def _safe_regex_sub(compiled: re.Pattern, text: str, pattern_str: str) -> str:
+    """Apply regex substitution with a timeout to guard against ReDoS.
+
+    Returns the original text unchanged if the substitution times out.
+    Uses shutdown(wait=False, cancel_futures=True) so the calling thread
+    is not blocked waiting for a stuck regex worker.
+    """
+    pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    future = pool.submit(compiled.sub, "", text)
+    try:
+        return future.result(timeout=_REGEX_TIMEOUT)
+    except concurrent.futures.TimeoutError:
+        import sys
+        print(
+            f"  Warning: --ignore-pattern '{pattern_str}' timed out after "
+            f"{_REGEX_TIMEOUT}s (possible ReDoS), skipping",
+            file=sys.stderr,
+        )
+        return text
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
 
 
 def strip_escape_sequences(text: str) -> str:

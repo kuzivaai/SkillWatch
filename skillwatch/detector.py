@@ -16,6 +16,11 @@ _SUSPICIOUS_COMMANDS = re.compile(
 )
 
 _BASE64_PATTERN = re.compile(r"[A-Za-z0-9+/]{40,}={0,2}")
+_HEX_ONLY_RE = re.compile(r"^[0-9a-fA-F]+$")
+# A genuine base64 string of 40+ chars will contain at least one character
+# outside the hex alphabet OR use base64 padding (=). Strings that are purely
+# lowercase-alpha-plus-slash (like URL paths) are not base64.
+_PURE_LOWER_SLASH_RE = re.compile(r"^[a-z/]+$")
 
 _DATA_EXFIL_PATTERN = re.compile(
     r"\b(api[_-]?key|secret|token|password|credential|auth|"
@@ -36,7 +41,27 @@ _SUSPICIOUS_SCRIPT_KEYWORDS = [
 # plus obfuscation techniques (base64, zero-width, spaced letters, URL-encoding).
 # Only the subset applicable to static web page text is included; patterns requiring
 # conversation context (praise-redirect, task switching) are excluded.
-_PROMPT_INJECTION_PATTERNS: list[re.Pattern[str]] = [re.compile(p, re.IGNORECASE) for p in [
+
+
+def _compile_injection_patterns(pattern_strings: list[str]) -> list[re.Pattern[str]]:
+    """Compile injection pattern strings with descriptive errors on failure.
+
+    If any pattern is malformed, raises ValueError naming the offending pattern
+    rather than a bare re.error that breaks import with no useful context.
+    """
+    compiled: list[re.Pattern[str]] = []
+    for i, p in enumerate(pattern_strings):
+        try:
+            compiled.append(re.compile(p, re.IGNORECASE))
+        except re.error as exc:
+            raise ValueError(
+                f"Malformed prompt injection pattern #{i + 1} of {len(pattern_strings)}: "
+                f"{exc}\nPattern: {p[:120]}"
+            ) from exc
+    return compiled
+
+
+_PROMPT_INJECTION_PATTERNS = _compile_injection_patterns([
     # English instruction override (broad)
     r"\b(ignore|disregard|forget|override|bypass|skip|abandon|drop|cancel|suppress|nullify|void|revoke|dismiss|discard|reject)\s+"
     r"(all\s+)?(the\s+|your\s+|my\s+|any\s+|these\s+|those\s+)?"
@@ -102,7 +127,7 @@ _PROMPT_INJECTION_PATTERNS: list[re.Pattern[str]] = [re.compile(p, re.IGNORECASE
     r"(\u0437\u0430\u0431\u0443\u0434\u044C|\u0437\u0430\u0431\u0443\u0434\u044C\u0442\u0435|\u0438\u0433\u043D\u043E\u0440\u0438\u0440\u0443\u0439|\u0438\u0433\u043D\u043E\u0440\u0438\u0440\u0443\u0439\u0442\u0435|\u043F\u0440\u043E\u0438\u0433\u043D\u043E\u0440\u0438\u0440\u0443\u0439|\u043E\u0442\u0431\u0440\u043E\u0441\u044C|\u043E\u0442\u0431\u0440\u043E\u0441\u044C\u0442\u0435)\s+(\u0432\u0441\u0435|\u0432\u0441\u0451|\u043F\u0440\u0435\u0434\u044B\u0434\u0443\u0449\u0438\u0435|\u043F\u0440\u0435\u0436\u043D\u0438\u0435)?\s*(\u0438\u043D\u0441\u0442\u0440\u0443\u043A\u0446\u0438\u0438|\u043F\u0440\u0430\u0432\u0438\u043B\u0430|\u0443\u043A\u0430\u0437\u0430\u043D\u0438\u044F|\u043A\u043E\u043C\u0430\u043D\u0434\u044B|\u043E\u0433\u0440\u0430\u043D\u0438\u0447\u0435\u043D\u0438\u044F)",
     # Serbian/Croatian
     r"(zaboravi|ignoriraj|zanemari|presko\u010Di|preskoci)\s+(sve|prethodne|ranije)?\s*(instrukcije|pravila|upute|naredbe|ograni\u010Denja|ogranicenja|instrukci)",
-]]
+])
 
 # --- Pattern 8: Unicode confusable characters ---
 # Uses the confusable_homoglyphs library backed by the Unicode Consortium's
@@ -158,7 +183,13 @@ def detect_suspicious_changes(
         ))
 
     # 2. New base64-encoded strings (potential obfuscated payloads)
-    b64_matches = _BASE64_PATTERN.findall(added_lines)
+    # Filter out pure hexadecimal strings (SHA-1, SHA-224, SHA-256 digests)
+    # which match the base64 character class but are not base64 payloads.
+    b64_raw = _BASE64_PATTERN.findall(added_lines)
+    b64_matches = [
+        m for m in b64_raw
+        if not _HEX_ONLY_RE.match(m) and not _PURE_LOWER_SLASH_RE.match(m)
+    ]
     if b64_matches:
         flags.append(Flag(
             code="new_base64",

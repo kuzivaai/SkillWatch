@@ -421,6 +421,44 @@ class TestDataURIEmbedHTML:
         assert embed_flags[0].severity == "critical"
 
 
+class TestPatternCompilationSafety:
+    """Tests for F-08 fix: malformed pattern raises descriptive ValueError, not bare re.error."""
+
+    def test_malformed_pattern_raises_descriptive_error(self):
+        from skillwatch.detector import _compile_injection_patterns
+        import pytest
+        with pytest.raises(ValueError, match=r"Malformed prompt injection pattern #1"):
+            _compile_injection_patterns(["(unclosed group"])
+
+
+class TestBase64HexFiltering:
+    """Tests for I-11 fix: SHA-256 hex digests must not trigger new_base64."""
+
+    def test_sha256_hex_digest_does_not_flag(self):
+        """A 64-character SHA-256 hex digest on a benign page must NOT trigger new_base64."""
+        sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        diff = _make_diff([f"Checksum: {sha256}"])
+        flags = detect_suspicious_changes(None, "content", diff)
+        codes = [f.code for f in flags]
+        assert "new_base64" not in codes
+
+    def test_url_path_does_not_flag_as_base64(self):
+        """A URL path fragment that happens to be 40+ lowercase chars must NOT trigger new_base64."""
+        diff = _make_diff(["![CI](https://github.com/example/myproject/actions/workflows/ci.yml/badge.svg)"])
+        flags = detect_suspicious_changes(None, "content", diff)
+        codes = [f.code for f in flags]
+        assert "new_base64" not in codes
+
+    def test_genuine_base64_instruction_still_flags(self):
+        """A genuine base64 payload (with non-hex chars) must still trigger new_base64."""
+        # This is base64 for a longer string; contains +, /, and non-hex letters
+        b64 = "SSBhbSBhIHNlY3JldCBwYXlsb2FkIHRoYXQgc2hvdWxkIGJlIGRldGVjdGVk"
+        diff = _make_diff([f"Execute: {b64}"])
+        flags = detect_suspicious_changes(None, "content", diff)
+        codes = [f.code for f in flags]
+        assert "new_base64" in codes
+
+
 class TestSeverity:
     def test_severity_ranking(self):
         from skillwatch.detector import Flag
