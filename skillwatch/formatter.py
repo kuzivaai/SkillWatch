@@ -99,7 +99,8 @@ def format_scan_result(url: str, changed: bool, flags: list | None = None, error
         return f"  {green('OK ')}  {url}"
 
     if flags:
-        max_sev = max((f.severity for f in flags), key=lambda s: {"info": 0, "warning": 1, "critical": 2}.get(s, 0))
+        from .detector import severity_rank
+        max_sev = max((f.severity for f in flags), key=severity_rank)
         icon = severity_icon(max_sev)
         flag_codes = ", ".join(f.code for f in flags)
         return f"  {icon}  {url}\n       {severity_label(max_sev)}: {flag_codes}"

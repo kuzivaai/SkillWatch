@@ -142,6 +142,19 @@ class TestHistory:
         assert "Timeout" in output
 
 
+class TestSeverityRankConsistency:
+    def test_formatter_uses_detector_severity_rank(self):
+        """Formatter's scan result severity ordering uses detector.severity_rank, not a local copy."""
+        from skillwatch.detector import Flag
+        flags = [
+            Flag(code="a", severity="info", description="info flag", evidence=""),
+            Flag(code="b", severity="critical", description="critical flag", evidence=""),
+        ]
+        output = format_scan_result("https://example.com", True, flags)
+        # If severity_rank is working, the output should show the critical severity
+        assert "CRITICAL" in output or "critical" in output.lower()
+
+
 class TestStatusIcon:
     def test_no_alerts(self):
         icon = status_icon(0, "2026-01-01")

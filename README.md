@@ -1,6 +1,6 @@
 # SkillWatch
 
-Continuous URL content monitoring for AI agent skills and MCP tools. Detects bait-and-switch attacks where skill-referenced URLs change from legitimate documentation to malicious instructions.
+Periodic URL content monitoring for AI agent skills and MCP tools, with best-effort content triage. Alerts when skill-referenced URLs change, and applies heuristic checks to flag suspicious patterns in the changed content. The triage is evadable and does not replace human review.
 
 [![CI](https://github.com/kuzivaai/SkillWatch/actions/workflows/ci.yml/badge.svg)](https://github.com/kuzivaai/SkillWatch/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/skillwatch)](https://pypi.org/project/skillwatch/)
@@ -9,7 +9,7 @@ Continuous URL content monitoring for AI agent skills and MCP tools. Detects bai
 
 ## Why this exists
 
-Static scanners check AI agent skills once, at install time. But the external URLs those skills reference can change afterwards. In June 2026, [security researchers demonstrated](https://www.air.security/blog-posts/the-story-of-skills) that a fake skill could bypass Cisco, NVIDIA, and skills.sh scanners by keeping its code clean while pointing to an external URL. After distribution, the URL content was swapped from legitimate documentation to malicious instructions.
+Static scanners check AI agent skills once, at install time. But the external URLs those skills reference can change afterwards. In June 2026, [security researchers demonstrated](https://www.air.security/blog-posts/the-story-of-skills) that a fake skill could bypass Cisco, NVIDIA, and skills.sh scanners by keeping its code clean while pointing to an external URL. After distribution, the URL content was swapped from legitimate documentation to malicious instructions. (Disclosure: AIR, which published this research, simultaneously launched a managed skill marketplace. Their headline claim of 26,000 AI agents indexed is self-reported and unaudited. The bait-and-switch technique is independently corroborated by the [CSA research note](https://labs.cloudsecurityalliance.org/research/csa-research-note-skill-md-agent-context-poisoning-20260506/) and [arxiv 2508.12538](https://arxiv.org/abs/2508.12538).)
 
 The [ClawHavoc campaign](https://orca.security/resources/blog/ai-agent-skill-supply-chain-security/) compromised 1,184 skills using similar techniques. The [Cloud Security Alliance](https://labs.cloudsecurityalliance.org/research/csa-research-note-skill-md-agent-context-poisoning-20260506/) published a dedicated research note on SKILL.md context poisoning.
 
@@ -54,12 +54,12 @@ skillwatch alert 1
 2. **Fetch** — Downloads each URL with SSRF protection and DNS pinning, extracts text via [trafilatura](https://github.com/adbar/trafilatura)
 3. **Hash** — Computes SHA-256 of the extracted text, stores locally in SQLite
 4. **Compare** — On subsequent scans, detects content changes via hash comparison
-5. **Detect** — Analyses changes against 13 suspicious pattern detectors:
+5. **Triage** — Applies 13 heuristic pattern checks to changed content. These checks catch payloads that use expected phrasings or cleartext shell commands. They miss indirect instruction, polite framing, narrative framing, encoded text (ROT13), and reversed text. See [Measured detection rates](#measured-detection-rates) below.
 
 | Pattern | Severity | What it catches |
 |---|---|---|
 | Exec commands | Critical | `curl`, `pip install`, `eval()`, `subprocess`, `powershell` |
-| Prompt injection | Critical | 32 ATR-derived patterns covering 7 languages + obfuscation (base64, zero-width, spaced letters) |
+| Prompt injection | Critical | 32 [ATR](https://github.com/Agent-Threat-Rule/agent-threat-rules)-derived patterns covering 7 languages + obfuscation. Catches expected phrasings only; detected 1 of 10 evasive payloads in testing (see [Measured detection rates](#measured-detection-rates)) |
 | Suspicious scripts | Critical | New `<script>` tags with eval/fetch/cookie access |
 | Data URI embeds | Critical | `<iframe src="data:text/html;base64,...">` |
 | Base64 strings | Warning | Obfuscated payloads (40+ character base64 blocks) |
@@ -72,9 +72,28 @@ skillwatch alert 1
 | Iframes | Warning | New `<iframe>` elements |
 | Hidden content | Info | New elements with `display:none` or `visibility:hidden` |
 
-All HTML-level checks are **diff-based** — only newly introduced elements trigger alerts, avoiding false positives from pre-existing scripts or iframes.
+All HTML-level checks are **diff-based** -- only newly introduced elements trigger alerts, avoiding false positives from pre-existing scripts or iframes.
 
 Unicode homoglyph detection uses the [Unicode Consortium's official confusables database](https://github.com/vhf/confusable_homoglyphs) covering thousands of lookalike characters across all scripts.
+
+### Measured detection rates
+
+Measured against a 52-item synthetic corpus (32 benign, 10 pattern-matching adversarial, 10 deliberately evasive adversarial). Full methodology in `analysis/prompt2_results.md`.
+
+| Metric | Value |
+|---|---|
+| Overall recall | 65% (13 of 20 malicious items detected) |
+| Recall against evasive adversaries | 30% (3 of 10; and 2 of those 3 were caught by exec-command detection, not the injection patterns) |
+| Precision | 72.2% (about 1 in 4 alerts is a false positive) |
+| Injection pattern engine vs evasive payloads | 1 of 10 detected |
+
+**What the triage catches:** Payloads that use expected phrasings ("ignore all previous instructions") or cleartext shell commands (`curl`, `pip install`).
+
+**What it misses:** Indirect instruction, polite request framing, narrative/story framing, ROT13-encoded text, reversed text, HTML comment injection, academic/scientific framing.
+
+**False positives:** The checksum-page false positive (hex digests matching the base64 pattern) has been resolved; pure hexadecimal strings are now filtered out. Remaining false positives come from pages with legitimate `pip install` instructions, new domain references, or URL path fragments that coincidentally match the base64 character class.
+
+These rates are from synthetic test data. Real-world rates may differ.
 
 ## Automate with cron
 
@@ -137,17 +156,18 @@ skillwatch scan --ignore-pattern 'v\d+\.\d+\.\d+'
 
 ## Limitations
 
-- **False positives**: Legitimate docs updates that add `pip install` will trigger alerts. Review manually.
+- **False positives**: The checksum-page false positive has been resolved (pure hex digests are now filtered). Remaining false positives (15.6% overall in testing) come from pages with legitimate `pip install` instructions, new domain references, or URL path fragments matching the base64 character class. Review all alerts manually.
+- **Evasion**: The content triage is regex/keyword-based. It catches payloads using expected phrasings but misses semantic rephrasing, indirect instruction, and encoding (ROT13, reversed text). Against deliberately evasive payloads, recall drops to 30%. The 32-pattern injection engine detected 1 of 10 evasive payloads in testing.
 - **Dynamic pages**: SPAs and JS-rendered content may cause false changes. Use `--ignore-pattern`.
-- **Evasion**: Uses a standard browser User-Agent by default (configurable via `--user-agent`). IP-based cloaking, TLS fingerprinting, and JS-only rendering can still evade detection.
-- **Prompt injection**: Keyword-based detection catches common phrasing but not novel formulations or obfuscated injections (ROT13, emoji encoding).
+- **User-Agent**: Uses a standard browser User-Agent by default (configurable via `--user-agent`). IP-based cloaking, TLS fingerprinting, and JS-only rendering can still evade fetching entirely.
 
 ## What SkillWatch does NOT do
 
 - Replace Snyk Agent Scan or other static scanners (use both)
 - Monitor tool descriptions or metadata (Snyk Agent Scan does this)
-- Guarantee detection of all attacks (sophisticated evasion exists)
+- Guarantee detection of all attacks (overall recall is 65%; against deliberately evasive adversaries, 30%)
 - Provide real-time protection (it is periodic, not a proxy)
+- Replace human review of alerts (precision is 72.2%; about 1 in 4 alerts is a false positive)
 
 ## Development
 
@@ -160,8 +180,8 @@ pip install -e ".[dev]"
 pytest
 ```
 
-185 tests, 94% code coverage.
+205 tests, 95% code coverage.
 
 ## Licence
 
-Apache 2.0
+Apache 2.0. See [LICENSE](LICENSE) for the full text. Copyright 2026 Kuziva Muzondo.
