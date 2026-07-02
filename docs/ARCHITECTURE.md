@@ -37,7 +37,7 @@ Input (SKILL.md / MCP config / URL list)
 | Text extraction | trafilatura | Strips boilerplate, nav, ads, scripts. Solves 90% of dynamic content false positives. Well-maintained. |
 | Hash target | Extracted text, NOT raw HTML | Raw HTML changes constantly (CSRF tokens, session IDs). Text content is stable for docs pages. |
 | Storage | SQLite (local file) | Zero infrastructure. Built into Python. Sufficient for 100-1000 URLs. |
-| CLI framework | argparse | Zero external dependencies. The tool should have minimal deps. |
+| CLI framework | argparse | Standard library; adds no additional dependency. |
 | Config format | YAML | Human-readable, familiar to developers. Single optional dependency (PyYAML). |
 | No LLM in v1 | Rule-based detection only | Keeps the tool free, offline-capable, and dependency-light. LLM classification is a v2 `--classify` flag. |
 | No daemon | Cron-based scheduling | Simpler to build, test, and debug. Users know cron. |
