@@ -103,6 +103,20 @@ class Store:
         row = self._conn.execute("SELECT COUNT(*) as c FROM urls").fetchone()
         return row["c"]
 
+    def last_scan_time(self) -> str | None:
+        """Return the most recent fetched_at timestamp, or None if no scans."""
+        row = self._conn.execute(
+            "SELECT fetched_at FROM snapshots ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        return row["fetched_at"] if row else None
+
+    def pending_alert_count(self) -> int:
+        """Return the number of unreviewed alerts."""
+        row = self._conn.execute(
+            "SELECT COUNT(*) as c FROM alerts WHERE reviewed = 0"
+        ).fetchone()
+        return row["c"]
+
     # --- Snapshots ---
 
     def add_snapshot(
