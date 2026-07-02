@@ -1,4 +1,4 @@
-"""SkillWatch CLI — continuous URL content monitoring for AI skills."""
+"""SkillWatch CLI — periodic URL content monitoring for AI skills."""
 
 import argparse
 import json as json_mod
@@ -8,7 +8,7 @@ import time
 from . import __version__
 from .detector import detect_suspicious_changes, max_severity
 from .differ import content_changed, generate_diff
-from .fetcher import _DEFAULT_USER_AGENT, fetch_url, strip_escape_sequences
+from .fetcher import DEFAULT_USER_AGENT, fetch_url, strip_escape_sequences
 from .formatter import (
     bold, dim, green, red, yellow,
     format_alert_detail, format_history, format_scan_result,
@@ -51,7 +51,7 @@ def _add_db_arg(p: argparse.ArgumentParser) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="skillwatch",
-        description="Continuous URL content monitoring for AI skills and MCP tools",
+        description="Periodic URL content monitoring for AI skills and MCP tools",
     )
     parser.add_argument("--version", action="version", version=f"skillwatch {__version__}")
     parser.add_argument("--db", type=str, default=None, help="Path to SQLite database")
@@ -97,6 +97,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     _add_db_arg(scan_p)
 
+    # status
+    status_p = sub.add_parser("status", help="Show monitoring summary")
+    _add_db_arg(status_p)
+
     # list
     list_p = sub.add_parser("list", help="List all monitored URLs")
     _add_db_arg(list_p)
@@ -135,6 +139,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_remove(store, args)
         elif args.command == "scan":
             return _cmd_scan(store, args)
+        elif args.command == "status":
+            return _cmd_status(store)
         elif args.command == "list":
             return _cmd_list(store)
         elif args.command == "history":
@@ -161,9 +167,18 @@ def _cmd_add(store: Store, args: argparse.Namespace) -> int:
         print(yellow(f"  No URLs found in {args.file}"))
         return 0
 
+    from .ssrf import SSRFError, validate_url
+
     added = 0
     skipped = 0
+    blocked = 0
     for u in urls:
+        try:
+            validate_url(u["url"])
+        except SSRFError:
+            blocked += 1
+            print(f"  {red('X')}  {_safe(u['url'])} (blocked: private/reserved)")
+            continue
         _, is_new = store.add_url(u["url"], u["source_type"], u["source_path"])
         if is_new:
             added += 1
@@ -241,7 +256,7 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
         result = fetch_url(
             url,
             timeout=args.timeout,
-            user_agent=args.user_agent or _DEFAULT_USER_AGENT,
+            user_agent=args.user_agent or DEFAULT_USER_AGENT,
             ignore_patterns=ignore_patterns or None,
         )
 
@@ -331,6 +346,25 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
     return 1 if alerts_created > 0 else 0
 
 
+def _cmd_status(store: Store) -> int:
+    url_count = store.url_count()
+    last_scan = store.last_scan_time()
+    pending = store.pending_alert_count()
+
+    print(f"\n{bold('  SkillWatch')} status\n")
+    print(f"  URLs monitored:   {url_count}")
+    print(f"  Last scan:        {last_scan or 'never'}")
+    print(f"  Pending alerts:   {pending}")
+    print(f"  Database:         {store.db_path}")
+
+    if url_count == 0:
+        print(dim("\n  Get started: skillwatch add <SKILL.md>  then  skillwatch scan"))
+    elif pending > 0:
+        print(f"\n  Run {bold('skillwatch alerts')} to view details.")
+    print()
+    return 0
+
+
 def _cmd_list(store: Store) -> int:
     urls = store.get_urls()
     print(f"\n{bold('  SkillWatch')} — {len(urls)} URLs monitored\n")
@@ -365,7 +399,7 @@ def _cmd_alerts(store: Store, args: argparse.Namespace) -> int:
         flags = a.get("flags", [])
         flag_str = ", ".join(flags) if isinstance(flags, list) else str(flags)
         reviewed = " (reviewed)" if a.get("reviewed") else ""
-        print(f"  {icon} #{a['id']}  {_safe(a['url'])[:60]}  {severity_label(severity)}  {dim(flag_str)}{dim(reviewed)}")
+        print(f"  {icon} #{a['id']}  {_safe(a['url'])[:80]}  {severity_label(severity)}  {dim(flag_str)}{dim(reviewed)}")
 
     print(f"\n  Run {bold('skillwatch alert <id>')} for details.")
     return 0

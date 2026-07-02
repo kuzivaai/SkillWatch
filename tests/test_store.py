@@ -159,6 +159,36 @@ class TestAlerts:
         assert store.get_alerts() == []
 
 
+class TestStatusMethods:
+    def test_last_scan_time_empty(self, store):
+        """last_scan_time returns None when no snapshots exist."""
+        assert store.last_scan_time() is None
+
+    def test_last_scan_time_after_snapshot(self, store):
+        """last_scan_time returns a timestamp string after a snapshot is added."""
+        url_id, _ = store.add_url("https://example.com", "manual")
+        store.add_snapshot(url_id, "abc", "content")
+        ts = store.last_scan_time()
+        assert ts is not None
+        assert "20" in ts  # starts with year 20xx
+
+    def test_pending_alert_count_zero(self, store):
+        """pending_alert_count is 0 with no alerts."""
+        assert store.pending_alert_count() == 0
+
+    def test_pending_alert_count(self, store):
+        """pending_alert_count counts unreviewed alerts only."""
+        url_id, _ = store.add_url("https://example.com", "manual")
+        s1 = store.add_snapshot(url_id, "h1", "old")
+        s2 = store.add_snapshot(url_id, "h2", "new")
+        a1 = store.add_alert(url_id, s1, s2, "diff", [], "info")
+        store.add_alert(url_id, s1, s2, "diff2", [], "warning")
+
+        assert store.pending_alert_count() == 2
+        store.mark_alert_reviewed(a1)
+        assert store.pending_alert_count() == 1
+
+
 class TestContextManager:
     def test_store_as_context_manager(self):
         with tempfile.TemporaryDirectory() as tmpdir:
