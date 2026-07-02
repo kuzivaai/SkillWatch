@@ -50,6 +50,7 @@ dependencies = [
 Homepage = "https://github.com/kuzivaai/SkillWatch"
 Repository = "https://github.com/kuzivaai/SkillWatch"
 Issues = "https://github.com/kuzivaai/SkillWatch/issues"
+Changelog = "https://github.com/kuzivaai/SkillWatch/blob/main/CHANGELOG.md"
 
 [project.scripts]
 skillwatch = "skillwatch.cli:main"
@@ -61,6 +62,9 @@ dev = [
     "responses>=0.25",
     "ruff",
 ]
+
+[tool.setuptools.packages.find]
+include = ["skillwatch*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

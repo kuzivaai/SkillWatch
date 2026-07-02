@@ -16,3 +16,14 @@ PMF-ASSESSMENT.md
 COMPETITORS.md
 DISTRIBUTION.md
 ECONOMICS.md
+
+# Audit scaffolding (internal analysis, not part of the tool)
+analysis/
+DOSSIER_*.md
+SECURITY_APPENDIX_*.md
+DECISION.md
+AUDIT-REPORT.md
+.handover.md
+
+# Generated overview docs with local filesystem paths
+docs/skillwatch-overview.js
