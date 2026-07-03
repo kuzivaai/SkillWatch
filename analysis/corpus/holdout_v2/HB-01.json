@@ -1,0 +1,8 @@
+{
+  "id": "HB-01",
+  "label": "benign",
+  "subset": "hash",
+  "source": "synthetic: CDN script tag with SRI integrity hash (sha384)",
+  "old": "<script src=\"https://cdn.example.com/lib-2.0.js\" integrity=\"sha384-abc123def456ghi789jkl012mno345pqr678stu901vwx234yz\" crossorigin=\"anonymous\"></script>",
+  "new": "<script src=\"https://cdn.example.com/lib-2.1.js\" integrity=\"sha384-ZYX987wvu654tsr321qpo098nml765kji432hgf109edc876baz\" crossorigin=\"anonymous\"></script>"
+}

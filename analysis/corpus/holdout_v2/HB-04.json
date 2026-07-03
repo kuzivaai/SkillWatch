@@ -1,0 +1,8 @@
+{
+  "id": "HB-04",
+  "label": "benign",
+  "subset": "hash",
+  "source": "synthetic: package-lock.json entry with integrity hash (sha512)",
+  "old": "\"lodash\": {\n  \"version\": \"4.17.20\",\n  \"resolved\": \"https://registry.npmjs.org/lodash/-/lodash-4.17.20.tgz\",\n  \"integrity\": \"sha512-PlhdFcillOINfeV7Ni6oF1TAEayyZBoZ8bcshTHqOYJYlrqzRDnIgc+VhkIdTFUm/kA0FMt5ThirdTheLakeAndSail==\"\n}",
+  "new": "\"lodash\": {\n  \"version\": \"4.17.21\",\n  \"resolved\": \"https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz\",\n  \"integrity\": \"sha512-WFpreKoSmNtqaWVlnPOfDcGRYqkHJoTjcDRPEpvKaSAxAkQiJxoZMBrgTinReFKjYzPwk/MtZiLoKHvqwXXTraQ==\"\n}"
+}
