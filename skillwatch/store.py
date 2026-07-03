@@ -101,7 +101,7 @@ class Store:
 
     def url_count(self) -> int:
         row = self._conn.execute("SELECT COUNT(*) as c FROM urls").fetchone()
-        return row["c"]
+        return int(row["c"])
 
     def last_scan_time(self) -> str | None:
         """Return the most recent fetched_at timestamp, or None if no scans."""
@@ -115,7 +115,7 @@ class Store:
         row = self._conn.execute(
             "SELECT COUNT(*) as c FROM alerts WHERE reviewed = 0"
         ).fetchone()
-        return row["c"]
+        return int(row["c"])
 
     # --- Snapshots ---
 
@@ -138,6 +138,7 @@ class Store:
                 "(SELECT id FROM snapshots WHERE url_id = ? ORDER BY id DESC LIMIT 50)",
                 (url_id, url_id),
             )
+        assert cur.lastrowid is not None  # INSERT always sets lastrowid
         return cur.lastrowid
 
     def get_latest_snapshot(self, url_id: int) -> dict | None:
@@ -175,6 +176,7 @@ class Store:
             (url_id, prev_snapshot_id, new_snapshot_id, diff_text, json.dumps(flags), severity),
         )
         self._conn.commit()
+        assert cur.lastrowid is not None  # INSERT always sets lastrowid
         return cur.lastrowid
 
     def get_alerts(self, url_id: int | None = None, unreviewed_only: bool = False) -> list[dict]:
