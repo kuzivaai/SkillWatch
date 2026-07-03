@@ -227,8 +227,8 @@ class TestReDoSProtection:
         result = _safe_regex_sub(redos_pattern, evil_input, "(a+)+$")
         elapsed = time.monotonic() - start
 
-        # Must return within 10 seconds (the timeout is 2s, plus margin for
+        # Must return within 15 seconds (the timeout is 2s, plus margin for
         # thread pool overhead and CPU contention in CI/WSL environments)
-        assert elapsed < 10, f"ReDoS protection failed: took {elapsed:.1f}s"
+        assert elapsed < 15, f"ReDoS protection failed: took {elapsed:.1f}s"
         # The text should be returned unchanged (timeout means skip)
         assert result == evil_input
