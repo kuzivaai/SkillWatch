@@ -332,6 +332,30 @@ class TestUnicodeHomoglyphs:
         assert len(homo_flags) == 1
         assert "U+0435" in homo_flags[0].evidence
 
+    def test_detects_osage_confusable_unicode_10(self):
+        """Osage capital A (U+104B0, Unicode 10.0) is confusable with Latin turned V.
+
+        This proves the shipped confusables data covers at least Unicode 10.0
+        (2017). See skillwatch/data/PROVENANCE.md for the full data currency
+        assessment.
+        """
+        # Osage capital A is visually similar to Latin capital turned V
+        diff = _make_diff(["\U000104B0 text with Osage character"])
+        flags = detect_suspicious_changes(None, "content", diff)
+        codes = [f.code for f in flags]
+        assert "unicode_homoglyph" in codes
+
+    def test_detects_cherokee_confusable(self):
+        """Cherokee A (U+13A0) is confusable with Latin D.
+
+        Cherokee was added in Unicode 3.0 and is a realistic attack vector
+        (characters visually similar to Latin letters).
+        """
+        diff = _make_diff(["Ꭰownload from attacker.com"])  # Cherokee A (U+13A0)
+        flags = detect_suspicious_changes(None, "content", diff)
+        codes = [f.code for f in flags]
+        assert "unicode_homoglyph" in codes
+
 
 class TestDataURIDetection:
     """Tests for pattern 9: data URI payload detection."""

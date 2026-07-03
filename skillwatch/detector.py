@@ -472,6 +472,7 @@ def _find_confusables(text: str) -> list[tuple[int, str]]:
     _SUSPICIOUS_SCRIPTS = frozenset({
         "CYRILLIC", "GREEK", "ARMENIAN", "CHEROKEE",
         "COPTIC", "MYANMAR", "GEORGIAN", "ETHIOPIC",
+        "OSAGE", "LISU",
     })
 
     found: dict[int, str] = {}
