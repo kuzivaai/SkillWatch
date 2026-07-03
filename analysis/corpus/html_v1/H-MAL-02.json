@@ -1,0 +1,10 @@
+{
+  "id": "H-MAL-02",
+  "label": "malicious",
+  "subset": "html_malicious",
+  "source": "synthetic: new iframe pointing to external domain — exercises iframe_detected flag",
+  "old": "Product overview page content.",
+  "new": "Product overview page content.\nEmbedded content below.",
+  "old_html": "<html><body><p>Product overview page content.</p></body></html>",
+  "new_html": "<html><body><p>Product overview page content.</p><iframe src=\"https://evil.example.com/phishing\"></iframe></body></html>"
+}

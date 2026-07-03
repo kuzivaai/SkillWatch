@@ -1,0 +1,10 @@
+{
+  "id": "H-BEN-04",
+  "label": "benign",
+  "subset": "html_benign",
+  "source": "synthetic: pre-existing meta refresh unchanged — should not flag meta_refresh_redirect",
+  "old": "Redirect page to new documentation.",
+  "new": "Redirect page to new documentation.\nPlease update your bookmarks.",
+  "old_html": "<html><head><meta http-equiv=\"refresh\" content=\"5;url=https://docs.example.com/v2\"></head><body><p>Redirect page.</p></body></html>",
+  "new_html": "<html><head><meta http-equiv=\"refresh\" content=\"5;url=https://docs.example.com/v2\"></head><body><p>Redirect page.</p><p>Please update your bookmarks.</p></body></html>"
+}

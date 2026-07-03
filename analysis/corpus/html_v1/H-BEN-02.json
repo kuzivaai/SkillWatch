@@ -1,0 +1,10 @@
+{
+  "id": "H-BEN-02",
+  "label": "benign",
+  "subset": "html_benign",
+  "source": "synthetic: pre-existing iframe (YouTube embed) unchanged — should not flag iframe_detected",
+  "old": "Tutorial page with video embed.",
+  "new": "Tutorial page with video embed.\nUpdated for 2026.",
+  "old_html": "<html><body><p>Tutorial page.</p><iframe src=\"https://www.youtube.com/embed/dQw4w9WgXcQ\"></iframe></body></html>",
+  "new_html": "<html><body><p>Tutorial page.</p><p>Updated for 2026.</p><iframe src=\"https://www.youtube.com/embed/dQw4w9WgXcQ\"></iframe></body></html>"
+}

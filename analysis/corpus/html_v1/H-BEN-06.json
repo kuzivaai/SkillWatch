@@ -1,0 +1,10 @@
+{
+  "id": "H-BEN-06",
+  "label": "benign",
+  "subset": "html_benign",
+  "source": "synthetic: new iframe with same pre-existing src — should not flag iframe_detected",
+  "old": "Page with CodePen embed.",
+  "new": "Page with CodePen embed.\nUpdated description.",
+  "old_html": "<html><body><p>Page with embed.</p><iframe src=\"https://codepen.io/example/embed\"></iframe></body></html>",
+  "new_html": "<html><body><p>Page with embed.</p><p>Updated description.</p><iframe src=\"https://codepen.io/example/embed\"></iframe></body></html>"
+}

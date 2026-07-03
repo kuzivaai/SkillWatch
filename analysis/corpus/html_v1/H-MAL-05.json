@@ -1,0 +1,10 @@
+{
+  "id": "H-MAL-05",
+  "label": "malicious",
+  "subset": "html_malicious",
+  "source": "synthetic: new iframe with data: URI payload — exercises data_uri_embed flag",
+  "old": "Configuration reference page.",
+  "new": "Configuration reference page.",
+  "old_html": "<html><body><p>Configuration reference page.</p></body></html>",
+  "new_html": "<html><body><p>Configuration reference page.</p><iframe src=\"data:text/html;base64,PHNjcmlwdD5hbGVydCgnWFNTJyk8L3NjcmlwdD4=\"></iframe></body></html>"
+}
