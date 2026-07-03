@@ -30,9 +30,11 @@ _COMMAND_WORDS = frozenset({
 # that contains no common English words but, when reversed, does.
 _REVERSED_CANDIDATE_RE = re.compile(r"\S{20,}")
 
-# ROT13 candidate: a span of >= 15 alphabetic + space characters that
-# looks like garbled text (contains no common English 4+ letter words).
-_ROT13_CANDIDATE_RE = re.compile(r"[A-Za-z ]{15,}")
+# ROT13 candidate: a span of >= 15 characters composed of letters, spaces,
+# and common shell punctuation (:/.-|) that looks like garbled text. The
+# punctuation pass-through is needed because ROT13 only encodes letters;
+# URLs and shell pipes appear literally in ROT13-encoded commands.
+_ROT13_CANDIDATE_RE = re.compile(r"[A-Za-z :/.|\-]{15,}")
 
 # Common English words for the ROT13/reverse heuristic negative check.
 # If the span already contains these, it is probably normal text.
