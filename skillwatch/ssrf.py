@@ -1,11 +1,15 @@
 """SSRF protection — validate URLs and pin DNS resolution."""
 
+from __future__ import annotations
+
 import ipaddress
 import re
 import socket
 from dataclasses import dataclass
+from typing import Any
 from urllib.parse import urlparse, urlunparse
 
+import requests
 from requests.adapters import HTTPAdapter
 
 
@@ -93,13 +97,14 @@ def validate_url(url: str) -> ValidatedURL:
         raise SSRFError(f"No DNS records for hostname: {hostname}")
 
     # Check ALL resolved IPs, use the first one for the connection
-    resolved_ip = None
+    resolved_ip: str | None = None
     for info in infos:
         ip = ipaddress.ip_address(info[4][0])
         _check_ip(ip, url)
         if resolved_ip is None:
             resolved_ip = str(ip)
 
+    assert resolved_ip is not None  # infos is non-empty (checked above)
     return ValidatedURL(url=url, hostname=hostname, resolved_ip=resolved_ip, port=port)
 
 
@@ -126,22 +131,28 @@ class PinnedDNSAdapter(HTTPAdapter):
     verification. This approach is thread-safe — no global state is modified.
     """
 
-    def __init__(self, pinned_ip: str, hostname: str, **kwargs):
+    def __init__(self, pinned_ip: str, hostname: str, **kwargs: Any) -> None:
         self._pinned_ip = pinned_ip
         self._hostname = hostname
         super().__init__(**kwargs)
 
-    def init_poolmanager(self, connections, maxsize, block=False, **kwargs):
+    def init_poolmanager(
+        self, connections: int, maxsize: int, block: bool = False, **kwargs: Any
+    ) -> None:
         kwargs["assert_hostname"] = self._hostname
         kwargs["server_hostname"] = self._hostname
         super().init_poolmanager(connections, maxsize, block=block, **kwargs)
 
-    def send(self, request, *args, **kwargs):
-        parsed = urlparse(request.url)
+    def send(
+        self, request: requests.PreparedRequest, *args: Any, **kwargs: Any
+    ) -> requests.Response:
+        url = request.url or ""
+        parsed = urlparse(url)
 
         # Always set Host header to the original hostname
+        hostname = parsed.hostname or ""
         port_suffix = f":{parsed.port}" if parsed.port and parsed.port not in (80, 443) else ""
-        request.headers["Host"] = f"{parsed.hostname}{port_suffix}"
+        request.headers["Host"] = f"{hostname}{port_suffix}"
 
         # Rewrite URL to use the pinned IP for the actual TCP connection
         ip = self._pinned_ip
@@ -150,8 +161,8 @@ class PinnedDNSAdapter(HTTPAdapter):
             netloc = f"{netloc}:{parsed.port}"
 
         request.url = urlunparse((
-            parsed.scheme, netloc, parsed.path,
-            parsed.params, parsed.query, parsed.fragment,
+            parsed.scheme, netloc, parsed.path or "",
+            parsed.params or "", parsed.query or "", parsed.fragment or "",
         ))
 
         return super().send(request, *args, **kwargs)

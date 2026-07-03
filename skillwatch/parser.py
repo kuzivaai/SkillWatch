@@ -57,7 +57,7 @@ _MAX_CONFIG_SIZE = 1_000_000  # 1 MB cap for config files (billion-laughs mitiga
 
 def _extract_from_json(path: Path) -> list[dict]:
     text = path.read_text(encoding="utf-8", errors="replace")
-    urls = set()
+    urls: set[str] = set()
 
     if len(text) > _MAX_CONFIG_SIZE:
         return _build_results(urls, "mcp_config", str(path))
@@ -77,7 +77,7 @@ def _extract_from_json(path: Path) -> list[dict]:
 
 def _extract_from_yaml(path: Path) -> list[dict]:
     text = path.read_text(encoding="utf-8", errors="replace")
-    urls = set()
+    urls: set[str] = set()
 
     if len(text) > _MAX_CONFIG_SIZE:
         return _build_results(urls, "mcp_config", str(path))
