@@ -1,0 +1,10 @@
+{
+  "id": "H-BEN-03",
+  "label": "benign",
+  "subset": "html_benign",
+  "source": "synthetic: pre-existing hidden element (collapsed FAQ) unchanged — should not flag hidden_content",
+  "old": "FAQ page with expandable sections.",
+  "new": "FAQ page with expandable sections.\nAdded new question about billing.",
+  "old_html": "<html><body><h1>FAQ</h1><div style=\"display:none\">This answer is hidden until clicked. Contact support@example.com for help.</div></body></html>",
+  "new_html": "<html><body><h1>FAQ</h1><div style=\"display:none\">This answer is hidden until clicked. Contact support@example.com for help.</div><p>Added new question about billing.</p></body></html>"
+}

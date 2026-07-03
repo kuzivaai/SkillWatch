@@ -42,12 +42,16 @@ def _run_detector(item: dict) -> dict:
     new_text = item["new"]
     diff_text = _make_diff(old_text, new_text)
 
+    # Pass HTML content when present (for HTML-level flag codes)
+    old_html = item.get("old_html")
+    new_html = item.get("new_html")
+
     flags = detect_suspicious_changes(
         old_text=old_text,
         new_text=new_text,
         diff_text=diff_text,
-        old_html=None,
-        new_html=None,
+        old_html=old_html,
+        new_html=new_html,
     )
 
     flag_codes = [f.code for f in flags]
@@ -177,6 +181,73 @@ def _print_corpus_report(label: str, items: list[dict]) -> dict:
     }
 
 
+def _print_html_report(items: list[dict]) -> dict:
+    """Run the detector on HTML corpus items and print a report.
+
+    Returns a structured results dict.
+    """
+    all_results = []
+    for item in items:
+        result = _run_detector(item)
+        all_results.append(result)
+
+    malicious = [r for r in all_results if r["true_label"] == "malicious"]
+    benign = [r for r in all_results if r["true_label"] == "benign"]
+
+    tp = sum(1 for r in malicious if r["detected"])
+    fn = sum(1 for r in malicious if not r["detected"])
+    fp = sum(1 for r in benign if r["detected"])
+    tn = sum(1 for r in benign if not r["detected"])
+
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+
+    fp_by_code: dict[str, int] = {}
+    for r in benign:
+        if r["detected"]:
+            for code in r["flag_codes"]:
+                fp_by_code[code] = fp_by_code.get(code, 0) + 1
+
+    print(f"\n{'='*60}")
+    print("DETECTION EFFICACY RESULTS — HTML CORPUS")
+    print(f"{'='*60}")
+    print(f"\nCorpus: {len(malicious)} malicious, {len(benign)} benign")
+    print(f"\nTP: {tp}  FP: {fp}  TN: {tn}  FN: {fn}")
+    print(f"\nFP rate: {fp}/{len(benign)} = {fp/len(benign):.1%}" if benign else "")
+    print(f"FN rate: {fn}/{len(malicious)} = {fn/len(malicious):.1%}" if malicious else "")
+    print(f"\nPrecision: {precision:.1%}")
+    print(f"Recall:    {recall:.1%}")
+
+    if fp_by_code:
+        print("\nFP breakdown by flag code:")
+        for code, count in sorted(fp_by_code.items(), key=lambda x: -x[1]):
+            print(f"  {code}: {count}/{len(benign)} = {count/len(benign):.1%}")
+
+    print(f"\n{'='*60}")
+    print("PER-ITEM RESULTS")
+    print(f"{'='*60}")
+    print(f"{'ID':<12} {'Label':<12} {'Subset':<16} {'Verdict':<8} {'Flag Codes'}")
+    print("-" * 80)
+    for r in all_results:
+        codes = ", ".join(r["flag_codes"]) if r["flag_codes"] else "(none)"
+        marker = ""
+        if r["true_label"] == "benign" and r["detected"]:
+            marker = " <-- FP"
+        elif r["true_label"] == "malicious" and not r["detected"]:
+            marker = " <-- FN"
+        print(f"{r['id']:<12} {r['true_label']:<12} {r['subset']:<16} {r['verdict']:<8} {codes}{marker}")
+
+    return {
+        "malicious_count": len(malicious),
+        "benign_count": len(benign),
+        "tp": tp, "fp": fp, "tn": tn, "fn": fn,
+        "precision": precision,
+        "recall": recall,
+        "fp_by_code": fp_by_code,
+        "all_results": all_results,
+    }
+
+
 def main():
     benign = _load_corpus("benign")
     adv_a = _load_corpus("adversarial_a")
@@ -192,6 +263,14 @@ def main():
         _print_corpus_report("HOLDOUT V2", holdout)
     else:
         print("\nNo holdout_v2 corpus found.")
+
+    # HTML corpus
+    html_items = _load_corpus("html_v1")
+    if html_items:
+        print("\n\nRunning detector over HTML corpus...")
+        _print_html_report(html_items)
+    else:
+        print("\nNo html_v1 corpus found.")
 
 
 if __name__ == "__main__":

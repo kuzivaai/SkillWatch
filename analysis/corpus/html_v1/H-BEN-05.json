@@ -1,0 +1,10 @@
+{
+  "id": "H-BEN-05",
+  "label": "benign",
+  "subset": "html_benign",
+  "source": "synthetic: new legitimate script tag (no suspicious keywords) — should not flag suspicious_script",
+  "old": "Interactive dashboard page.",
+  "new": "Interactive dashboard page.\nChart initialised.",
+  "old_html": "<html><body><p>Interactive dashboard page.</p></body></html>",
+  "new_html": "<html><body><p>Interactive dashboard page.</p><script>var chart = new Chart(ctx, {type: 'bar', data: dataset});</script></body></html>"
+}

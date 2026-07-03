@@ -329,6 +329,13 @@ def detect_suspicious_changes(
         if line.startswith("+") and not line.startswith("+++")
     )
 
+    # 6. HTML-specific checks — compare old vs new to avoid false positives.
+    # Run before the early-return guard so that structural HTML changes
+    # (hidden divs, meta refreshes, data URI iframes) are detected even
+    # when the extracted text diff has no additions.
+    if new_html:
+        flags.extend(_check_html_changes(old_html, new_html))
+
     if not added_lines.strip():
         return flags
 
@@ -400,10 +407,6 @@ def detect_suspicious_changes(
                 description=f"{pct}% of content was removed",
                 evidence=f"Old: {old_len} chars → New: {new_len} chars",
             ))
-
-    # 6. HTML-specific checks — compare old vs new to avoid false positives
-    if new_html:
-        flags.extend(_check_html_changes(old_html, new_html))
 
     # 7. Prompt injection (ATR-derived, 32 patterns covering 7 languages + obfuscation)
     # This is the core MCP/AI attack vector: page content that tells

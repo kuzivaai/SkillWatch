@@ -1,0 +1,10 @@
+{
+  "id": "H-BEN-01",
+  "label": "benign",
+  "subset": "html_benign",
+  "source": "synthetic: pre-existing script tag with eval remains unchanged — should not flag suspicious_script",
+  "old": "Documentation page with analytics.",
+  "new": "Documentation page with analytics.\nVersion 2.1 released.",
+  "old_html": "<html><body><p>Documentation page with analytics.</p><script>eval('console.log(\"loaded\")')</script></body></html>",
+  "new_html": "<html><body><p>Documentation page with analytics.</p><p>Version 2.1 released.</p><script>eval('console.log(\"loaded\")')</script></body></html>"
+}
