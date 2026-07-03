@@ -3,8 +3,7 @@
 Periodic URL content monitoring for AI agent skills and MCP tools, with best-effort content triage. Alerts when skill-referenced URLs change, and applies heuristic checks to flag suspicious patterns in the changed content. The triage is evadable and does not replace human review.
 
 [![CI](https://github.com/kuzivaai/SkillWatch/actions/workflows/ci.yml/badge.svg)](https://github.com/kuzivaai/SkillWatch/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/skillwatch)](https://pypi.org/project/skillwatch/)
-[![Python](https://img.shields.io/pypi/pyversions/skillwatch)](https://pypi.org/project/skillwatch/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/github/license/kuzivaai/SkillWatch)](LICENSE)
 
 ## Why this exists
@@ -16,12 +15,6 @@ The [ClawHavoc campaign](https://orca.security/resources/blog/ai-agent-skill-sup
 Existing tools like [Snyk Agent Scan](https://github.com/snyk/agent-scan) monitor tool descriptions and metadata. SkillWatch monitors what those tools **point to** — the actual content at external URLs. They are complementary.
 
 ## Install
-
-```bash
-pip install skillwatch
-```
-
-Or from source:
 
 ```bash
 git clone https://github.com/kuzivaai/SkillWatch.git
@@ -180,7 +173,7 @@ pip install -e ".[dev]"
 pytest
 ```
 
-205 tests, 95% code coverage.
+213 tests, 94% code coverage.
 
 ## Licence
 
