@@ -1,0 +1,81 @@
+# SkillWatch Scheduled Monitoring
+#
+# Copy this workflow into your repository at .github/workflows/skillwatch.yml
+# to run SkillWatch on a schedule.  Adjust the cron expression and file paths
+# to suit your project.
+#
+# This workflow:
+#   1. Installs SkillWatch from source (not yet on PyPI)
+#   2. Adds URLs from the files you specify
+#   3. Runs a scan, caching the SQLite database between runs
+#   4. Creates a GitHub issue if alerts are found
+#
+# Requirements:
+#   - A SKILL.md, MCP config, or plain URL list in your repository
+
+name: SkillWatch Monitor
+
+on:
+  schedule:
+    # Run every 6 hours.  Adjust to your needs:
+    #   '0 */4 * * *'   -- every 4 hours
+    #   '0 9 * * 1'     -- Monday mornings at 09:00 UTC
+    #   '0 0 * * *'     -- daily at midnight UTC
+    - cron: '0 */6 * * *'
+  workflow_dispatch:       # Allow manual runs from the Actions tab
+
+permissions:
+  contents: read
+  issues: write            # Required for the create-issue step
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install SkillWatch
+        run: pip install git+https://github.com/kuzivaai/SkillWatch.git
+
+      - name: Restore scan database
+        uses: actions/cache@v4
+        with:
+          path: ~/.skillwatch
+          key: skillwatch-db-${{ hashFiles('SKILL.md') }}
+          restore-keys: skillwatch-db-
+
+      - name: Add URLs
+        run: |
+          # Replace with the path(s) to your SKILL.md, MCP config, or URL list.
+          # You can call `skillwatch add` multiple times for multiple files.
+          skillwatch add SKILL.md
+
+      - name: Scan
+        id: scan
+        run: |
+          skillwatch scan \
+            --delay 0.5 \
+            --preset docs \
+            --output json \
+            | tee /tmp/skillwatch-results.json
+          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Create issue on alerts
+        if: steps.scan.outputs.exit_code == '1'
+        run: |
+          gh issue create \
+            --title "SkillWatch: suspicious content changes detected" \
+            --body "$(cat <<BODY
+          SkillWatch detected content changes on monitored URLs.
+
+          **Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          Review the scan output and run \`skillwatch alerts\` locally for details.
+          BODY
+          )"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -97,6 +97,17 @@ These rates are from synthetic test data. Real-world rates may differ.
 
 SkillWatch exits with code 1 when alerts are created, making it easy to chain with notification tools.
 
+### Scheduled monitoring with GitHub Actions
+
+A ready-to-use GitHub Actions workflow is provided at [`examples/scheduled-monitoring.yml`](examples/scheduled-monitoring.yml). Copy it into your repository at `.github/workflows/skillwatch.yml` and adjust the cron expression and file paths. The workflow:
+
+1. Runs on a configurable schedule (default: every 6 hours)
+2. Installs SkillWatch and adds URLs from your SKILL.md or MCP config
+3. Caches the SQLite database between runs so only changes trigger alerts
+4. Creates a GitHub issue if suspicious content changes are detected
+
+The workflow can also be triggered manually from the Actions tab.
+
 ## Commands
 
 | Command | Description |
