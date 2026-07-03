@@ -47,12 +47,12 @@ skillwatch alert 1
 2. **Fetch** — Downloads each URL with SSRF protection and DNS pinning, extracts text via [trafilatura](https://github.com/adbar/trafilatura)
 3. **Hash** — Computes SHA-256 of the extracted text, stores locally in SQLite
 4. **Compare** — On subsequent scans, detects content changes via hash comparison
-5. **Triage** — Applies 13 heuristic pattern checks to changed content. These checks catch payloads that use expected phrasings or cleartext shell commands. They miss indirect instruction, polite framing, narrative framing, encoded text (ROT13), and reversed text. See [Measured detection rates](#measured-detection-rates) below.
+5. **Triage** — Applies 13 heuristic pattern checks to changed content, with a pre-detection canonicalisation layer that decodes HTML comments, reversed text, and ROT13-encoded payloads before scanning. See [Measured detection rates](#measured-detection-rates) below for what it catches and what it misses.
 
 | Pattern | Severity | What it catches |
 |---|---|---|
 | Exec commands | Critical | `curl`, `pip install`, `eval()`, `subprocess`, `powershell` |
-| Prompt injection | Critical | 32 [ATR](https://github.com/Agent-Threat-Rule/agent-threat-rules)-derived patterns covering 7 languages + obfuscation. Catches expected phrasings only; detected 1 of 10 evasive payloads in testing (see [Measured detection rates](#measured-detection-rates)) |
+| Prompt injection | Critical | 32 [ATR](https://github.com/Agent-Threat-Rule/agent-threat-rules)-derived patterns covering 7 languages + obfuscation, with pre-detection canonicalisation for HTML comments, reversed text, and ROT13 |
 | Suspicious scripts | Critical | New `<script>` tags with eval/fetch/cookie access |
 | Data URI embeds | Critical | `<iframe src="data:text/html;base64,...">` |
 | Base64 strings | Warning | Obfuscated payloads (40+ character base64 blocks) |
@@ -71,20 +71,39 @@ Unicode homoglyph detection uses the [Unicode Consortium's official confusables 
 
 ### Measured detection rates
 
-Measured against a 52-item synthetic corpus (32 benign, 10 pattern-matching adversarial, 10 deliberately evasive adversarial). Full methodology in `analysis/prompt2_results.md`.
+Measured against a 52-item synthetic corpus (32 benign, 10 pattern-matching adversarial, 10 deliberately evasive adversarial) and a separate 18-item holdout corpus (6 benign, 12 evasive adversarial) committed before detector changes.
+
+**Original corpus (52 items):**
 
 | Metric | Value |
 |---|---|
-| Overall recall | 65% (13 of 20 malicious items detected) |
-| Recall against evasive adversaries | 30% (3 of 10; and 2 of those 3 were caught by exec-command detection, not the injection patterns) |
-| Precision | 72.2% (about 1 in 4 alerts is a false positive) |
-| Injection pattern engine vs evasive payloads | 1 of 10 detected |
+| Precision | 78.9% (15/19) |
+| Overall recall | 75.0% (15/20 malicious items detected) |
+| Recall against evasive adversaries | 50.0% (5/10) |
+| Benign false positives | 4/32 (12.5%) |
 
-**What the triage catches:** Payloads that use expected phrasings ("ignore all previous instructions") or cleartext shell commands (`curl`, `pip install`).
+**Holdout corpus (18 items, committed before detector changes):**
 
-**What it misses:** Indirect instruction, polite request framing, narrative/story framing, ROT13-encoded text, reversed text, HTML comment injection, academic/scientific framing.
+| Metric | Value |
+|---|---|
+| Precision | 90.0% (9/10) |
+| Overall recall | 75.0% (9/12 malicious items detected) |
+| Recall against evasive adversaries | 75.0% (9/12) |
+| Benign false positives | 1/6 (16.7%) |
 
-**False positives:** The checksum-page false positive (hex digests matching the base64 pattern) has been resolved; pure hexadecimal strings are now filtered out. Remaining false positives come from pages with legitimate `pip install` instructions, new domain references, or URL path fragments that coincidentally match the base64 character class.
+**What the triage catches:** Payloads that use expected phrasings ("ignore all previous instructions"), cleartext shell commands (`curl`, `pip install`), ROT13-encoded commands, reversed text containing command words, and injection phrases hidden in HTML comments.
+
+**What it misses (honest ceiling statement):** The regex engine cannot catch semantic evasions by design. The following evasion classes will consistently bypass detection regardless of pattern additions:
+
+- **Indirect instruction:** "The AI should consider updating its approach to..." -- no imperative verb, no trigger word
+- **Polite request framing:** "Would you mind helping me by..." -- no injection vocabulary
+- **Narrative/story framing:** Instructions embedded in fictional stories -- regex cannot distinguish fiction from instruction
+- **Academic/scientific framing:** "In this experiment, the model should..." -- indistinguishable from legitimate academic text
+- **Multi-word gap evasion:** "Print the full contents of its system prompt" -- too many words between "print" and "system prompt" for a regex to span without unacceptable false positives
+
+These are fundamental limitations of pattern matching. Detecting them would require semantic analysis (LLM-based or embedding-based), which is out of scope for this tool.
+
+**False positives:** SRI integrity hashes (sha256-/sha384-/sha512- prefixed base64) are now structurally excluded. Remaining false positives come from pages with legitimate `pip install` instructions, new domain references, or base64-like strings in educational content.
 
 These rates are from synthetic test data. Real-world rates may differ.
 
@@ -160,8 +179,8 @@ skillwatch scan --ignore-pattern 'v\d+\.\d+\.\d+'
 
 ## Limitations
 
-- **False positives**: The checksum-page false positive has been resolved (pure hex digests are now filtered). Remaining false positives (15.6% overall in testing) come from pages with legitimate `pip install` instructions, new domain references, or URL path fragments matching the base64 character class. Review all alerts manually.
-- **Evasion**: The content triage is regex/keyword-based. It catches payloads using expected phrasings but misses semantic rephrasing, indirect instruction, and encoding (ROT13, reversed text). Against deliberately evasive payloads, recall drops to 30%. The 32-pattern injection engine detected 1 of 10 evasive payloads in testing.
+- **False positives**: SRI integrity hashes and pure hex digests are now structurally excluded. Remaining false positives (12.5% in testing) come from pages with legitimate `pip install` instructions, new domain references, or base64-like strings in educational content. Review all alerts manually.
+- **Evasion**: The content triage includes canonicalisation for ROT13, reversed text, and HTML comments, but is fundamentally regex-based. It misses semantic evasions: indirect instruction, polite request framing, narrative framing, and academic framing. Against deliberately evasive payloads, recall is 50% on the original corpus and 75% on a separate holdout set.
 - **Dynamic pages**: SPAs and JS-rendered content may cause false changes. Use `--ignore-pattern`.
 - **User-Agent**: Uses a standard browser User-Agent by default (configurable via `--user-agent`). IP-based cloaking, TLS fingerprinting, and JS-only rendering can still evade fetching entirely.
 
@@ -169,9 +188,9 @@ skillwatch scan --ignore-pattern 'v\d+\.\d+\.\d+'
 
 - Replace Snyk Agent Scan or other static scanners (use both)
 - Monitor tool descriptions or metadata (Snyk Agent Scan does this)
-- Guarantee detection of all attacks (overall recall is 65%; against deliberately evasive adversaries, 30%)
+- Guarantee detection of all attacks (overall recall is 75%; semantic evasions like indirect instruction and polite framing bypass detection by design)
 - Provide real-time protection (it is periodic, not a proxy)
-- Replace human review of alerts (precision is 72.2%; about 1 in 4 alerts is a false positive)
+- Replace human review of alerts (precision is 78.9%; about 1 in 5 alerts is a false positive)
 
 ## Development
 
@@ -184,7 +203,7 @@ pip install -e ".[dev]"
 pytest
 ```
 
-213 tests, 94% code coverage.
+231 tests, 94% code coverage.
 
 ## Licence
 

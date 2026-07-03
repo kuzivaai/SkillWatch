@@ -30,7 +30,7 @@ Nine Python modules under `skillwatch/`:
 | cli.py | Argparse CLI, subcommand dispatch |
 | parser.py | Extract URLs from SKILL.md, MCP configs, URL lists |
 | fetcher.py | HTTP fetch with SSRF protection, DNS pinning, text extraction |
-| detector.py | 13 heuristic flag codes, 32 prompt injection patterns |
+| detector.py | 13 heuristic flag codes, 32 prompt injection patterns, canonicalisation (HTML comments, reversed text, ROT13) |
 | differ.py | Unified diff generation, content comparison |
 | store.py | SQLite storage (urls, snapshots, alerts) |
 | formatter.py | Terminal output formatting, ANSI colours |
@@ -41,7 +41,7 @@ Nine Python modules under `skillwatch/`:
 
 These are closed findings from the five-prompt forensic audit. Do not re-litigate.
 
-- **The regex triage is evadable by design.** Recall is 65% overall, 30% against evasive adversaries. This is documented honestly and is not a bug to fix. The tool is a URL change monitor with best-effort triage, not a detection tool.
+- **The regex triage is evadable by design.** Recall is 75% overall, 50% against evasive adversaries (original corpus). Semantic evasions (indirect instruction, polite framing, narrative framing) bypass detection by design. This is documented honestly and is not a bug to fix. The tool is a URL change monitor with best-effort triage, not a detection tool.
 - **"Periodic, not continuous."** The tool runs via cron or CI. It has no daemon mode, no schedule trigger, no unattended monitoring. All user-facing text uses "periodic" or "periodically." Do not introduce "continuous" or "continuously."
 - **No ML or LLM detection.** The detector is regex/keyword/DOM-based. Proposals to add semantic detection are out of scope.
 - **HOLD decision in force.** Not published to PyPI, no release tagged, no GitHub Pages enabled. See DECISION.md for the readiness bar.
