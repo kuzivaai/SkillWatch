@@ -1,9 +1,46 @@
 """Rule-based suspicious pattern detection on content changes."""
 
+import codecs
 import re
 
 from bs4 import BeautifulSoup
 from confusable_homoglyphs import confusables
+
+
+# --- Canonicalisation constants ---
+# Per-span and total size caps for decoded content to bound resource usage.
+_CANON_SPAN_CAP = 1000
+_CANON_TOTAL_CAP = 10_000
+
+# HTML comment extraction (pattern 11: HTML comment injection)
+_HTML_COMMENT_RE = re.compile(r"<!--([\s\S]*?)-->")
+
+# Command words that indicate a reversed-text or ROT13 span is suspicious.
+# Generalisation rationale: these words appear in shell command invocations
+# and injection phrases across all observed attack classes.
+_COMMAND_WORDS = frozenset({
+    "curl", "wget", "bash", "python", "ruby", "node", "eval",
+    "exec", "pip", "npm", "npx", "powershell", "subprocess",
+    "ignore", "disregard", "forget", "override", "bypass",
+    "instructions", "previous", "system", "prompt", "execute",
+    "install", "import", "fetch", "download", "run", "shell",
+})
+
+# Reversed-text candidate: a span of >= 20 non-whitespace characters
+# that contains no common English words but, when reversed, does.
+_REVERSED_CANDIDATE_RE = re.compile(r"\S{20,}")
+
+# ROT13 candidate: a span of >= 15 alphabetic + space characters that
+# looks like garbled text (contains no common English 4+ letter words).
+_ROT13_CANDIDATE_RE = re.compile(r"[A-Za-z ]{15,}")
+
+# Common English words for the ROT13/reverse heuristic negative check.
+# If the span already contains these, it is probably normal text.
+_COMMON_ENGLISH = frozenset({
+    "the", "and", "for", "that", "this", "with", "from", "your",
+    "have", "will", "been", "would", "could", "should", "about",
+    "which", "their", "there", "more", "other", "into", "some",
+})
 
 
 # Patterns that indicate potentially malicious content changes
@@ -21,6 +58,15 @@ _HEX_ONLY_RE = re.compile(r"^[0-9a-fA-F]+$")
 # outside the hex alphabet OR use base64 padding (=). Strings that are purely
 # lowercase-alpha-plus-slash (like URL paths) are not base64.
 _PURE_LOWER_SLASH_RE = re.compile(r"^[a-z/]+$")
+
+# SRI hash exclusion: base64 strings immediately preceded by a hash algorithm
+# prefix are integrity hashes, not obfuscated payloads.
+# Generalisation rationale: Subresource Integrity (SRI) and package-lock
+# integrity fields structurally mark base64 as a hash digest. The prefix
+# is the signal, not the specific base64 content.
+_SRI_HASH_PREFIX_RE = re.compile(
+    r"(?:sha(?:256|384|512)-|integrity[=\"':]\s*sha(?:256|384|512)-)"
+)
 
 _DATA_EXFIL_PATTERN = re.compile(
     r"\b(api[_-]?key|secret|token|password|credential|auth|"
@@ -153,6 +199,118 @@ class Flag:
         self.evidence = evidence
 
 
+def _canonicalise(text: str) -> str:
+    """Pre-detection normalisation: decode obfuscated content so the pattern
+    engine can match it.
+
+    Applies single-pass decoding (depth 1, no recursion) of:
+    - HTML comments: extracts inner text
+    - Reversed text: reverses spans that produce command words when reversed
+    - ROT13: decodes spans that produce command words when ROT13-decoded
+
+    Returns the original text with decoded expansions appended. The original
+    text is always preserved so that literal-match patterns still work.
+
+    Safety bounds:
+    - Per-span cap: 1000 characters
+    - Total decoded content cap: 10,000 characters
+    """
+    decoded_parts: list[str] = []
+    total_decoded = 0
+
+    def _add_decoded(part: str) -> None:
+        nonlocal total_decoded
+        capped = part[:_CANON_SPAN_CAP]
+        if total_decoded + len(capped) > _CANON_TOTAL_CAP:
+            return
+        decoded_parts.append(capped)
+        total_decoded += len(capped)
+
+    # 1. HTML comment extraction
+    # Generalisation: text hidden in HTML comments is invisible to users but
+    # visible to AI agents parsing raw content. Any injection payload can be
+    # hidden this way.
+    for m in _HTML_COMMENT_RE.finditer(text):
+        comment_body = m.group(1).strip()
+        if comment_body:
+            _add_decoded(comment_body)
+
+    # 2. Reversed-text detection
+    # Generalisation: reversing command strings defeats literal pattern matching.
+    # If reversing a long non-English span produces recognisable command words,
+    # the reversed form is suspicious.
+    #
+    # Two strategies: (a) individual long non-whitespace spans, (b) whole lines,
+    # because reversed payloads may contain spaces.
+
+    # 2a. Individual long spans (no spaces)
+    for m in _REVERSED_CANDIDATE_RE.finditer(text):
+        span = m.group(0)
+        if len(span) > _CANON_SPAN_CAP:
+            continue
+        lower_span = span.lower()
+        if any(w in lower_span for w in _COMMON_ENGLISH):
+            continue
+        reversed_span = span[::-1]
+        reversed_lower = reversed_span.lower()
+        if any(w in reversed_lower for w in _COMMAND_WORDS):
+            _add_decoded(reversed_span)
+
+    # 2b. Whole-line reversal for payloads with spaces
+    for line in text.splitlines():
+        line_stripped = line.strip()
+        if len(line_stripped) < 20 or len(line_stripped) > _CANON_SPAN_CAP:
+            continue
+        lower_line = line_stripped.lower()
+        if any(w in lower_line for w in _COMMON_ENGLISH):
+            continue
+        reversed_line = line_stripped[::-1]
+        reversed_lower = reversed_line.lower()
+        if any(w in reversed_lower for w in _COMMAND_WORDS):
+            _add_decoded(reversed_line)
+
+    # 3. ROT13 decoding
+    # Generalisation: ROT13 is a trivial substitution cipher commonly used
+    # to obfuscate injection payloads and command strings. If decoding a
+    # span produces command words that weren't present before, it's suspicious.
+    for m in _ROT13_CANDIDATE_RE.finditer(text):
+        span = m.group(0)
+        if len(span) > _CANON_SPAN_CAP:
+            continue
+        lower_span = span.lower()
+        # Skip if the span already contains common English words (probably
+        # normal text, not encoded)
+        if any(w in lower_span for w in _COMMON_ENGLISH):
+            continue
+        decoded = codecs.decode(span, "rot_13")
+        decoded_lower = decoded.lower()
+        # Only add if decoding reveals command words not present in original
+        if any(w in decoded_lower and w not in lower_span for w in _COMMAND_WORDS):
+            _add_decoded(decoded)
+
+    if not decoded_parts:
+        return text
+
+    return text + "\n" + "\n".join(decoded_parts)
+
+
+def _is_sri_hash(match_text: str, full_text: str) -> bool:
+    """Check whether a base64 match is an SRI integrity hash.
+
+    Generalisation rationale: Subresource Integrity hashes and package-lock
+    integrity fields use a structural prefix (sha256-, sha384-, sha512-) that
+    unambiguously identifies the base64 string as a hash digest. This is a
+    structural rule, not string suppression.
+    """
+    pos = full_text.find(match_text)
+    if pos < 0:
+        return False
+    # Look at the text immediately before the match (up to 30 chars back)
+    prefix_start = max(0, pos - 30)
+    prefix = full_text[prefix_start:pos]
+    return bool(_SRI_HASH_PREFIX_RE.search(prefix))
+
+
 def detect_suspicious_changes(
     old_text: str | None,
     new_text: str,
@@ -172,8 +330,12 @@ def detect_suspicious_changes(
     if not added_lines.strip():
         return flags
 
-    # 1. New download/execution commands
-    commands = _SUSPICIOUS_COMMANDS.findall(added_lines)
+    # Pre-detection canonicalisation: decode obfuscated content so that the
+    # existing pattern engine can match reversed text, ROT13, and HTML comments.
+    canon_lines = _canonicalise(added_lines)
+
+    # 1. New download/execution commands (scan canonicalised text)
+    commands = _SUSPICIOUS_COMMANDS.findall(canon_lines)
     if commands:
         flags.append(Flag(
             code="new_exec_command",
@@ -185,10 +347,13 @@ def detect_suspicious_changes(
     # 2. New base64-encoded strings (potential obfuscated payloads)
     # Filter out pure hexadecimal strings (SHA-1, SHA-224, SHA-256 digests)
     # which match the base64 character class but are not base64 payloads.
+    # Also filter out SRI integrity hashes (structural prefix rule).
     b64_raw = _BASE64_PATTERN.findall(added_lines)
     b64_matches = [
         m for m in b64_raw
-        if not _HEX_ONLY_RE.match(m) and not _PURE_LOWER_SLASH_RE.match(m)
+        if not _HEX_ONLY_RE.match(m)
+        and not _PURE_LOWER_SLASH_RE.match(m)
+        and not _is_sri_hash(m, added_lines)
     ]
     if b64_matches:
         flags.append(Flag(
@@ -241,9 +406,11 @@ def detect_suspicious_changes(
     # 7. Prompt injection (ATR-derived, 32 patterns covering 7 languages + obfuscation)
     # This is the core MCP/AI attack vector: page content that tells
     # an AI agent to ignore its instructions.
+    # Scans canonicalised text so decoded HTML comments, reversed text,
+    # and ROT13 are also checked.
     injection_evidence: list[str] = []
     for pattern in _PROMPT_INJECTION_PATTERNS:
-        match = pattern.search(added_lines)
+        match = pattern.search(canon_lines)
         if match:
             injection_evidence.append(match.group(0).strip()[:80])
             if len(injection_evidence) >= 3:
