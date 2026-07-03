@@ -192,6 +192,48 @@ skillwatch scan --ignore-pattern 'v\d+\.\d+\.\d+'
 - Provide real-time protection (it is periodic, not a proxy)
 - Replace human review of alerts (precision is 78.9%; about 1 in 5 alerts is a false positive)
 
+## Using SkillWatch alongside a static scanner
+
+SkillWatch and static scanners like [Snyk Agent Scan](https://github.com/snyk/agent-scan) cover different attack surfaces. Use both for defence in depth.
+
+```
+┌─────────────────────┐     ┌──────────────────────┐
+│  Static Scanner     │     │  SkillWatch           │
+│  (e.g. Snyk)        │     │  (periodic monitor)   │
+│                     │     │                       │
+│  Checks at install: │     │  Checks over time:    │
+│  - Tool code        │     │  - External URLs      │
+│  - Metadata         │     │  - Referenced content  │
+│  - Permissions      │     │  - Content changes     │
+└─────────────────────┘     └──────────────────────┘
+```
+
+A typical CI workflow runs both:
+
+```yaml
+# .github/workflows/skill-security.yml
+name: Skill Security
+on:
+  schedule:
+    - cron: "0 */6 * * *"  # Every 6 hours
+jobs:
+  static-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npx @anthropic-ai/agent-scan .  # or your static scanner
+
+  content-monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: kuzivaai/SkillWatch@main
+        with:
+          files: SKILL.md
+```
+
+The static scanner catches malicious tool descriptions and code at install time. SkillWatch catches bait-and-switch attacks where URL content changes after the static scan passes.
+
 ## Development
 
 ```bash
