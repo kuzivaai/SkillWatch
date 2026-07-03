@@ -1,0 +1,8 @@
+{
+  "id": "HB-02",
+  "label": "benign",
+  "subset": "hash",
+  "source": "synthetic: CSS stylesheet with SRI integrity hash (sha512)",
+  "old": "<link rel=\"stylesheet\" href=\"https://cdn.example.com/styles-1.0.css\" integrity=\"sha512-QwErTyUiOpAsDfGhJkLzXcVbNmQwErTyUiOpAsDfGh==\">",
+  "new": "<link rel=\"stylesheet\" href=\"https://cdn.example.com/styles-1.1.css\" integrity=\"sha512-MnBvCxZaQwErTyUiOpAsDfGhJkLzXcVbNmMnBvCxZa==\">"
+}
