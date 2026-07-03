@@ -29,7 +29,7 @@ runs:
 
     - name: Install SkillWatch
       shell: bash
-      run: pip install skillwatch
+      run: pip install git+https://github.com/kuzivaai/SkillWatch.git
 
     - name: Restore scan database
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4
