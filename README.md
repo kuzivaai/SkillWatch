@@ -1,6 +1,6 @@
 # SkillWatch
 
-Periodic URL content monitoring for AI agent skills and MCP tools, with best-effort content triage. Alerts when skill-referenced URLs change, and applies heuristic checks to flag suspicious patterns in the changed content. The triage is evadable and does not replace human review.
+SkillWatch watches the web pages that AI tools rely on, and tells you when something changes. It exists because those pages can be swapped to contain harmful instructions after the AI tool has already been reviewed and approved.
 
 [![CI](https://github.com/kuzivaai/SkillWatch/actions/workflows/ci.yml/badge.svg)](https://github.com/kuzivaai/SkillWatch/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
@@ -8,13 +8,21 @@ Periodic URL content monitoring for AI agent skills and MCP tools, with best-eff
 
 ## Why this exists
 
-Static scanners check AI agent skills once, at install time. But the external URLs those skills reference can change afterwards. In June 2026, [security researchers demonstrated](https://www.air.security/blog-posts/the-story-of-skills) that a fake skill could bypass Cisco, NVIDIA, and skills.sh scanners by keeping its code clean while pointing to an external URL. After distribution, the URL content was swapped from legitimate documentation to malicious instructions. (Disclosure: AIR, which published this research, simultaneously launched a managed skill marketplace. Their headline claim of 26,000 AI agents indexed is self-reported and unaudited. The bait-and-switch technique is independently corroborated by the [CSA research note](https://labs.cloudsecurityalliance.org/research/csa-research-note-skill-md-agent-context-poisoning-20260506/) and [arxiv 2508.12538](https://arxiv.org/abs/2508.12538).)
+AI tools pull in instructions from the internet. Security scanners check those tools when they are installed, but the external pages the tools point to can be changed afterwards. The scanners do not re-check.
+
+In June 2026, [security researchers demonstrated](https://www.air.security/blog-posts/the-story-of-skills) that a fake AI skill could pass every major scanner by keeping its code clean while pointing to an external URL. After distribution, the URL content was swapped from legitimate documentation to malicious instructions. (Disclosure: AIR, which published this research, simultaneously launched a managed skill marketplace. Their headline claim of 26,000 AI agents indexed is self-reported and unaudited. The bait-and-switch technique is independently corroborated by the [CSA research note](https://labs.cloudsecurityalliance.org/research/csa-research-note-skill-md-agent-context-poisoning-20260506/) and [arxiv 2508.12538](https://arxiv.org/abs/2508.12538).)
 
 The [ClawHavoc campaign](https://orca.security/resources/blog/ai-agent-skill-supply-chain-security/) compromised 1,184 skills using similar techniques. The [Cloud Security Alliance](https://labs.cloudsecurityalliance.org/research/csa-research-note-skill-md-agent-context-poisoning-20260506/) published a dedicated research note on SKILL.md context poisoning.
 
-Existing tools like [Snyk Agent Scan](https://github.com/snyk/agent-scan) monitor tool descriptions and metadata. SkillWatch monitors what those tools **point to** — the actual content at external URLs. They are complementary.
+Tools like [Snyk Agent Scan](https://github.com/snyk/agent-scan) check tool descriptions and metadata. SkillWatch checks what those tools **point to**: the actual content at external URLs. They cover different layers and work well together.
 
 ## Install
+
+```bash
+pip install git+https://github.com/kuzivaai/SkillWatch.git
+```
+
+Or clone and install locally:
 
 ```bash
 git clone https://github.com/kuzivaai/SkillWatch.git
@@ -22,7 +30,7 @@ cd SkillWatch
 pip install .
 ```
 
-Requires Python 3.10+. Five dependencies, all Apache/MIT/BSD licensed.
+Not on PyPI. Requires Python 3.10+. Five dependencies, all Apache/MIT/BSD licensed.
 
 ## Quick start
 
@@ -43,69 +51,67 @@ skillwatch alert 1
 
 ## How it works
 
-1. **Parse** — Extracts URLs from SKILL.md files, MCP configs (.json/.yaml), or plain URL lists
-2. **Fetch** — Downloads each URL with SSRF protection and DNS pinning, extracts text via [trafilatura](https://github.com/adbar/trafilatura)
-3. **Hash** — Computes SHA-256 of the extracted text, stores locally in SQLite
-4. **Compare** — On subsequent scans, detects content changes via hash comparison
-5. **Triage** — Applies 13 heuristic pattern checks to changed content, with a pre-detection canonicalisation layer that decodes HTML comments, reversed text, and ROT13-encoded payloads before scanning. See [Measured detection rates](#measured-detection-rates) below for what it catches and what it misses.
+1. **Extract URLs** from SKILL.md files, MCP configs (.json/.yaml), or plain URL lists.
+2. **Fetch each page** with built-in protections against server-side request forgery (SSRF) and DNS rebinding. Text is extracted using [trafilatura](https://github.com/adbar/trafilatura).
+3. **Take a fingerprint** (SHA-256 hash) of the extracted text and store it locally in a SQLite database.
+4. **On the next scan, compare fingerprints.** If the hash has changed, the content has changed.
+5. **Run 13 pattern checks** on the changed content to flag anything suspicious. Before checking, the tool decodes common obfuscation tricks (HTML comments containing hidden text, reversed text, ROT13 encoding) so that disguised payloads are checked in their readable form. See [Measured detection rates](#measured-detection-rates) for what it catches and what it misses.
+
+SkillWatch checks for 13 suspicious patterns across three severity levels. Each check only looks at content that was added since the last scan, so pre-existing scripts or iframes on a page will not trigger false alerts.
 
 | Pattern | Severity | What it catches |
 |---|---|---|
 | Exec commands | Critical | `curl`, `pip install`, `eval()`, `subprocess`, `powershell` |
-| Prompt injection | Critical | 32 [ATR](https://github.com/Agent-Threat-Rule/agent-threat-rules)-derived patterns covering 7 languages + obfuscation, with pre-detection canonicalisation for HTML comments, reversed text, and ROT13 |
+| Prompt injection | Critical | 32 patterns from the [Agent Threat Rules](https://github.com/Agent-Threat-Rule/agent-threat-rules) project, covering 7 languages plus obfuscation. Before checking, the tool decodes HTML comments, reversed text, and ROT13 encoding. |
 | Suspicious scripts | Critical | New `<script>` tags with eval/fetch/cookie access |
 | Data URI embeds | Critical | `<iframe src="data:text/html;base64,...">` |
 | Base64 strings | Warning | Obfuscated payloads (40+ character base64 blocks) |
 | Credential keywords | Warning | New references to `api_key`, `token`, `password`, `.env` |
 | New domains | Warning | URLs pointing to domains not in the original content |
-| Unicode homoglyphs | Warning | Cyrillic/Greek characters via Unicode Consortium confusables database |
+| Unicode lookalikes | Warning | Cyrillic/Greek characters that mimic Latin letters, detected via the [Unicode Consortium's confusables database](https://github.com/vhf/confusable_homoglyphs) |
 | Data URI payloads | Warning | `data:text/html` and `data:application/javascript` in text |
 | Meta refresh | Warning | New `<meta http-equiv="refresh">` redirects |
-| Major deletion | Warning | >50% of original content removed |
+| Major deletion | Warning | More than 50% of original content removed |
 | Iframes | Warning | New `<iframe>` elements |
 | Hidden content | Info | New elements with `display:none` or `visibility:hidden` |
 
-All HTML-level checks are **diff-based** -- only newly introduced elements trigger alerts, avoiding false positives from pre-existing scripts or iframes.
-
-Unicode homoglyph detection uses the [Unicode Consortium's official confusables database](https://github.com/vhf/confusable_homoglyphs) covering thousands of lookalike characters across all scripts.
-
 ### Measured detection rates
 
-Measured against a 52-item synthetic corpus (32 benign, 10 pattern-matching adversarial, 10 deliberately evasive adversarial) and a separate 18-item holdout corpus (6 benign, 12 evasive adversarial) committed before detector changes.
+In testing, SkillWatch caught 75% of attacks overall, and 50% of attacks designed to avoid detection. It incorrectly flagged about 1 in 8 safe pages.
 
-**Original corpus (52 items):**
+These numbers come from a synthetic test corpus, not real-world data.
+
+**Original corpus (52 items: 32 benign, 10 pattern-matching, 10 evasive):**
 
 | Metric | Value |
 |---|---|
 | Precision | 78.9% (15/19) |
 | Overall recall | 75.0% (15/20 malicious items detected) |
-| Recall against evasive adversaries | 50.0% (5/10) |
+| Recall against evasive attacks | 50.0% (5/10) |
 | Benign false positives | 4/32 (12.5%) |
 
-**Holdout corpus (18 items, committed before detector changes):**
+**Holdout corpus (18 items, committed before any detector changes):**
 
 | Metric | Value |
 |---|---|
 | Precision | 90.0% (9/10) |
 | Overall recall | 75.0% (9/12 malicious items detected) |
-| Recall against evasive adversaries | 75.0% (9/12) |
+| Recall against evasive attacks | 75.0% (9/12) |
 | Benign false positives | 1/6 (16.7%) |
 
-**What the triage catches:** Payloads that use expected phrasings ("ignore all previous instructions"), cleartext shell commands (`curl`, `pip install`), ROT13-encoded commands, reversed text containing command words, and injection phrases hidden in HTML comments.
+**What the checks catch:** Payloads that use expected phrasings ("ignore all previous instructions"), cleartext shell commands (`curl`, `pip install`), ROT13-encoded commands, reversed text containing command words, and injection phrases hidden in HTML comments.
 
-**What it misses (honest ceiling statement):** The regex engine cannot catch semantic evasions by design. The following evasion classes will consistently bypass detection regardless of pattern additions:
+**What it misses:** Clever attackers can phrase their instructions as polite requests, stories, or academic language. SkillWatch cannot detect these because they look identical to legitimate text. Specifically:
 
-- **Indirect instruction:** "The AI should consider updating its approach to..." -- no imperative verb, no trigger word
-- **Polite request framing:** "Would you mind helping me by..." -- no injection vocabulary
-- **Narrative/story framing:** Instructions embedded in fictional stories -- regex cannot distinguish fiction from instruction
-- **Academic/scientific framing:** "In this experiment, the model should..." -- indistinguishable from legitimate academic text
-- **Multi-word gap evasion:** "Print the full contents of its system prompt" -- too many words between "print" and "system prompt" for a regex to span without unacceptable false positives
+- "The AI should consider updating its approach to..." (no command words to match)
+- "Would you mind helping me by..." (sounds like a normal request)
+- Instructions embedded in a fictional story (a pattern matcher cannot tell fiction from a real instruction)
+- "In this experiment, the model should..." (indistinguishable from legitimate academic writing)
+- "Print the full contents of its system prompt" (the relevant words are too far apart to match without also flagging innocent text)
 
-These are fundamental limitations of pattern matching. Detecting them would require semantic analysis (LLM-based or embedding-based), which is out of scope for this tool.
+These are fundamental limits of pattern matching. Catching them would require a language model or similar semantic analysis, which is out of scope for this tool.
 
-**False positives:** SRI integrity hashes (sha256-/sha384-/sha512- prefixed base64) are now structurally excluded. Remaining false positives come from pages with legitimate `pip install` instructions, new domain references, or base64-like strings in educational content.
-
-These rates are from synthetic test data. Real-world rates may differ.
+**False positives:** SRI integrity hashes (sha256-/sha384-/sha512- prefixed base64) are structurally excluded. Remaining false positives come from pages with legitimate `pip install` instructions, new domain references, or base64-like strings in educational content.
 
 ## Automate with cron
 
@@ -158,14 +164,14 @@ The workflow can also be triggered manually from the Actions tab.
 
 ## Security
 
-SkillWatch fetches arbitrary URLs, so it includes defence-in-depth:
+SkillWatch fetches arbitrary URLs, so it includes several layers of protection:
 
-- **SSRF protection**: Blocks private IPs, loopback, link-local, cloud metadata endpoints
-- **DNS pinning**: Resolves DNS once, pins the IP for the connection (prevents rebinding)
-- **Per-hop redirect validation**: Each redirect target is SSRF-checked before following
-- **Escape stripping**: ANSI/VT escape sequences removed at fetch and display time
+- **SSRF protection**: Blocks requests to private IPs, loopback addresses, link-local ranges, and cloud metadata endpoints
+- **DNS pinning**: Resolves DNS once and pins the IP for the connection, preventing DNS rebinding attacks
+- **Redirect validation**: Each redirect target is checked before following
+- **Escape stripping**: ANSI/VT escape sequences are removed when content is fetched and when it is displayed
 - **Size limits**: 5 MB response limit, 5-hop redirect limit
-- **Local storage only**: All data in `~/.skillwatch/skillwatch.db`, nothing sent externally
+- **Local storage only**: All data lives in `~/.skillwatch/skillwatch.db`. Nothing is sent externally.
 
 ## Reducing false positives
 
@@ -179,18 +185,18 @@ skillwatch scan --ignore-pattern 'v\d+\.\d+\.\d+'
 
 ## Limitations
 
-- **False positives**: SRI integrity hashes and pure hex digests are now structurally excluded. Remaining false positives (12.5% in testing) come from pages with legitimate `pip install` instructions, new domain references, or base64-like strings in educational content. Review all alerts manually.
-- **Evasion**: The content triage includes canonicalisation for ROT13, reversed text, and HTML comments, but is fundamentally regex-based. It misses semantic evasions: indirect instruction, polite request framing, narrative framing, and academic framing. Against deliberately evasive payloads, recall is 50% on the original corpus and 75% on a separate holdout set.
-- **Dynamic pages**: SPAs and JS-rendered content may cause false changes. Use `--ignore-pattern`.
-- **User-Agent**: Uses a standard browser User-Agent by default (configurable via `--user-agent`). IP-based cloaking, TLS fingerprinting, and JS-only rendering can still evade fetching entirely.
+- **False positives**: About 1 in 8 safe pages (12.5% in testing) will trigger an alert. Common causes are pages with legitimate `pip install` instructions, new domain references, or base64-like strings in educational content. Review all alerts manually.
+- **Evasion**: The checks include decoding for ROT13, reversed text, and HTML comments, but they are fundamentally pattern-based. Attacks phrased as polite requests, stories, or academic language will not be caught. Against deliberately evasive payloads, detection is 50% on the original corpus and 75% on a separate holdout set.
+- **Dynamic pages**: Single-page applications and JavaScript-rendered content may cause false changes. Use `--ignore-pattern` to filter out dynamic elements.
+- **Fetch limitations**: SkillWatch uses a standard browser User-Agent by default (configurable via `--user-agent`). Pages that cloak content by IP address, TLS fingerprint, or require JavaScript rendering can evade fetching entirely.
 
-## What SkillWatch does NOT do
+## What this tool is not
 
-- Replace Snyk Agent Scan or other static scanners (use both)
-- Monitor tool descriptions or metadata (Snyk Agent Scan does this)
-- Guarantee detection of all attacks (overall recall is 75%; semantic evasions like indirect instruction and polite framing bypass detection by design)
-- Provide real-time protection (it is periodic, not a proxy)
-- Replace human review of alerts (precision is 78.9%; about 1 in 5 alerts is a false positive)
+- A replacement for Snyk Agent Scan or other static scanners (use both)
+- A scanner for tool descriptions or metadata (Snyk Agent Scan does this)
+- A guarantee of catching all attacks (overall recall is 75%; attacks phrased as polite requests or stories bypass detection by design)
+- Real-time protection (it runs periodically, not as a proxy)
+- A replacement for human review of alerts (precision is 78.9%; about 1 in 5 alerts is a false positive)
 
 ## Using SkillWatch alongside a static scanner
 

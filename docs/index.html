@@ -3,24 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SkillWatch — Periodic URL Monitoring for AI Agent Skills and MCP Tools</title>
-<meta name="description" content="Free, open-source CLI tool that periodically monitors external URLs referenced by AI agent skills and MCP tools for content changes. 13 heuristic triage patterns with best-effort, evadable content classification. Complements Snyk Agent Scan and Cisco skill-scanner.">
+<title>SkillWatch — Watch the URLs Your AI Tools Rely On</title>
+<meta name="description" content="Free, open-source CLI tool that watches the web pages AI tools point to and alerts you when they change. Runs 13 pattern checks to flag suspicious changes. Catches 75% of attacks in testing, but not all. Complements Snyk Agent Scan and Cisco skill-scanner.">
 <meta name="keywords" content="MCP security, AI agent security, skill security, URL monitoring, bait-and-switch, content triage, supply chain security, Claude Code, Cursor, Windsurf, open source, ATR, Agent Threat Rules, ClawHavoc, unicode homoglyph, DNS pinning, SSRF protection">
 <meta name="author" content="Kuziva Muzondo">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://kuzivaai.github.io/SkillWatch/">
 
 <!-- Open Graph -->
-<meta property="og:title" content="SkillWatch — AI Agent Skill URL Monitor">
-<meta property="og:description" content="Free CLI tool that periodically watches the URLs your AI skills reference. 13 heuristic triage patterns with best-effort content classification. Complements Snyk Agent Scan.">
+<meta property="og:title" content="SkillWatch — Watch the URLs Your AI Tools Rely On">
+<meta property="og:description" content="Free CLI tool that watches the web pages your AI tools point to. 13 pattern checks flag suspicious changes. 75% recall in testing. Complements Snyk Agent Scan.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://kuzivaai.github.io/SkillWatch/">
 <meta property="og:site_name" content="SkillWatch">
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="SkillWatch — AI Agent Skill URL Monitor">
-<meta name="twitter:description" content="Free CLI tool that periodically watches the URLs your AI skills reference. 13 heuristic triage patterns with best-effort content classification.">
+<meta name="twitter:title" content="SkillWatch — Watch the URLs Your AI Tools Rely On">
+<meta name="twitter:description" content="Free CLI tool that watches the web pages your AI tools point to. 13 pattern checks flag suspicious changes. 75% recall in testing.">
 
 <!-- Structured Data: SoftwareApplication -->
 <script type="application/ld+json">
@@ -34,20 +34,20 @@
   "programmingLanguage": "Python",
   "softwareVersion": "0.2.0",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-  "description": "Periodic URL content monitoring for AI agent skills and MCP tools, with best-effort content triage. 13 heuristic pattern checks flag suspicious changes. Overall recall 75%, precision 78.9%. The triage is evadable and does not replace human review.",
+  "description": "Watches the web pages AI tools point to and alerts when they change. 13 pattern checks flag suspicious changes. 75% recall, 78.9% precision in testing. The checks can be evaded and do not replace human review.",
   "url": "https://github.com/kuzivaai/SkillWatch",
   "downloadUrl": "https://github.com/kuzivaai/SkillWatch",
   "license": "https://www.apache.org/licenses/LICENSE-2.0",
   "author": { "@type": "Person", "name": "Kuziva Muzondo" },
   "datePublished": "2026-07-01",
   "featureList": [
-    "13 heuristic triage patterns (best-effort, evadable)",
-    "32 ATR-derived prompt injection patterns covering 7 languages with pre-detection canonicalisation (catches expected phrasings, ROT13, reversed text, HTML comment injection; detected 5 of 10 evasive payloads in testing)",
-    "Unicode homoglyph detection via Unicode Consortium confusables database",
-    "SSRF protection with DNS pinning",
+    "13 pattern checks for suspicious content (can be evaded, not a guarantee)",
+    "32 prompt injection patterns covering 7 languages, with decoding for ROT13, reversed text, and HTML comment tricks",
+    "Unicode lookalike character detection via Unicode Consortium confusables database",
+    "Protection against server-side request forgery (SSRF) with DNS pinning",
     "JSON output for CI/CD and webhook integration",
-    "Built-in ignore presets for false positive reduction",
-    "Overall recall 75%, precision 78.9% on synthetic corpus",
+    "Built-in ignore presets to reduce false positives",
+    "75% recall, 78.9% precision in synthetic testing",
     "Zero infrastructure cost"
   ]
 }
@@ -64,7 +64,7 @@
       "name": "What is SkillWatch?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "SkillWatch is a free, open-source Python CLI tool that periodically monitors the external URLs referenced by AI agent skills and MCP tools. It alerts when URL content changes and applies best-effort heuristic triage to flag suspicious patterns, including a canonicalisation layer for ROT13, reversed text, and HTML comment injection. Overall recall is 75%, dropping to 50% against deliberately evasive adversaries. Semantic evasions (indirect instruction, polite framing, narrative framing) are not detectable by design. It runs locally via cron or CI, costs nothing, and stores everything in a local SQLite database."
+        "text": "SkillWatch is a free, open-source Python CLI that watches the web pages AI tools point to and tells you when something changes. It runs 13 pattern checks on changed content to flag suspicious additions, and decodes common obfuscation tricks (ROT13, reversed text, hidden HTML comments) before checking. In testing, it caught 75% of attacks overall, dropping to 50% against attacks designed to avoid detection. Cleverly worded attacks (polite requests, stories, academic language) will not be caught because they look identical to normal text. It runs locally via cron or CI, costs nothing, and stores everything in a local SQLite database."
       }
     },
     {
@@ -72,7 +72,7 @@
       "name": "How does SkillWatch differ from Snyk Agent Scan and MCP-Scan?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Snyk Agent Scan and MCP-Scan monitor skill code, metadata, and tool descriptions. SkillWatch monitors the content at the external URLs those skills reference. These are different layers of the attack surface. In June 2026, security researchers demonstrated that a skill could pass all static scanners while its referenced URL was swapped to malicious content. SkillWatch alerts on this kind of content change and applies best-effort triage, but the triage is evadable and does not guarantee detection. It complements existing scanners, it does not replace them."
+        "text": "Snyk Agent Scan and MCP-Scan check the code and descriptions inside AI tools. SkillWatch checks the external web pages those tools point to. These are different layers. In June 2026, researchers showed that a tool could pass all code scanners while its referenced URL was quietly swapped to contain malicious instructions. SkillWatch alerts on that kind of content change and runs pattern checks on it, but the checks can be evaded and do not guarantee detection. It complements existing scanners rather than replacing them."
       }
     },
     {
@@ -80,7 +80,7 @@
       "name": "What does SkillWatch detect?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "SkillWatch applies 13 heuristic triage checks with a pre-detection canonicalisation layer: execution commands (curl, pip install, eval), prompt injection patterns in 7 languages (32 ATR-derived patterns) with ROT13 and reversed-text decoding, suspicious HTML (scripts, iframes, data URI embeds, injected comments), Unicode homoglyph characters, credential harvesting keywords, new domain references, major content deletions, meta refresh redirects, base64 payloads, and hidden content. All HTML checks are diff-based. Measured recall is 75% overall, dropping to 50% against deliberately evasive adversaries. Precision is 78.9%. Semantic evasions (indirect instruction, polite framing, narrative framing) bypass detection by design. The triage is best-effort and does not replace human review."
+        "text": "SkillWatch runs 13 pattern checks on changed content. It looks for: shell commands (curl, pip install, eval), prompt injection phrases in 7 languages (32 patterns from the Agent Threat Rules project) with ROT13 and reversed-text decoding, suspicious HTML (scripts, iframes, data URI embeds, hidden comments), Unicode lookalike characters, credential keywords, new domain references, large content deletions, meta refresh redirects, base64 payloads, and hidden elements. All HTML checks only flag newly added content, not things already on the page. In testing, recall is 75% overall, dropping to 50% against attacks designed to avoid detection. Precision is 78.9%. Attacks phrased as polite requests, stories, or academic writing bypass detection because they look like normal text. Review all alerts manually."
       }
     },
     {
@@ -88,7 +88,7 @@
       "name": "How do I install SkillWatch?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Install from source: git clone https://github.com/kuzivaai/SkillWatch.git, then pip install ./SkillWatch. Requires Python 3.10 or higher. Five dependencies, all permissively licensed (Apache/MIT/BSD). Zero infrastructure cost."
+        "text": "Run: pip install git+https://github.com/kuzivaai/SkillWatch.git. Or clone the repository and run pip install . from inside it. Not on PyPI. Requires Python 3.10 or higher. Five dependencies, all permissively licensed (Apache/MIT/BSD). Zero infrastructure cost."
       }
     }
   ]
@@ -214,7 +214,7 @@ footer a { color: var(--muted); }
 <!-- Hero -->
 <section class="hero" aria-label="Introduction">
   <h1>SkillWatch</h1>
-  <p class="tagline">Monitors the URLs your AI agent skills point to. Alerts you when the content changes. Catches some attacks, not all — see measured rates below.</p>
+  <p class="tagline">Watches the web pages your AI tools rely on and tells you when something changes. Catches some attacks, not all.</p>
   <div class="hero-ctas">
     <code>pip install git+https://github.com/kuzivaai/SkillWatch.git</code>
     <a href="https://github.com/kuzivaai/SkillWatch" class="btn-secondary" aria-label="View SkillWatch on GitHub">GitHub</a>
@@ -226,9 +226,9 @@ footer a { color: var(--muted); }
 <section class="problem" aria-label="The problem SkillWatch solves">
   <div class="container">
     <h2>The problem</h2>
-    <p>AI agent skills point to external URLs for setup instructions and documentation. Static scanners like <strong>Snyk Agent Scan</strong> and <strong>Cisco skill-scanner</strong> check those skills once, at install time.</p>
-    <p>But the URLs can change afterwards. In June 2026, <strong>security researchers demonstrated</strong> that a fake skill could bypass every major scanner by keeping its code clean while swapping the URL content from legitimate docs to malicious instructions after distribution.</p>
-    <p><strong>SkillWatch watches those URLs periodically</strong> (via cron or CI, not as a proxy or daemon). It is the only free tool that does this. It complements existing scanners; it does not replace them.</p>
+    <p>AI tools pull in instructions from web pages. Security scanners check the tools when they are installed, but the web pages those tools point to can be changed afterwards. The scanners do not re-check.</p>
+    <p>In June 2026, <strong>researchers showed</strong> that a fake AI tool could pass every major scanner by keeping its code clean, then swapping the URL content from legitimate documentation to malicious instructions after distribution.</p>
+    <p><strong>SkillWatch watches those URLs periodically</strong> (via cron or CI). It complements existing scanners; it does not replace them.</p>
 
     <!-- Terminal demo -->
     <div class="terminal" role="img" aria-label="Terminal output showing SkillWatch detecting a suspicious change">
@@ -251,13 +251,13 @@ footer a { color: var(--muted); }
 
 <!-- Features -->
 <section class="features" aria-label="Detection patterns">
-  <h2>13 heuristic triage patterns, zero infrastructure</h2>
-  <p class="subtitle">All checks are diff-based: only newly introduced content triggers alerts. The triage is best-effort and evadable. Review all alerts manually.</p>
+  <h2>13 pattern checks, zero infrastructure</h2>
+  <p class="subtitle">Only newly added content triggers alerts, not things already on the page. These checks can be evaded. Review all alerts manually.</p>
   <div class="grid">
     <article class="card">
       <span class="severity crit">Critical</span>
-      <h3>Prompt injection (best-effort)</h3>
-      <p>32 ATR-derived patterns covering 7 languages (EN, DE, ES, FR, AR, RU, SR/HR) plus obfuscation variants. Catches expected phrasings only. Detected 1 of 10 evasive payloads in testing. Does not catch indirect instruction, polite framing, narrative framing, or encoded text.</p>
+      <h3>Prompt injection</h3>
+      <p>32 patterns from the Agent Threat Rules project, covering 7 languages plus obfuscation tricks. Catches obvious phrasings like "ignore all previous instructions." Will not catch attacks phrased as polite requests, stories, or academic writing.</p>
     </article>
     <article class="card">
       <span class="severity crit">Critical</span>
@@ -271,18 +271,18 @@ footer a { color: var(--muted); }
     </article>
     <article class="card">
       <span class="severity warn">Warning</span>
-      <h3>Unicode homoglyphs</h3>
-      <p>Catches Cyrillic, Greek, Armenian, and other script characters imitating Latin letters. Uses Unicode Consortium's official confusables database.</p>
+      <h3>Unicode lookalikes</h3>
+      <p>Catches characters from other scripts (Cyrillic, Greek, Armenian) that look like Latin letters but are not. Uses the Unicode Consortium's official confusables database.</p>
     </article>
     <article class="card">
       <span class="severity warn">Warning</span>
-      <h3>Credential harvesting</h3>
-      <p>Alerts on new references to api_key, token, password, .env, private_key, and other secret keywords.</p>
+      <h3>Credential keywords</h3>
+      <p>Flags new references to api_key, token, password, .env, private_key, and similar terms that suggest credential harvesting.</p>
     </article>
     <article class="card">
       <span class="severity warn">Warning</span>
-      <h3>HTML injection</h3>
-      <p>Detects new suspicious scripts (eval, fetch, cookie access), iframes, meta refresh redirects, and hidden elements.</p>
+      <h3>Suspicious HTML</h3>
+      <p>Flags new scripts that use eval, fetch, or access cookies. Also catches new iframes, meta refresh redirects, and hidden elements.</p>
     </article>
   </div>
 </section>
@@ -311,8 +311,8 @@ footer a { color: var(--muted); }
 
 <!-- Comparison -->
 <section class="comparison" aria-label="Comparison with other tools">
-  <h2>How SkillWatch fits in</h2>
-  <p class="subtitle">SkillWatch monitors a different layer than existing scanners. Use them together.</p>
+  <h2>How SkillWatch fits alongside other tools</h2>
+  <p class="subtitle">It watches a different layer than existing scanners. Use them together.</p>
   <table>
     <thead>
       <tr>
@@ -324,28 +324,28 @@ footer a { color: var(--muted); }
     </thead>
     <tbody>
       <tr>
-        <td>Scans skill code/metadata</td>
+        <td>Checks tool code and descriptions</td>
         <td class="yes">Yes</td>
         <td class="yes">Yes</td>
         <td class="no">No</td>
       </tr>
       <tr>
-        <td>Monitors URL content changes</td>
+        <td>Watches external URLs for changes</td>
         <td class="no">No</td>
         <td class="no">No</td>
         <td class="yes">Yes</td>
       </tr>
       <tr>
-        <td>Periodic monitoring</td>
+        <td>Scheduled re-checking</td>
         <td class="partial">Enterprise only</td>
         <td class="no">No</td>
-        <td class="yes">Yes (cron/CI, not a proxy)</td>
+        <td class="yes">Yes (cron/CI)</td>
       </tr>
       <tr>
-        <td>Prompt injection triage</td>
+        <td>Prompt injection detection</td>
         <td class="yes">Yes (backend)</td>
         <td class="yes">Yes (YARA+LLM)</td>
-        <td class="partial">Best-effort (32 regex patterns + canonicalisation; 75% recall, 50% vs evasive)</td>
+        <td class="partial">Pattern-based (32 regex patterns; 75% recall, 50% vs evasive)</td>
       </tr>
       <tr>
         <td>Free for individuals</td>
@@ -360,7 +360,7 @@ footer a { color: var(--muted); }
         <td class="yes">Yes</td>
       </tr>
       <tr>
-        <td>Runs fully offline</td>
+        <td>Works offline (no cloud service needed)</td>
         <td class="no">No</td>
         <td class="yes">Yes</td>
         <td class="yes">Yes</td>
