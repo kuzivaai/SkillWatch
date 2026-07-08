@@ -11,12 +11,12 @@ All 5 conditions must PASS before the HOLD can be lifted.
 | 1 | Evasive recall >= 50% OR documentation makes unmissable that triage is decorative | **PASS** | Evasive recall is 50% on original corpus, 75% on holdout. README states figures in multiple places with honest ceiling statement. |
 | 2 | Precision >= 75% | **PASS** | 78.9% on original corpus, 90.0% on holdout. SRI hash FP fixed. |
 | 3 | Named maintenance owner and pattern update cadence | **PASS** | MAINTENANCE.md names sole contributor as owner. Quarterly review cadence ratified 2026-07-08. |
-| 4 | Minimum one independent, non-conflicted evidence source for premise | **LIKELY** | CSA and arxiv sources assessed as LIKELY INDEPENDENT of AIR (see analysis/source_independence_memo.md). arxiv authors at Tsinghua/CAS/Swinburne. CSA note attributed to CSA's own initiative. Full affiliation verification not possible. |
+| 4 | Minimum one independent, non-conflicted evidence source for premise | **PASS** | Both sources VERIFIED INDEPENDENT of AIR (see analysis/source_independence_memo.md, updated 2026-07-08). arxiv 2508.12538 authors at Tsinghua, Ant Group, Swinburne, Adelaide, UNSW (affiliations confirmed from PDF title page). CSA note authored by CSA AI Safety Initiative; AIR not cited or credited. |
 | 5 | Evidence of at least minimal user demand | **FAIL** | Zero stars, zero forks, zero external users. Repository is private. |
 
 **Current verdict: HOLD.**
 
-Honest condition tally: 3 firm PASS (conditions 1, 2, and 3), 1 LIKELY but not fully verified (condition 4), 1 FAIL (condition 5). The HOLD cannot be lifted until conditions 4 and 5 are resolved.
+Honest condition tally: 4 PASS (conditions 1, 2, 3, and 4), 1 FAIL (condition 5). The HOLD cannot be lifted until condition 5 (user demand) is resolved.
 
 ## Removed (must restore before PyPI publish)
 
