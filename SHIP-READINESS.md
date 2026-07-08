@@ -8,13 +8,15 @@ All 5 conditions must PASS before the HOLD can be lifted.
 
 | # | Condition | Status | Evidence |
 |---|-----------|--------|----------|
-| 1 | Evasive recall >= 50% OR documentation makes unmissable that triage is decorative | **PASS** | Evasive recall is 50% on original corpus, 75% on holdout. README states 30%/50%/75% in multiple places with honest ceiling statement. |
+| 1 | Evasive recall >= 50% OR documentation makes unmissable that triage is decorative | **PASS** | Evasive recall is 50% on original corpus, 75% on holdout. README states figures in multiple places with honest ceiling statement. |
 | 2 | Precision >= 75% | **PASS** | 78.9% on original corpus, 90.0% on holdout. SRI hash FP fixed. |
-| 3 | Named maintenance owner and pattern update cadence | **PASS** (pending ratification) | MAINTENANCE.md names sole contributor as owner. Quarterly review cadence proposed. Cadence is PROPOSED, not ratified. |
-| 4 | Minimum one independent, non-conflicted evidence source for premise | **UNKNOWN** | CSA and arxiv sources exist but independence from AIR is unverified. See G-04 assessment below. |
+| 3 | Named maintenance owner and pattern update cadence | **PREPARED** | MAINTENANCE.md names sole contributor as owner. Quarterly review cadence proposed. Cadence is PROPOSED, not ratified. Becomes PASS when the owner ratifies. |
+| 4 | Minimum one independent, non-conflicted evidence source for premise | **LIKELY** | CSA and arxiv sources assessed as LIKELY INDEPENDENT of AIR (see analysis/source_independence_memo.md). arxiv authors at Tsinghua/CAS/Swinburne. CSA note attributed to CSA's own initiative. Full affiliation verification not possible. |
 | 5 | Evidence of at least minimal user demand | **FAIL** | Zero stars, zero forks, zero external users. Repository is private. |
 
-**Current verdict: HOLD** (conditions 4 and 5 not met).
+**Current verdict: HOLD.**
+
+Honest condition tally: 2 firm PASS (conditions 1 and 2), 1 PREPARED pending human action (condition 3), 1 LIKELY but not fully verified (condition 4), 1 FAIL (condition 5). The HOLD cannot be lifted until conditions 3, 4, and 5 are resolved.
 
 ## Removed (must restore before PyPI publish)
 
