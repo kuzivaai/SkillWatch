@@ -34,20 +34,20 @@
   "programmingLanguage": "Python",
   "softwareVersion": "0.2.0",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-  "description": "Periodic URL content monitoring for AI agent skills and MCP tools, with best-effort content triage. 13 heuristic pattern checks flag suspicious changes. Overall recall 65%, precision 72.2%. The triage is evadable and does not replace human review.",
+  "description": "Periodic URL content monitoring for AI agent skills and MCP tools, with best-effort content triage. 13 heuristic pattern checks flag suspicious changes. Overall recall 75%, precision 78.9%. The triage is evadable and does not replace human review.",
   "url": "https://github.com/kuzivaai/SkillWatch",
-  "downloadUrl": "https://pypi.org/project/skillwatch/",
+  "downloadUrl": "https://github.com/kuzivaai/SkillWatch",
   "license": "https://www.apache.org/licenses/LICENSE-2.0",
   "author": { "@type": "Person", "name": "Kuziva Muzondo" },
   "datePublished": "2026-07-01",
   "featureList": [
     "13 heuristic triage patterns (best-effort, evadable)",
-    "32 ATR-derived prompt injection patterns covering 7 languages (catches expected phrasings; detected 1 of 10 evasive payloads in testing)",
+    "32 ATR-derived prompt injection patterns covering 7 languages with pre-detection canonicalisation (catches expected phrasings, ROT13, reversed text, HTML comment injection; detected 5 of 10 evasive payloads in testing)",
     "Unicode homoglyph detection via Unicode Consortium confusables database",
     "SSRF protection with DNS pinning",
     "JSON output for CI/CD and webhook integration",
     "Built-in ignore presets for false positive reduction",
-    "Overall recall 65%, precision 72.2% on synthetic corpus",
+    "Overall recall 75%, precision 78.9% on synthetic corpus",
     "Zero infrastructure cost"
   ]
 }
@@ -64,7 +64,7 @@
       "name": "What is SkillWatch?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "SkillWatch is a free, open-source Python CLI tool that periodically monitors the external URLs referenced by AI agent skills and MCP tools. It alerts when URL content changes and applies best-effort heuristic triage to flag suspicious patterns. The triage catches payloads using expected phrasings but misses semantic rephrasing (overall recall 65%, dropping to 30% against deliberately evasive adversaries). It runs locally via cron or CI, costs nothing, and stores everything in a local SQLite database."
+        "text": "SkillWatch is a free, open-source Python CLI tool that periodically monitors the external URLs referenced by AI agent skills and MCP tools. It alerts when URL content changes and applies best-effort heuristic triage to flag suspicious patterns, including a canonicalisation layer for ROT13, reversed text, and HTML comment injection. Overall recall is 75%, dropping to 50% against deliberately evasive adversaries. Semantic evasions (indirect instruction, polite framing, narrative framing) are not detectable by design. It runs locally via cron or CI, costs nothing, and stores everything in a local SQLite database."
       }
     },
     {
@@ -80,7 +80,7 @@
       "name": "What does SkillWatch detect?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "SkillWatch applies 13 heuristic triage checks: execution commands (curl, pip install, eval), prompt injection patterns in 7 languages (32 ATR-derived patterns), suspicious HTML (scripts, iframes, data URI embeds), Unicode homoglyph characters, credential harvesting keywords, new domain references, major content deletions, meta refresh redirects, base64 payloads, and hidden content. All HTML checks are diff-based. The triage catches payloads using expected phrasings or cleartext shell commands. It misses indirect instruction, polite framing, narrative framing, encoded text, and reversed text. Measured recall is 65% overall, dropping to 30% against deliberately evasive adversaries. Precision is 72.2%. The triage is best-effort and does not replace human review."
+        "text": "SkillWatch applies 13 heuristic triage checks with a pre-detection canonicalisation layer: execution commands (curl, pip install, eval), prompt injection patterns in 7 languages (32 ATR-derived patterns) with ROT13 and reversed-text decoding, suspicious HTML (scripts, iframes, data URI embeds, injected comments), Unicode homoglyph characters, credential harvesting keywords, new domain references, major content deletions, meta refresh redirects, base64 payloads, and hidden content. All HTML checks are diff-based. Measured recall is 75% overall, dropping to 50% against deliberately evasive adversaries. Precision is 78.9%. Semantic evasions (indirect instruction, polite framing, narrative framing) bypass detection by design. The triage is best-effort and does not replace human review."
       }
     },
     {
@@ -88,7 +88,7 @@
       "name": "How do I install SkillWatch?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Install with pip: pip install skillwatch. Requires Python 3.10 or higher. Five dependencies, all permissively licensed (Apache/MIT/BSD). Zero infrastructure cost — runs on your laptop."
+        "text": "Install from source: git clone https://github.com/kuzivaai/SkillWatch.git, then pip install ./SkillWatch. Requires Python 3.10 or higher. Five dependencies, all permissively licensed (Apache/MIT/BSD). Zero infrastructure cost."
       }
     }
   ]
@@ -345,7 +345,7 @@ footer a { color: var(--muted); }
         <td>Prompt injection triage</td>
         <td class="yes">Yes (backend)</td>
         <td class="yes">Yes (YARA+LLM)</td>
-        <td class="partial">Best-effort (32 regex patterns; 65% recall, 30% vs evasive)</td>
+        <td class="partial">Best-effort (32 regex patterns + canonicalisation; 75% recall, 50% vs evasive)</td>
       </tr>
       <tr>
         <td>Free for individuals</td>
@@ -379,7 +379,7 @@ footer a { color: var(--muted); }
 </main>
 
 <footer>
-  <p>SkillWatch v0.2.0 &middot; <a href="https://github.com/kuzivaai/SkillWatch">GitHub</a> &middot; <a href="https://pypi.org/project/skillwatch/">PyPI</a> &middot; Apache 2.0</p>
+  <p>SkillWatch v0.2.0 &middot; <a href="https://github.com/kuzivaai/SkillWatch">GitHub</a> &middot; Apache 2.0</p>
 </footer>
 
 </body>

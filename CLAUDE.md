@@ -14,6 +14,9 @@ pytest --cov=skillwatch --cov-report=term-missing -q
 # Lint
 ruff check skillwatch/ tests/
 
+# Type check
+mypy skillwatch/
+
 # Build (no publish)
 python3 -m build
 
