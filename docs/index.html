@@ -214,9 +214,9 @@ footer a { color: var(--muted); }
 <!-- Hero -->
 <section class="hero" aria-label="Introduction">
   <h1>SkillWatch</h1>
-  <p class="tagline">Periodically monitors the URLs your AI agent skills reference. Alerts you when content changes and applies best-effort, evadable heuristic triage.</p>
+  <p class="tagline">Monitors the URLs your AI agent skills point to. Alerts you when the content changes. Catches some attacks, not all — see measured rates below.</p>
   <div class="hero-ctas">
-    <code>pip install skillwatch</code>
+    <code>pip install git+https://github.com/kuzivaai/SkillWatch.git</code>
     <a href="https://github.com/kuzivaai/SkillWatch" class="btn-secondary" aria-label="View SkillWatch on GitHub">GitHub</a>
   </div>
   <p class="meta">Python 3.10+ &middot; 5 dependencies &middot; Apache 2.0 &middot; v0.2.0</p>
@@ -291,7 +291,7 @@ footer a { color: var(--muted); }
 <section class="quickstart" aria-label="Quick start guide">
   <h2>Quick start</h2>
   <pre><span class="comment"># Install</span>
-<span class="cmd">pip install skillwatch</span>
+<span class="cmd">pip install git+https://github.com/kuzivaai/SkillWatch.git</span>
 
 <span class="comment"># Add URLs from a SKILL.md file</span>
 <span class="cmd">skillwatch add path/to/SKILL.md</span>
