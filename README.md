@@ -245,7 +245,7 @@ pip install -e ".[dev]"
 pytest
 ```
 
-236 tests, 94% code coverage.
+236 tests, 95% code coverage.
 
 ## Licence
 
