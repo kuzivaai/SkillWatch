@@ -4,10 +4,9 @@
 
 **Kuziva Muzondo** — sole contributor and maintainer.
 
-## PROPOSED cadence — pending owner ratification
+## RATIFIED cadence
 
-The following cadence is proposed but not yet ratified. It takes effect
-only after the owner explicitly confirms it.
+Ratified by Kuziva Muzondo on 2026-07-08.
 
 ### Quarterly pattern review
 
