@@ -56,8 +56,8 @@ All 5 HTML flag codes (suspicious_script, iframe_detected, hidden_content, meta_
 |----|-------------|--------|------------------|
 | G-01 | Zero users, zero demand signal | DECISION-REQUIRED | `analysis/demand_validation_memo.md` written with 3 options (make public and wait; write technical post; post in community). No recommendation made -- owner decision. Zero stars/forks/external users confirmed. [VERIFIED] |
 | G-02 | Evasive recall is 30% | FIXED | Canonicalisation layer added (HTML comments, reversed text, ROT13). Evasive recall 30% -> 50% on original corpus, 75% on holdout. Precision 72.2% -> 78.9%. SRI hash exclusion reduced hash FP from 25% to 12.5%. [VERIFIED] |
-| G-03 | No maintenance owner or pattern-update cadence | FIXED | `MAINTENANCE.md` drafted naming Kuziva Muzondo as owner with quarterly pattern review cadence. Status: PROPOSED, pending owner ratification. [READ] |
-| G-04 | Premise source COI (AIR conflict of interest) | FIXED | `analysis/source_independence_memo.md` assesses CSA and arxiv sources as LIKELY INDEPENDENT of AIR. arxiv authors at Tsinghua/CAS/Swinburne. CSA note attributed to CSA's own research initiative. Not VERIFIED (full affiliation check infeasible), but sufficient for DECISION.md condition 4. [READ] |
+| G-03 | No maintenance owner or pattern-update cadence | PREPARED | `MAINTENANCE.md` drafted naming Kuziva Muzondo as owner with quarterly pattern review cadence. Status: PROPOSED, pending owner ratification. Becomes FIXED when ratified. [READ] |
+| G-04 | Premise source COI (AIR conflict of interest) | ASSESSED | `analysis/source_independence_memo.md` assesses CSA and arxiv sources as LIKELY INDEPENDENT of AIR. arxiv authors at Tsinghua/CAS/Swinburne. CSA note attributed to CSA's own research initiative. Not VERIFIED (full affiliation check infeasible). The COI disclosure remains in README regardless. [READ] |
 | G-05 | No scheduled monitoring capability | FIXED | `examples/scheduled-monitoring.yml` added with copy-paste GitHub Actions cron workflow. README section added pointing to it. [VERIFIED] |
 | G-06 | confusable_homoglyphs frozen at Unicode 12.0 | FIXED | `scripts/refresh_confusables.py` added. `skillwatch/data/PROVENANCE.md` documents data currency. Assessed as low practical impact: Unicode 13-16 confusables are rare in real attacks. [READ] |
 | G-07 | No type checker | FIXED | mypy added with pragmatic-strict config in `pyproject.toml`. 0 violations. CI step added to `.github/workflows/ci.yml`. [VERIFIED] |
@@ -72,7 +72,7 @@ All 5 HTML flag codes (suspicious_script, iframe_detected, hidden_content, meta_
 | ID | Description | Status | Evidence / Notes |
 |----|-------------|--------|------------------|
 | R-01 | Publishing to zero demand damages consulting credibility | OPEN (mitigated) | HOLD remains in force. `demand_validation_memo.md` provides 3 low-effort options for generating a demand signal. Risk cannot be closed until demand evidence exists or the owner decides to archive. [READ] |
-| R-02 | Pattern set becomes stale without maintenance | FIXED (pending ratification) | `MAINTENANCE.md` proposes quarterly review cadence, mandatory efficacy re-run on detector changes, and bypass intake path. Pending owner ratification. [READ] |
+| R-02 | Pattern set becomes stale without maintenance | PREPARED (pending ratification) | `MAINTENANCE.md` proposes quarterly review cadence, mandatory efficacy re-run on detector changes, and bypass intake path. Pending owner ratification. The risk remains open until the cadence is ratified and the first review is completed. [READ] |
 | R-03 | Evasive recall misunderstood as detection capability | MITIGATED | README updated with honest ceiling statement. Evasive recall improved from 30% to 50%, reducing the misinterpretation gap. Ceiling statement explains what the detector cannot catch (semantic evasions). [READ] |
 | R-04 | confusable_homoglyphs abandoned, breaks on future Python | MITIGATED | Refresh script (`scripts/refresh_confusables.py`) enables data update without depending on library releases. Practical impact assessed as low. [READ] |
 | R-05 | Prior clones (58 unique) retain sensitive personal data | ACCEPTED | Cannot be undone. 0 forks, 0 external page views. Personal data was removed from current history via git-filter-repo. Risk is residual and unmitigable. [VERIFIED] |
@@ -105,13 +105,15 @@ DECISION.md defines 5 conditions that must all pass before publication (PyPI, Gi
 |---|-----------|--------|-------|----------|
 | 1 | Evasive recall >= 50% OR unmissable documentation | PASS (docs route) | **PASS** | Evasive recall is now 50% on original corpus (was 30%), satisfying the 50% threshold directly. Documentation also updated with honest ceiling statement. Both routes now pass. [VERIFIED] |
 | 2 | Periodic framing at every claim | PASS | **PASS** | Unchanged. README and landing page use "periodic" throughout. No "continuous" introduced. [VERIFIED] |
-| 3 | Named maintenance owner and update cadence | FAIL | **PASS** | MAINTENANCE.md names Kuziva Muzondo as owner with quarterly review cadence. Status: PROPOSED, pending ratification. Condition passes once ratified. [READ] |
-| 4 | Independent, non-conflicted premise evidence | FAIL | **PASS** | CSA and arxiv sources assessed as LIKELY INDEPENDENT. arxiv authors at academic institutions. CSA note attributed to CSA's own initiative. [READ] |
+| 3 | Named maintenance owner and update cadence | FAIL | **PREPARED** | MAINTENANCE.md names Kuziva Muzondo as owner with quarterly review cadence. Status: PROPOSED, pending ratification. Becomes PASS only when the owner ratifies. [READ] |
+| 4 | Independent, non-conflicted premise evidence | FAIL | **LIKELY** | CSA and arxiv sources assessed as LIKELY INDEPENDENT (see analysis/source_independence_memo.md). Not VERIFIED: full affiliation check infeasible. Becomes PASS when at least one source is confirmed independent via a primary-source check. [READ] |
 | 5 | Evidence of minimal user demand | FAIL | **FAIL** | Zero stars, zero forks, zero external users. Repository remains private. demand_validation_memo.md provides options but no demand signal has been generated. [VERIFIED] |
 
-**Verdict: 4 of 5 conditions now PASS. Only condition 5 (user demand) remains FAIL.**
+**Verdict: 2 firm PASS, 1 PREPARED, 1 LIKELY, 1 FAIL.**
 
-The HOLD cannot be lifted until at least one external signal is obtained (one star from a non-author account, one issue from an external user, or one independent mention). The demand_validation_memo provides 3 low-effort options for generating this signal, but all require making the repository public first (Q-03).
+Conditions 1 and 2 are firmly met by measured data. Condition 3 is drafted but requires the owner to ratify the maintenance cadence. Condition 4 is assessed as likely met but the independence of corroborating sources has not been exhaustively verified. Condition 5 remains unmet: zero users, zero demand.
+
+The HOLD cannot be lifted until at minimum: the owner ratifies MAINTENANCE.md (condition 3), and at least one external demand signal is obtained (condition 5). Condition 4 may also warrant a primary-source check of author affiliations before claiming PASS.
 
 ---
 
