@@ -3,7 +3,8 @@
 SkillWatch watches the web pages that AI tools rely on, and tells you when something changes. It exists because those pages can be swapped to contain harmful instructions after the AI tool has already been reviewed and approved.
 
 [![CI](https://github.com/kuzivaai/SkillWatch/actions/workflows/ci.yml/badge.svg)](https://github.com/kuzivaai/SkillWatch/actions/workflows/ci.yml)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
+[![PyPI](https://img.shields.io/pypi/v/skillwatch)](https://pypi.org/project/skillwatch/)
+[![Python 3.10+](https://img.shields.io/pypi/pyversions/skillwatch)](https://pypi.org/project/skillwatch/)
 [![License](https://img.shields.io/github/license/kuzivaai/SkillWatch)](LICENSE)
 
 ## Why this exists
@@ -19,10 +20,10 @@ Tools like [Snyk Agent Scan](https://github.com/snyk/agent-scan) check tool desc
 ## Install
 
 ```bash
-pip install git+https://github.com/kuzivaai/SkillWatch.git
+pip install skillwatch
 ```
 
-Or clone and install locally:
+Or install from source:
 
 ```bash
 git clone https://github.com/kuzivaai/SkillWatch.git
