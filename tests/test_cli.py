@@ -531,3 +531,34 @@ class TestCLI:
             assert "example.com/setup" in captured.out
 
         Path(f.name).unlink()
+
+    def test_sources_empty(self, db_path, capsys):
+        code, _ = self._run("sources", db_path=db_path)
+        assert code == 0
+        assert "No source files tracked" in capsys.readouterr().out
+
+    def test_sources_detects_drift_and_adds_new_url(self, db_path, capsys, tmp_path):
+        """sources re-reads a tracked file and flags new references (rug-pull check)."""
+        f = tmp_path / "SKILL.md"
+        f.write_text("See [docs](https://example.com/setup)\n")
+        # Patch SSRF validation so URL acceptance does not depend on real DNS.
+        with patch("skillwatch.ssrf.validate_url"):
+            self._run("add", str(f), db_path=db_path)
+            capsys.readouterr()
+
+            # No change yet -> unchanged, exit 0
+            code, _ = self._run("sources", db_path=db_path)
+            assert code == 0
+            assert "unchanged" in capsys.readouterr().out
+
+            # Edit the file to add a new reference
+            f.write_text("See [docs](https://example.com/setup) and [x](https://new-ref.test/x)\n")
+            code, _ = self._run("sources", db_path=db_path)
+            assert code == 1  # drift detected
+            out = capsys.readouterr().out
+            assert "changed since it was added" in out
+            assert "new-ref.test/x" in out
+
+            # The new reference is now monitored
+            self._run("list", db_path=db_path)
+            assert "new-ref.test/x" in capsys.readouterr().out
