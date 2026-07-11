@@ -15,6 +15,7 @@ from .formatter import (
     format_scan_summary, format_url_table, severity_icon, severity_label,
 )
 from .parser import extract_urls_from_file
+from .sarif import build_sarif
 from .store import Store
 
 # Built-in ignore pattern presets. These cover the most common sources
@@ -41,6 +42,7 @@ Examples:
   skillwatch scan                      Check all watched pages for changes now
   skillwatch alerts                    See what changed, in plain language
   skillwatch alert 1                   Full detail for one alert, with the diff
+  skillwatch sources                   Re-check watched skill files for changes
 
 First run:
   skillwatch add-url https://example.com && skillwatch scan
@@ -100,8 +102,8 @@ def main(argv: list[str] | None = None) -> int:
     scan_p.add_argument("--timeout", type=int, default=10, help="Request timeout (seconds)")
     scan_p.add_argument("--quiet", action="store_true", help="Only show changes and errors")
     scan_p.add_argument(
-        "--output", choices=["text", "json"], default="text",
-        help="Output format: text (default) or json (machine-readable, for piping to jq/webhooks)",
+        "--output", choices=["text", "json", "sarif"], default="text",
+        help="Output format: text (default), json (for jq/webhooks), or sarif (for GitHub Code Scanning)",
     )
     scan_p.add_argument(
         "--user-agent", type=str, default=None,
@@ -125,6 +127,10 @@ def main(argv: list[str] | None = None) -> int:
     # list
     list_p = sub.add_parser("list", help="List all monitored URLs")
     _add_db_arg(list_p)
+
+    # sources
+    sources_p = sub.add_parser("sources", help="Re-check tracked skill/config files for changes (definition drift)")
+    _add_db_arg(sources_p)
 
     # history
     hist_p = sub.add_parser("history", help="Show change history for a URL")
@@ -164,6 +170,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_status(store)
         elif args.command == "list":
             return _cmd_list(store)
+        elif args.command == "sources":
+            return _cmd_sources(store, args)
         elif args.command == "history":
             return _cmd_history(store, args)
         elif args.command == "alerts":
@@ -208,6 +216,15 @@ def _cmd_add(store: Store, args: argparse.Namespace) -> int:
         else:
             skipped += 1
 
+    # Record the source file's fingerprint so `skillwatch sources` can detect
+    # if it is later edited or gains new references (a local rug-pull check).
+    from .parser import source_fingerprint
+    try:
+        fp_hash, fp_urls = source_fingerprint(args.file)
+        store.record_source(args.file, fp_hash, fp_urls)
+    except OSError:
+        pass
+
     parts = [f"Added {bold(str(added))} URL(s) from {args.file}"]
     if skipped:
         parts.append(f"{skipped} already monitored")
@@ -246,9 +263,13 @@ def _cmd_remove(store: Store, args: argparse.Namespace) -> int:
 def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
     urls = store.get_urls()
     json_out = args.output == "json"
+    sarif_out = args.output == "sarif"
+    machine_out = json_out or sarif_out
 
     if not urls:
-        if json_out:
+        if sarif_out:
+            print(json_mod.dumps(build_sarif([]), indent=2))
+        elif json_out:
             print(json_mod.dumps({"status": "empty", "message": "No URLs to scan"}))
         else:
             print(dim("  No URLs to scan. Use 'skillwatch add <file>' to start."))
@@ -259,7 +280,7 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
     if args.preset != "none" and args.preset in _PRESETS:
         ignore_patterns = _PRESETS[args.preset] + ignore_patterns
 
-    if not json_out:
+    if not machine_out:
         print(bold(f"\n  Scanning {len(urls)} URLs...\n"))
 
     total = len(urls)
@@ -287,7 +308,7 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
         if not result.ok:
             errors += 1
             store.add_snapshot(url_id, "", None, error=result.error, status_code=result.status_code)
-            if json_out:
+            if machine_out:
                 json_results.append({"url": url, "status": "error", "error": result.error})
             elif not args.quiet:
                 print(format_scan_result(url, False, error=result.error, progress=prog))
@@ -303,7 +324,7 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
 
         if prev is None:
             unchanged += 1
-            if json_out:
+            if machine_out:
                 json_results.append({"url": url, "status": "baseline"})
             elif not args.quiet:
                 print(format_scan_result(url, False, progress=prog))
@@ -311,7 +332,7 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
 
         if not content_changed(prev["content_hash"], result.content_hash):
             unchanged += 1
-            if json_out:
+            if machine_out:
                 json_results.append({"url": url, "status": "unchanged"})
             elif not args.quiet:
                 print(format_scan_result(url, False, progress=prog))
@@ -345,7 +366,7 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
         )
         alerts_created += 1
 
-        if json_out:
+        if machine_out:
             json_results.append({
                 "url": url, "status": "changed", "severity": severity,
                 "flags": [{"code": f.code, "severity": f.severity,
@@ -355,7 +376,10 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
         else:
             print(format_scan_result(url, True, flags, progress=prog))
 
-    if json_out:
+    if sarif_out:
+        changed_results = [r for r in json_results if r.get("status") == "changed"]
+        print(json_mod.dumps(build_sarif(changed_results), indent=2))
+    elif json_out:
         print(json_mod.dumps({
             "version": __version__,
             "total": total, "unchanged": unchanged, "changed": changed,
@@ -395,6 +419,63 @@ def _cmd_list(store: Store) -> int:
     print(format_url_table(urls))
     print()
     return 0
+
+
+def _cmd_sources(store: Store, args: argparse.Namespace) -> int:
+    """Re-read tracked source files and report definition drift.
+
+    Detects when a SKILL.md or MCP config that was added is later edited or
+    gains new URL references (a local 'rug pull'). New references are added to
+    monitoring. Exits 1 if any tracked file changed.
+    """
+    from .parser import source_fingerprint
+    from .ssrf import SSRFError, validate_url
+
+    sources = store.get_sources()
+    if not sources:
+        print(dim("\n  No source files tracked. 'skillwatch add <file>' records one.\n"))
+        return 0
+
+    print(bold(f"\n  {len(sources)} source file(s) tracked\n"))
+    drift = 0
+    for s in sources:
+        path = s["path"]
+        try:
+            cur_hash, cur_urls = source_fingerprint(path)
+        except OSError:
+            print(f"  {yellow('?')}   {_safe(path)}  {dim('(missing, cannot re-read)')}")
+            continue
+
+        if cur_hash == s["content_hash"]:
+            print(f"  {green('OK')}  {_safe(path)}  {dim('(unchanged)')}")
+            continue
+
+        drift += 1
+        old_urls = set(s["urls"])
+        new_urls = set(cur_urls)
+        added = sorted(new_urls - old_urls)
+        removed = sorted(old_urls - new_urls)
+        print(f"  {red('!!')}  {_safe(path)}  {red('changed since it was added')}")
+        for u in added:
+            try:
+                validate_url(u)
+            except SSRFError:
+                print(f"       {red('X')} new reference (blocked): {_safe(u)}")
+                continue
+            store.add_url(u, "skill_md", path)
+            print(f"       {green('+')} new reference (now monitored): {_safe(u)}")
+        for u in removed:
+            print(f"       {red('-')} reference removed: {_safe(u)}")
+        if not added and not removed:
+            print(dim("       (file edited; referenced URLs unchanged)"))
+        # Update the stored fingerprint so the next check compares to the latest.
+        store.record_source(path, cur_hash, cur_urls)
+
+    print()
+    if drift:
+        print(f"  {red(str(drift))} source file(s) changed. New references are now monitored. Run {bold('skillwatch scan')}.")
+        print(dim("  If you did not change these files yourself, treat the skill as compromised."))
+    return 1 if drift else 0
 
 
 def _cmd_history(store: Store, args: argparse.Namespace) -> int:

@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `skillwatch sources`: detects when a tracked SKILL.md or MCP config is edited or gains/loses URL references (a local rug-pull check inspired by MCP-Scan's tool pinning). New references are added to monitoring automatically; exits 1 on drift.
+- `scan --output sarif`: SARIF 2.1.0 output for GitHub Code Scanning, so findings appear in the Security tab alongside static scanners like Cisco skill-scanner and SkillTotal.
 - Plain-language alert output: each of the 13 flag codes now shows an ordinary-English explanation plus a universal "what to do", with the raw code kept in parentheses for power users. JSON output is unchanged.
 - `docs/UNDERSTANDING-ALERTS.md`: a plain-language guide to every flag and how to triage it (about 1 in 5 alerts is a false alarm).
 - Examples-first `--help` with a copy-paste first-run quickstart.
