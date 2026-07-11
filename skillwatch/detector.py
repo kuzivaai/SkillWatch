@@ -639,7 +639,7 @@ FLAG_EXPLANATIONS: dict[str, str] = {
     "new_base64": "Added a long encoded string that could hide instructions or code",
     "credential_reference": "Now mentions passwords, API keys, or tokens",
     "new_domains": "Now links to web addresses it didn't reference before",
-    "unicode_homoglyph": "Uses look-alike letters (e.g. Cyrillic mimicking English) — a disguise trick",
+    "unicode_homoglyph": "Uses look-alike letters (for example Cyrillic mimicking English), a common disguise trick",
     "data_uri_payload": "Contains a data: URL with runnable content",
     "meta_refresh_redirect": "Added an automatic redirect to another address",
     "major_deletion": "More than half the page's content was removed",
