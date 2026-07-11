@@ -23,6 +23,14 @@ SkillWatch is a command-line tool for people who build, deploy, or review AI age
 
 **It is not yet usable by a non-technical person.** There is no app or website. It runs in a terminal, and reading an alert takes some security judgement (about 1 in 5 alerts is a false alarm). The plain-language explanations and the [Understanding your alerts](docs/UNDERSTANDING-ALERTS.md) guide help with that, but you still need a terminal and some manual review.
 
+## Why trust SkillWatch
+
+SkillWatch is built to be the boring, honest option in a crowded field.
+
+- **It runs on your machine and sends nothing.** Everything lives in a local SQLite file, and the only network requests it makes are to the URLs you ask it to watch. It never uploads your skills, configs, or results. Platform scanners often upload your skill code to their servers to analyse it, which is a reasonable trade-off for their features but a different trust model.
+- **It tells you what it misses.** It publishes its own measured detection *and* evasion rates and names the attacks that defeat it. A clean scan means "none of 13 checks matched", not "you're safe".
+- **It's independent and open.** Apache 2.0, no paid tier, no telemetry, no platform to upsell. It complements scanners like Snyk Agent Scan, Cisco skill-scanner, Socket, and MCP-Scan rather than competing for your budget.
+
 ## Install
 
 ```bash
