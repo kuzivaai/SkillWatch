@@ -85,7 +85,7 @@ _SUSPICIOUS_SCRIPT_KEYWORDS = [
 
 # --- Pattern 7: Prompt injection ---
 # Comprehensive patterns derived from ATR-2026-00001 (Agent Threat Rules, MIT licensed).
-# 38 patterns covering English, German, Spanish, French, Arabic, Russian, Serbian/Croatian,
+# 32 patterns covering English, German, Spanish, French, Arabic, Russian, Serbian/Croatian,
 # plus obfuscation techniques (base64, zero-width, spaced letters, URL-encoding).
 # Only the subset applicable to static web page text is included; patterns requiring
 # conversation context (praise-redirect, task switching) are excluded.
@@ -625,3 +625,39 @@ def max_severity(flags: list[Flag]) -> str:
     if not flags:
         return "info"
     return max((f.severity for f in flags), key=severity_rank)
+
+
+# Plain-language, user-facing explanations for each flag code.
+# Single source of truth for how alerts are described to a human (mirrors the
+# 13 codes emitted above). A test asserts every emitted code has an entry, so
+# this cannot silently drift.
+FLAG_EXPLANATIONS: dict[str, str] = {
+    "new_exec_command": "Added a command that could download or run software",
+    "prompt_injection": "Added wording that could tell an AI assistant to ignore its instructions",
+    "suspicious_script": "Added a script that can read cookies, send data, or run code",
+    "data_uri_embed": "Embedded hidden content (a data: frame) that can run in a browser",
+    "new_base64": "Added a long encoded string that could hide instructions or code",
+    "credential_reference": "Now mentions passwords, API keys, or tokens",
+    "new_domains": "Now links to web addresses it didn't reference before",
+    "unicode_homoglyph": "Uses look-alike letters (for example Cyrillic mimicking English), a common disguise trick",
+    "data_uri_payload": "Contains a data: URL with runnable content",
+    "meta_refresh_redirect": "Added an automatic redirect to another address",
+    "major_deletion": "More than half the page's content was removed",
+    "iframe_detected": "Added an embedded frame from another source",
+    "hidden_content": "Added text that's hidden from view but still readable by software",
+}
+
+# Universal next-step guidance shown with every alert, in plain language.
+WHAT_TO_DO = (
+    "If you didn't expect this change, stop using the skill or tool that points "
+    "here and review the change below before trusting it again."
+)
+
+
+def explain(code: str) -> str:
+    """Return a plain-language explanation for a flag code.
+
+    Falls back to the raw code if unmapped; a test prevents that from happening
+    for any code the detector actually emits.
+    """
+    return FLAG_EXPLANATIONS.get(code, code)
