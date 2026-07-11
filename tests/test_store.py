@@ -148,6 +148,24 @@ class TestAlerts:
         assert len(unreviewed) == 1
         assert unreviewed[0]["id"] == a2
 
+    def test_get_alerts_filtered_by_url_id(self, store):
+        """get_alerts(url_id=X) returns only that URL's alerts."""
+        id_a, _ = store.add_url("https://a.com", "manual")
+        id_b, _ = store.add_url("https://b.com", "manual")
+        sa1 = store.add_snapshot(id_a, "a1", "old")
+        sa2 = store.add_snapshot(id_a, "a2", "new")
+        sb1 = store.add_snapshot(id_b, "b1", "old")
+        sb2 = store.add_snapshot(id_b, "b2", "new")
+        alert_a = store.add_alert(id_a, sa1, sa2, "diff-a", ["new_domains"], "warning")
+        store.add_alert(id_b, sb1, sb2, "diff-b", [], "info")
+
+        a_only = store.get_alerts(url_id=id_a)
+        assert len(a_only) == 1
+        assert a_only[0]["id"] == alert_a
+        assert a_only[0]["url"] == "https://a.com"
+        # Without the filter, both alerts are returned
+        assert len(store.get_alerts()) == 2
+
     def test_remove_url_cascades(self, store):
         url_id, _ = store.add_url("https://example.com", "manual")
         snap1 = store.add_snapshot(url_id, "h1", "old")
