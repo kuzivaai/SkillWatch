@@ -7,7 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-11
+
 ### Added
+- Verifiable content ledger: every scan now records what each URL served as an append-only, hash-chained entry in a new `ledger` table. Unlike the snapshot cache (capped at 50 per URL), the ledger keeps every observation permanently as a tiny hash entry, so the tamper-evident history survives snapshot pruning. New `skillwatch/ledger.py` defines the versioned hash spec (fields JSON-encoded before hashing, so a separator inside a field cannot cause a collision) and a pure `verify_chain`.
+- `skillwatch verify`: recomputes the ledger hash chain, reports the first entry that was edited, reordered, or deleted (exits 1 on a broken chain, 0 when intact), and prints the chain **head** — a hash committing to the whole history.
+- External anchoring with pluggable backends, so you are not tied to one authority. (1) Publish the head by hand and re-check with `skillwatch verify --against <head>` (zero dependencies). (2) `skillwatch anchor` gets a signed RFC 3161 timestamp from a public authority (freeTSA.org by default) under the optional `[anchor]` extra. (3) `skillwatch anchor --method git --repo <path>` commits the head to a git repo you push — an independent, timestamped record that needs no timestamp authority and no extra dependency. Anchors are stored in a new `anchors` table, and `skillwatch verify` now automatically checks every recorded anchor — confirming the anchored head is still in the chain and cryptographically verifying RFC 3161 tokens — so a full-chain rewrite that plain `verify` would accept is caught. Only a hash ever leaves the machine; the core stays offline (freeTSA's CA cert is bundled for offline verification).
+
+### Changed / Security
+- SSRF: IP validation now blocks on the stdlib classification (`is_private`/`is_reserved`/…) as a future-proof baseline, plus an expanded explicit list (240.0.0.0/4, 192.0.0.0/24, 198.18.0.0/15, TEST-NETs, IPv6 documentation), closing gaps for reserved/benchmark ranges.
+- Detection input is capped at 256 KB before regex/library work, giving a deterministic bound on scan cost against an adversarially large page (measured ~linear).
+- Ledger verification and export now stream rows from an ordered cursor instead of loading the whole ledger into memory, so they scale to very large ledgers; export writes atomically via a temp file.
+- `skillwatch ledger` / `skillwatch ledger --export PATH`: show recent entries, or write the full ledger as portable JSON that re-verifies with `skillwatch.ledger.verify_chain` — no database access required, so a third party can independently confirm a record you produce.
+- `docs/LEDGER.md`: the exact hash construction, what `verify` checks, the anchoring workflow, the honest scope (a local chain is tamper-evident and independently verifiable; publishing the head makes history up to it tamper-proof), and how to re-verify an export yourself.
 - `skillwatch sources`: detects when a tracked SKILL.md or MCP config is edited or gains/loses URL references (a local rug-pull check inspired by MCP-Scan's tool pinning). New references are added to monitoring automatically; exits 1 on drift.
 - `scan --output sarif`: SARIF 2.1.0 output for GitHub Code Scanning, so findings appear in the Security tab alongside static scanners like Cisco skill-scanner and SkillTotal.
 - Plain-language alert output: each of the 13 flag codes now shows an ordinary-English explanation plus a universal "what to do", with the raw code kept in parentheses for power users. JSON output is unchanged.

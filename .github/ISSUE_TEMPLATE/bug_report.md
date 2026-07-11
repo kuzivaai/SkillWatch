@@ -20,4 +20,4 @@ What you expected to happen.
 **Environment**
 - OS: [e.g. Ubuntu 24.04, macOS 15]
 - Python version: [e.g. 3.12]
-- SkillWatch version: [e.g. 0.2.0]
+- SkillWatch version: [e.g. 0.3.0]

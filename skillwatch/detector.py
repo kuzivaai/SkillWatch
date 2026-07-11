@@ -12,6 +12,16 @@ from confusable_homoglyphs import confusables
 _CANON_SPAN_CAP = 1000
 _CANON_TOTAL_CAP = 10_000
 
+# Deterministic cap on the untrusted text fed to regex/library detection.
+# Detection time scales ~linearly with input length on the (bounded) patterns
+# used here — measured at ~1.3 ms/KB — so this cap bounds the worst-case cost of
+# a scan regardless of how large a crafted page is, without the portability
+# problems of thread/signal-based regex timeouts. Real extracted page text is
+# far below this; the cap only bites on adversarially large diffs. Capping the
+# single `added_lines` input bounds every downstream check (canonicalisation,
+# the 32 injection patterns, base64, credential, domain and confusable scans).
+_MAX_DETECTION_INPUT = 256 * 1024  # 256 KB
+
 # HTML comment extraction (pattern 11: HTML comment injection)
 _HTML_COMMENT_RE = re.compile(r"<!--([\s\S]*?)-->")
 
@@ -328,6 +338,10 @@ def detect_suspicious_changes(
         line[1:] for line in diff_text.splitlines()
         if line.startswith("+") and not line.startswith("+++")
     )
+
+    # Bound the untrusted input before any regex/library work (see constant).
+    if len(added_lines) > _MAX_DETECTION_INPUT:
+        added_lines = added_lines[:_MAX_DETECTION_INPUT]
 
     # 6. HTML-specific checks — compare old vs new to avoid false positives.
     # Run before the early-return guard so that structural HTML changes
