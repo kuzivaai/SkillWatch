@@ -5,13 +5,15 @@ import json as json_mod
 import sys
 import time
 
-from . import __version__
+from pathlib import Path
+
+from . import __version__, anchoring
 from .detector import detect_suspicious_changes, max_severity
 from .differ import content_changed, generate_diff
 from .fetcher import DEFAULT_USER_AGENT, fetch_url, strip_escape_sequences
 from .formatter import (
     bold, dim, green, red, yellow,
-    format_alert_detail, format_history, format_scan_result,
+    format_alert_detail, format_history, format_ledger, format_scan_result,
     format_scan_summary, format_url_table, severity_icon, severity_label,
 )
 from .parser import extract_urls_from_file
@@ -43,6 +45,8 @@ Examples:
   skillwatch alerts                    See what changed, in plain language
   skillwatch alert 1                   Full detail for one alert, with the diff
   skillwatch sources                   Re-check watched skill files for changes
+  skillwatch verify                    Check the tamper-evident ledger is intact
+  skillwatch anchor                    Externally timestamp the ledger head (RFC 3161)
 
 First run:
   skillwatch add-url https://example.com && skillwatch scan
@@ -148,6 +152,46 @@ def main(argv: list[str] | None = None) -> int:
     alert_p.add_argument("--review", action="store_true", help="Mark as reviewed")
     _add_db_arg(alert_p)
 
+    # verify
+    verify_p = sub.add_parser(
+        "verify", help="Check the tamper-evident content ledger is intact"
+    )
+    verify_p.add_argument(
+        "--against", type=str, metavar="HEAD",
+        help="A chain head you published earlier; confirms history up to it is unchanged",
+    )
+    _add_db_arg(verify_p)
+
+    # ledger
+    ledger_p = sub.add_parser(
+        "ledger", help="Show or export the verifiable record of what URLs served"
+    )
+    ledger_p.add_argument("--limit", type=int, default=20, help="How many recent entries to show")
+    ledger_p.add_argument(
+        "--export", type=str, metavar="PATH",
+        help="Write the full ledger to a portable JSON file anyone can re-verify",
+    )
+    _add_db_arg(ledger_p)
+
+    # anchor
+    anchor_p = sub.add_parser(
+        "anchor",
+        help="Externally timestamp the current ledger head (tamper-proof anchoring)",
+    )
+    anchor_p.add_argument(
+        "--method", default=anchoring.DEFAULT_METHOD,
+        help="Anchoring method (default: rfc3161)",
+    )
+    anchor_p.add_argument(
+        "--tsa", default=anchoring.DEFAULT_TSA_URL,
+        help="RFC 3161 Time-Stamp Authority URL",
+    )
+    anchor_p.add_argument(
+        "--out", type=str, metavar="PATH",
+        help="Also write the raw proof token here, to preserve or publish it",
+    )
+    _add_db_arg(anchor_p)
+
     args = parser.parse_args(argv)
 
     if not args.command:
@@ -178,6 +222,12 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_alerts(store, args)
         elif args.command == "alert":
             return _cmd_alert(store, args)
+        elif args.command == "verify":
+            return _cmd_verify(store, args)
+        elif args.command == "ledger":
+            return _cmd_ledger(store, args)
+        elif args.command == "anchor":
+            return _cmd_anchor(store, args)
         else:
             parser.print_help()
             return 0
@@ -522,6 +572,142 @@ def _cmd_alert(store: Store, args: argparse.Namespace) -> int:
         print(green(f"  Alert #{args.id} marked as reviewed."))
 
     print(format_alert_detail(alert))
+    return 0
+
+
+def _cmd_verify(store: Store, args: argparse.Namespace) -> int:
+    """Recompute the ledger hash chain and report whether it is intact.
+
+    With --against <head>, also confirm a head you published earlier is still
+    part of the verified chain — which detects a rewrite of history up to it.
+    """
+    result = store.verify_ledger()
+    against = getattr(args, "against", None)
+
+    if result.entries == 0:
+        print(dim("\n  The ledger is empty — nothing to verify yet."))
+        print(dim("  Run 'skillwatch scan' to start recording what your URLs serve.\n"))
+        return 0
+
+    if not result.ok:
+        print(f"\n  {red('!!')}  Ledger integrity check {red('FAILED')} at entry {bold('#' + str(result.broken_seq))}.")
+        if result.reason:
+            print(f"       {result.reason}")
+        print(dim("  A past record was altered or removed. If you did not edit the database"))
+        print(dim("  yourself, treat this monitoring history as compromised.\n"))
+        return 1
+
+    print(f"\n  {green('OK')}  Ledger verified: {bold(str(result.entries))} entries, chain intact.")
+    print(dim("  Every recorded observation is unaltered and in original order."))
+    print(f"  Current head: {result.head}")
+
+    failed = False
+
+    # Auto-check every recorded external anchor: its head must still be in the
+    # chain (catches a rewrite of anchored history), and a cryptographic proof
+    # is verified when the anchoring extra is installed.
+    anchors = store.get_anchors()
+    if anchors:
+        print()
+        for a in anchors:
+            label = f"{a['method']} @ {a['anchored_time'] or a['created_at']}"
+            short = a["head"][:16] + "…"
+            if not store.ledger_contains_hash(a["head"]):
+                print(f"  {red('!!')}  Anchor {red('DIVERGED')} ({label}): head {short} is no longer in the chain.")
+                failed = True
+                continue
+            if a["proof"] and a["method"] == "rfc3161":
+                if anchoring.anchoring_available():
+                    if anchoring.verify_anchor(a["head"], a["method"], a["proof"]):
+                        print(f"  {green('OK')}  Anchor verified ({label}): external timestamp binds this history.")
+                    else:
+                        print(f"  {red('!!')}  Anchor proof {red('INVALID')} ({label}).")
+                        failed = True
+                else:
+                    print(f"  {dim('·')}   Anchor recorded ({label}); proof not cryptographically checked "
+                          f"(install skillwatch[anchor]).")
+            else:
+                print(f"  {green('OK')}  Anchor present ({label}): head {short} still in the chain.")
+
+    # Manual anchor check against a head the user published elsewhere.
+    if against:
+        if store.ledger_contains_hash(against):
+            print(f"\n  {green('OK')}  Anchor matched: history up to your published head is intact.")
+        else:
+            print(f"\n  {red('!!')}  Ledger has {red('DIVERGED')} from the published anchor:")
+            print(dim(f"       {against}"))
+            print(dim("  That head is not in the current chain, so history before it was rewritten."))
+            failed = True
+
+    if not anchors and not against:
+        print(dim("  Anchor it so a rewrite is detectable: run 'skillwatch anchor', or publish this"))
+        print(dim("  head somewhere you do not control and re-check with 'skillwatch verify --against <head>'."))
+    print()
+    return 1 if failed else 0
+
+
+def _cmd_anchor(store: Store, args: argparse.Namespace) -> int:
+    """Externally timestamp the current ledger head so that a later rewrite of
+    history up to it is detectable, even against a full-chain recompute."""
+    result = store.verify_ledger()
+
+    if result.entries == 0:
+        print(dim("\n  The ledger is empty — nothing to anchor yet. Run 'skillwatch scan' first.\n"))
+        return 1
+    if not result.ok:
+        print(f"\n  {red('!!')}  The ledger is broken at entry {bold('#' + str(result.broken_seq))}; "
+              "resolve that before anchoring.\n")
+        return 1
+
+    head = result.head or ""
+    if args.method == "rfc3161" and not anchoring.anchoring_available():
+        print(red("\n  RFC 3161 anchoring is not installed."), file=sys.stderr)
+        print(dim("  " + anchoring.INSTALL_HINT.replace("\n", "\n  ")), file=sys.stderr)
+        return 1
+
+    try:
+        anchor = anchoring.anchor_head(head, method=args.method, tsa_url=args.tsa)
+    except anchoring.AnchorError as exc:
+        print(red(f"\n  Anchoring failed: {exc}"), file=sys.stderr)
+        return 1
+
+    store.record_anchor(
+        seq_covered=result.entries, head=head, method=anchor.method,
+        external_ref=anchor.external_ref, proof=anchor.proof, anchored_time=anchor.timestamp,
+    )
+    print(f"\n  {green('OK')}  Anchored head {bold(head[:16] + '…')} via {anchor.method}.")
+    if anchor.timestamp:
+        print(dim(f"  Attested time: {anchor.timestamp}  (source: {anchor.external_ref})"))
+    if args.out:
+        try:
+            Path(args.out).write_bytes(anchor.proof)
+            print(dim(f"  Proof token written to {args.out} — preserve or publish it."))
+        except OSError as exc:
+            print(red(f"  (could not write {args.out}: {exc})"), file=sys.stderr)
+    print(dim("  Re-check anytime with 'skillwatch verify'; a rewrite of anchored history will be caught.\n"))
+    return 0
+
+
+def _cmd_ledger(store: Store, args: argparse.Namespace) -> int:
+    """Show recent ledger entries, or export the full ledger as portable JSON."""
+    if args.export:
+        try:
+            n = store.export_ledger_to_file(args.export)
+        except OSError as exc:
+            print(red(f"  Error: could not write {args.export}: {exc}"), file=sys.stderr)
+            print(dim("  Check the path is writable, then try again."), file=sys.stderr)
+            return 1
+        print(f"\n  {green('+')}  Exported {bold(str(n))} ledger entries to {args.export}")
+        print(dim("  Anyone can re-verify it: skillwatch.ledger.verify_chain(payload['entries']).\n"))
+        return 0
+
+    entries = store.get_ledger(limit=args.limit)
+    if not entries:
+        print(dim("\n  The ledger is empty. Run 'skillwatch scan' to record observations.\n"))
+        return 0
+
+    print(format_ledger(entries, store.ledger_count()))
+    print()
     return 0
 
 

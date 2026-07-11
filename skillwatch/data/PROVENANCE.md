@@ -73,3 +73,30 @@ As of July 2026, there is no maintained drop-in alternative to
 `confusable_homoglyphs`. The library itself works correctly on Python 3.12
 despite not having received updates since 2019. The only gap is data
 currency, not functionality.
+
+---
+
+# freeTSA CA Certificate Provenance
+
+## Purpose
+
+`freetsa_cacert.pem` is bundled so that RFC 3161 timestamp tokens obtained by
+`skillwatch anchor` from the default authority (freeTSA.org) can be verified
+**offline** — `skillwatch verify` checks the token's signature against this root.
+
+## Source
+
+- **File:** `skillwatch/data/freetsa_cacert.pem`
+- **Source URL:** https://freetsa.org/files/cacert.pem
+- **Subject:** `CN=www.freetsa.org, OU=Root CA, O=Free TSA` (self-signed root)
+- **Validity:** 2016-03-13 to **2041-03-07** (UTC)
+- **Freely redistributable:** Yes — freeTSA publishes it for public verification.
+
+## Notes
+
+- This root only verifies tokens from freeTSA.org. Anchoring against a different
+  RFC 3161 authority (`skillwatch anchor --tsa <url>`) requires that authority's
+  CA certificate to verify; freeTSA is the default because its tokens parse
+  cleanly with `rfc3161-client` (DigiCert's, for example, do not).
+- To refresh: re-download from the source URL above and replace the file. The
+  bundled copy captured 2026-07-11.

@@ -4,6 +4,8 @@ import json
 import sqlite3
 from pathlib import Path
 
+from . import ledger
+
 _DEFAULT_DB_DIR = Path.home() / ".skillwatch"
 _DEFAULT_DB_PATH = _DEFAULT_DB_DIR / "skillwatch.db"
 
@@ -46,6 +48,36 @@ CREATE TABLE IF NOT EXISTS sources (
     content_hash TEXT NOT NULL,
     urls TEXT NOT NULL,
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Append-only, never-pruned hash-chained record of what each URL served and
+-- when. Unlike `snapshots` (capped at 50 per URL for disk), the ledger keeps
+-- every observation as a tiny hash entry, so the tamper-evident history is
+-- permanent even after full content is pruned. See skillwatch/ledger.py.
+CREATE TABLE IF NOT EXISTS ledger (
+    seq INTEGER PRIMARY KEY AUTOINCREMENT,
+    url TEXT NOT NULL,
+    fetched_at TEXT NOT NULL,
+    content_hash TEXT NOT NULL,
+    status_code INTEGER,
+    prev_hash TEXT NOT NULL,
+    chain_hash TEXT NOT NULL
+);
+
+-- External anchors of the ledger head. Each row records that a given head
+-- (which commits to all history up to seq_covered) was externally attested by
+-- `method` (e.g. an RFC 3161 timestamp token in `proof`). `verify` checks every
+-- anchor's head is still in the chain, making a rewrite of anchored history
+-- detectable. See skillwatch/anchoring.py.
+CREATE TABLE IF NOT EXISTS anchors (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    seq_covered INTEGER NOT NULL,
+    head TEXT NOT NULL,
+    method TEXT NOT NULL,
+    external_ref TEXT,
+    proof BLOB,
+    anchored_time TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_snapshots_url ON snapshots(url_id, fetched_at DESC);
@@ -132,8 +164,8 @@ class Store:
         raw_html: str | None = None, raw_html_hash: str | None = None,
         status_code: int | None = None, error: str | None = None,
     ) -> int:
-        # Single transaction: INSERT + prune together to prevent intermediate
-        # states where snapshot count exceeds 50 under concurrent access.
+        # Single transaction: INSERT + prune + ledger append together, so the
+        # snapshot cache and the append-only ledger can never diverge.
         with self._conn:
             cur = self._conn.execute(
                 "INSERT INTO snapshots (url_id, content_hash, content_text, raw_html, raw_html_hash, status_code, error) "
@@ -146,8 +178,140 @@ class Store:
                 "(SELECT id FROM snapshots WHERE url_id = ? ORDER BY id DESC LIMIT 50)",
                 (url_id, url_id),
             )
+            # Record a permanent, tamper-evident ledger entry for every real
+            # observation. Errors (empty content_hash) served no content, so
+            # they are not part of the "what did this URL serve" record.
+            if content_hash:
+                self._append_ledger_entry(url_id, content_hash, status_code)
         assert cur.lastrowid is not None  # INSERT always sets lastrowid
         return cur.lastrowid
+
+    def _append_ledger_entry(self, url_id: int, content_hash: str, status_code: int | None) -> None:
+        """Append one hash-chained ledger entry. Must run inside a transaction."""
+        url_row = self._conn.execute("SELECT url FROM urls WHERE id = ?", (url_id,)).fetchone()
+        url = url_row["url"] if url_row else ""
+        head = self._conn.execute(
+            "SELECT chain_hash FROM ledger ORDER BY seq DESC LIMIT 1"
+        ).fetchone()
+        prev_hash = head["chain_hash"] if head else ledger.GENESIS_HASH
+        # Read back the snapshot's stored fetched_at so the ledger commits to the
+        # exact recorded time (the snapshots default is datetime('now')).
+        fetched_at_row = self._conn.execute(
+            "SELECT fetched_at FROM snapshots WHERE url_id = ? ORDER BY id DESC LIMIT 1",
+            (url_id,),
+        ).fetchone()
+        fetched_at = fetched_at_row["fetched_at"] if fetched_at_row else ""
+        eh = ledger.entry_hash(url, fetched_at, content_hash, status_code)
+        ch = ledger.chain_hash(prev_hash, eh)
+        self._conn.execute(
+            "INSERT INTO ledger (url, fetched_at, content_hash, status_code, prev_hash, chain_hash) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (url, fetched_at, content_hash, status_code, prev_hash, ch),
+        )
+
+    # --- Ledger (verifiable content record) ---
+
+    def ledger_count(self) -> int:
+        row = self._conn.execute("SELECT COUNT(*) as c FROM ledger").fetchone()
+        return int(row["c"])
+
+    _LEDGER_COLS = (
+        "seq, url, fetched_at, content_hash, status_code, prev_hash, chain_hash"
+    )
+
+    def export_ledger(self) -> list[dict]:
+        """Return every ledger entry, ordered by seq, as portable dicts.
+
+        Materialises the whole ledger; fine for programmatic use and tests. For
+        large ledgers or the CLI, prefer export_ledger_to_file (streaming).
+        The result re-verifies with ledger.verify_chain with no database access.
+        """
+        rows = self._conn.execute(
+            f"SELECT {self._LEDGER_COLS} FROM ledger ORDER BY seq"
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def export_ledger_to_file(self, path: str | Path) -> int:
+        """Stream the full ledger to a portable JSON file without loading it all
+        into memory, writing to a temp file and renaming so a failure never
+        leaves a partial export. Returns the number of entries written.
+        """
+        p = Path(path)
+        tmp = p.with_name(p.name + ".tmp")
+        cur = self._conn.execute(f"SELECT {self._LEDGER_COLS} FROM ledger ORDER BY seq")
+        n = 0
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write('{"skillwatch_ledger_version": ' + str(ledger.SPEC_VERSION) + ', "entries": [')
+            for r in cur:
+                f.write(("," if n else "") + "\n    " + json.dumps(dict(r)))
+                n += 1
+            f.write("\n]}\n")
+        tmp.replace(p)
+        return n
+
+    def get_ledger(self, limit: int = 20) -> list[dict]:
+        """Return the most recent ledger entries, newest first."""
+        rows = self._conn.execute(
+            "SELECT seq, url, fetched_at, content_hash, status_code, prev_hash, chain_hash "
+            "FROM ledger ORDER BY seq DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def verify_ledger(self) -> ledger.LedgerVerification:
+        """Recompute the whole chain and report the first break, if any.
+
+        Streams rows from an ordered cursor rather than loading the ledger into
+        memory, so verification scales to very large ledgers.
+        """
+        cur = self._conn.execute(f"SELECT {self._LEDGER_COLS} FROM ledger ORDER BY seq")
+        return ledger.verify_stream(dict(r) for r in cur)
+
+    def record_anchor(
+        self, seq_covered: int, head: str, method: str,
+        external_ref: str = "", proof: bytes = b"", anchored_time: str = "",
+    ) -> int:
+        """Persist an external anchor of the ledger head. Returns its row id."""
+        cur = self._conn.execute(
+            "INSERT INTO anchors (seq_covered, head, method, external_ref, proof, anchored_time) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (seq_covered, head, method, external_ref, proof, anchored_time),
+        )
+        self._conn.commit()
+        assert cur.lastrowid is not None  # INSERT always sets lastrowid
+        return cur.lastrowid
+
+    def get_anchors(self) -> list[dict]:
+        """Return all recorded anchors, oldest first."""
+        rows = self._conn.execute(
+            "SELECT id, seq_covered, head, method, external_ref, proof, anchored_time, created_at "
+            "FROM anchors ORDER BY id"
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def latest_anchor(self) -> dict | None:
+        """Return the most recently recorded anchor, or None."""
+        row = self._conn.execute(
+            "SELECT id, seq_covered, head, method, external_ref, proof, anchored_time, created_at "
+            "FROM anchors ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        return dict(row) if row else None
+
+    def anchor_count(self) -> int:
+        row = self._conn.execute("SELECT COUNT(*) as c FROM anchors").fetchone()
+        return int(row["c"])
+
+    def ledger_contains_hash(self, chain_hash: str) -> bool:
+        """True if any entry has this chain_hash.
+
+        A head published earlier stays findable as history grows, so this is how
+        `verify --against <head>` confirms an externally anchored head is still
+        part of the current, verified chain.
+        """
+        row = self._conn.execute(
+            "SELECT 1 FROM ledger WHERE chain_hash = ? LIMIT 1", (chain_hash,)
+        ).fetchone()
+        return row is not None
 
     def get_latest_snapshot(self, url_id: int) -> dict | None:
         row = self._conn.execute(
