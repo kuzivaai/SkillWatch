@@ -19,11 +19,11 @@ skillwatch alert 1       # one alert in full, including the diff
 
 Each alert has a **severity**:
 
-- **CRITICAL** — the change could let someone run code or hijack an AI assistant.
+- **CRITICAL:** the change could let someone run code or hijack an AI assistant.
   Stop using the skill or tool that points at this page until you have checked it.
-- **WARNING** — the change is worth a look. It may be innocent (for example, a page
-  that legitimately added install instructions) or it may be a disguise.
-- **INFO** — a minor change, shown for completeness.
+- **WARNING:** the change is worth a look. It may be innocent (for example, a page
+  that legitimately added install instructions), or it may be a disguise.
+- **INFO:** a minor change, shown for completeness.
 
 ## What each flag means, and what to do
 
@@ -41,9 +41,9 @@ Each alert has a **severity**:
 | Flag | What it means | What to do |
 |---|---|---|
 | `new_base64` | The page added a long encoded string that could hide instructions or code. | Decode it if you can; a legitimate page rarely needs one. |
-| `credential_reference` | The page now mentions passwords, API keys, or tokens. | Check the context — is it asking for secrets it should not need? |
+| `credential_reference` | The page now mentions passwords, API keys, or tokens. | Check the context: is it asking for secrets it should not need? |
 | `new_domains` | The page now links to web addresses it did not reference before. | Check whether the new destinations are expected. |
-| `unicode_homoglyph` | The page uses look-alike letters (for example Cyrillic that mimics English) — a common disguise trick. | Look closely at the flagged text; letters may not be what they seem. |
+| `unicode_homoglyph` | The page uses look-alike letters, for example Cyrillic that mimics English (a common disguise trick). | Look closely at the flagged text; letters may not be what they seem. |
 | `data_uri_payload` | The page contains a `data:` URL with runnable content. | Inspect it in the diff before trusting the page. |
 | `meta_refresh_redirect` | The page added an automatic redirect to another address. | Check where it now sends people. |
 | `major_deletion` | More than half the page's content was removed. | A large deletion can hide a swap; compare old and new. |
@@ -53,7 +53,7 @@ Each alert has a **severity**:
 
 | Flag | What it means | What to do |
 |---|---|---|
-| `hidden_content` | The page added text that is hidden from view but still readable by software. | Read the hidden text in the diff — hiding it is itself a signal. |
+| `hidden_content` | The page added text that is hidden from view but still readable by software. | Read the hidden text in the diff; hiding it is itself a signal. |
 
 ## If you are still unsure
 
@@ -62,5 +62,5 @@ Each alert has a **severity**:
   compromised: stop using the skill or tool that points at it, and tell whoever
   maintains that skill.
 - A change with no flags at all is shown as "content changed, no suspicious
-  patterns" — that is not a guarantee of safety, only that none of the 13 checks
+  patterns". That is not a guarantee of safety, only that none of the 13 checks
   matched.
