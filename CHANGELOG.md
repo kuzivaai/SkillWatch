@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Plain-language alert output: each of the 13 flag codes now shows an ordinary-English explanation plus a universal "what to do", with the raw code kept in parentheses for power users. JSON output is unchanged.
+- `docs/UNDERSTANDING-ALERTS.md`: a plain-language guide to every flag and how to triage it (about 1 in 5 alerts is a false alarm).
+- Examples-first `--help` with a copy-paste first-run quickstart.
+- `[i/total]` progress counter during scans (non-quiet, non-JSON output).
+- "Who this is for / not for" section in the README (honest audience scope).
+- `docs/llms.txt` and a README FAQ for discoverability.
+- CI coverage floor (`--cov-fail-under=90`).
+
+### Changed
+- Error messages now state the fix (missing file, blocked URL).
+- User-facing copy run through a plain-language pass.
+
+### Fixed
+- README no longer claimed "Not on PyPI" (the package is published).
+- Corrected a stale "38 patterns" code comment (there are 32) and stale test-count figures.
+
 ## [0.2.0] - 2026-07-01
 
 ### Added

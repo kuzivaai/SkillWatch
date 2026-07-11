@@ -27,7 +27,7 @@ Input (SKILL.md / MCP config / URL list)
 | `fetcher.py` | Fetch URL content, extract text via trafilatura | requests, trafilatura |
 | `store.py` | SQLite read/write: URLs, snapshots, alerts | sqlite3 (stdlib) |
 | `differ.py` | Hash comparison + unified diff generation | hashlib, difflib (stdlib) |
-| `detector.py` | Rule-based suspicious pattern detection on diffs/HTML | bs4 |
+| `detector.py` | Rule-based detection on diffs/HTML + plain-language flag explanations | bs4 |
 | `formatter.py` | Terminal output with colours and summary tables | (stdlib) |
 
 ## Key Decisions

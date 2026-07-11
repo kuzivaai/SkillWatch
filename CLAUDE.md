@@ -33,7 +33,7 @@ Nine Python modules under `skillwatch/`:
 | cli.py | Argparse CLI, subcommand dispatch |
 | parser.py | Extract URLs from SKILL.md, MCP configs, URL lists |
 | fetcher.py | HTTP fetch with SSRF protection, DNS pinning, text extraction |
-| detector.py | 13 heuristic flag codes, 32 prompt injection patterns, canonicalisation (HTML comments, reversed text, ROT13) |
+| detector.py | 13 heuristic flag codes, 32 prompt injection patterns, canonicalisation (HTML comments, reversed text, ROT13), plain-language flag explanations |
 | differ.py | Unified diff generation, content comparison |
 | store.py | SQLite storage (urls, snapshots, alerts) |
 | formatter.py | Terminal output formatting, ANSI colours |
@@ -55,3 +55,4 @@ These are closed findings from the five-prompt forensic audit. Do not re-litigat
 - Every code change ships with a test
 - Do not overstate detection capability in any documentation change
 - `severity_rank()` lives in `detector.py` and is the single source of truth for severity ordering
+- `FLAG_EXPLANATIONS` / `explain()` in `detector.py` are the single source of truth for user-facing alert wording; a test asserts every emitted flag code has a plain-language entry. The reader-facing guide is `docs/UNDERSTANDING-ALERTS.md`.
