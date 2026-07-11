@@ -215,3 +215,24 @@ class TestContextManager:
                 s.add_url("https://example.com", "manual")
                 assert s.url_count() == 1
             # Connection is closed — accessing it should fail or be safe
+
+
+class TestSources:
+    def test_record_and_get_source(self, store):
+        store.record_source("/path/SKILL.md", "hash1", ["https://a.com", "https://b.com"])
+        sources = store.get_sources()
+        assert len(sources) == 1
+        assert sources[0]["path"] == "/path/SKILL.md"
+        assert sources[0]["content_hash"] == "hash1"
+        assert sources[0]["urls"] == ["https://a.com", "https://b.com"]
+
+    def test_record_source_upserts_not_duplicates(self, store):
+        store.record_source("/path/SKILL.md", "hash1", ["https://a.com"])
+        store.record_source("/path/SKILL.md", "hash2", ["https://a.com", "https://c.com"])
+        sources = store.get_sources()
+        assert len(sources) == 1  # updated in place, not duplicated
+        assert sources[0]["content_hash"] == "hash2"
+        assert sources[0]["urls"] == ["https://a.com", "https://c.com"]
+
+    def test_get_sources_empty(self, store):
+        assert store.get_sources() == []

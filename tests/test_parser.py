@@ -264,3 +264,21 @@ def test_empty_file():
 
     assert results == []
     Path(f.name).unlink()
+
+
+def test_source_fingerprint_detects_change():
+    from skillwatch.parser import source_fingerprint
+
+    with tempfile.TemporaryDirectory() as d:
+        p = Path(d) / "SKILL.md"
+        p.write_text("See [docs](https://example.com/a) and [more](https://example.com/b)\n")
+        h1, urls1 = source_fingerprint(str(p))
+        assert urls1 == ["https://example.com/a", "https://example.com/b"]
+        # Same content gives the same fingerprint
+        h1b, _ = source_fingerprint(str(p))
+        assert h1 == h1b
+        # Editing to add a new reference changes the hash and surfaces the URL
+        p.write_text("See [docs](https://example.com/a) and [evil](https://evil.com/x)\n")
+        h2, urls2 = source_fingerprint(str(p))
+        assert h2 != h1
+        assert "https://evil.com/x" in urls2
