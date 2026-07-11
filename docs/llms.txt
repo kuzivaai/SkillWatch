@@ -1,0 +1,33 @@
+# SkillWatch
+
+> SkillWatch is a free, open-source Python CLI that monitors the external web pages AI agent skills and MCP tools point to, and alerts you when the content changes. It exists because those pages can be swapped to contain malicious instructions after a tool has already passed a security scan (a "bait-and-switch" attack). It runs 13 pattern checks on the changed content and complements static scanners; it does not replace them.
+
+## What it does
+
+- Extracts URLs from SKILL.md files, MCP configs (JSON/YAML), or plain URL lists.
+- Fetches each page (with SSRF protection and DNS pinning) and fingerprints the extracted text with SHA-256.
+- On the next scan, compares fingerprints. If the content changed, it runs 13 pattern checks and creates an alert.
+- Decodes common obfuscation (ROT13, reversed text, hidden HTML comments) before checking.
+- Stores everything locally in SQLite. No cloud, no accounts, no cost. Runs periodically via cron or CI.
+
+## Honest limits
+
+- Detection is pattern-based and can be evaded. Measured on a synthetic corpus: ~75% recall overall, ~50% against attacks designed to avoid detection, ~78.9% precision. Attacks phrased as polite requests, stories, or academic language are not caught, because they look like normal text.
+- It is a command-line tool for developers and security engineers. It is not yet usable by a non-technical person.
+- It runs periodically (cron/CI), not in real time, and does not replace human review of alerts.
+
+## How it compares
+
+- Snyk Agent Scan, Cisco skill-scanner, and MCP-Scan check the code and descriptions inside AI tools at install time. SkillWatch checks the external URLs those tools point to, over time. Different layers; use them together.
+
+## Key documents
+
+- README: https://github.com/kuzivaai/SkillWatch/blob/main/README.md
+- Understanding your alerts (plain-language guide): https://github.com/kuzivaai/SkillWatch/blob/main/docs/UNDERSTANDING-ALERTS.md
+- Architecture: https://github.com/kuzivaai/SkillWatch/blob/main/docs/ARCHITECTURE.md
+- Threat model: https://github.com/kuzivaai/SkillWatch/blob/main/docs/THREAT-MODEL.md
+- PyPI package: https://pypi.org/project/skillwatch/
+
+## Install
+
+    pip install skillwatch

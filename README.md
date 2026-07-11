@@ -247,6 +247,33 @@ jobs:
 
 The static scanner catches malicious tool descriptions and code at install time. SkillWatch catches bait-and-switch attacks where URL content changes after the static scan passes.
 
+## FAQ
+
+**What is SkillWatch?**
+A free, open-source Python CLI that watches the web pages your AI agent skills and MCP tools point to, and tells you when the content changes. It runs 13 pattern checks on what changed to flag anything suspicious, and stores everything locally in SQLite.
+
+**How is it different from Snyk Agent Scan, Cisco skill-scanner, or MCP-Scan?**
+Those check the code and descriptions inside AI tools at install time. SkillWatch checks the external web pages those tools point to, over time. Different layers. Use them together.
+
+**What does it catch, and what does it miss?**
+It catches cleartext shell commands, known prompt-injection phrasings (32 patterns across 7 languages), suspicious HTML, Unicode look-alike characters, and more, including some ROT13, reversed-text, and HTML-comment obfuscation. It misses attacks phrased as polite requests, stories, or academic language, because those look like normal text. Overall recall is 75% (50% against deliberately evasive attacks); precision is 78.9%. Review every alert manually.
+
+**Can non-technical people use it?**
+Not yet. It is a terminal tool, and reading an alert takes some security judgement. The [Understanding your alerts](docs/UNDERSTANDING-ALERTS.md) guide helps, but a terminal and manual review are still required.
+
+**Does it send my data anywhere?**
+No. Everything runs on your machine and stores locally. It only fetches the URLs you ask it to watch.
+
+**Is it on PyPI? Is it free?**
+Yes to both. `pip install skillwatch`, Apache 2.0.
+
+## Documentation
+
+- [Understanding your alerts](docs/UNDERSTANDING-ALERTS.md): what each flag means and what to do, in plain language
+- [Architecture](docs/ARCHITECTURE.md): how the pipeline fits together
+- [Threat model](docs/THREAT-MODEL.md): SSRF, DoS, terminal injection, and privacy
+- [Changelog](CHANGELOG.md): release history
+
 ## Development
 
 ```bash
