@@ -31,7 +31,7 @@ cd SkillWatch
 pip install .
 ```
 
-Not on PyPI. Requires Python 3.10+. Five dependencies, all Apache/MIT/BSD licensed.
+Requires Python 3.10+. Five dependencies, all Apache/MIT/BSD licensed.
 
 ## Quick start
 
