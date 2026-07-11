@@ -15,6 +15,7 @@ from .formatter import (
     format_scan_summary, format_url_table, severity_icon, severity_label,
 )
 from .parser import extract_urls_from_file
+from .sarif import build_sarif
 from .store import Store
 
 # Built-in ignore pattern presets. These cover the most common sources
@@ -100,8 +101,8 @@ def main(argv: list[str] | None = None) -> int:
     scan_p.add_argument("--timeout", type=int, default=10, help="Request timeout (seconds)")
     scan_p.add_argument("--quiet", action="store_true", help="Only show changes and errors")
     scan_p.add_argument(
-        "--output", choices=["text", "json"], default="text",
-        help="Output format: text (default) or json (machine-readable, for piping to jq/webhooks)",
+        "--output", choices=["text", "json", "sarif"], default="text",
+        help="Output format: text (default), json (for jq/webhooks), or sarif (for GitHub Code Scanning)",
     )
     scan_p.add_argument(
         "--user-agent", type=str, default=None,
@@ -246,9 +247,13 @@ def _cmd_remove(store: Store, args: argparse.Namespace) -> int:
 def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
     urls = store.get_urls()
     json_out = args.output == "json"
+    sarif_out = args.output == "sarif"
+    machine_out = json_out or sarif_out
 
     if not urls:
-        if json_out:
+        if sarif_out:
+            print(json_mod.dumps(build_sarif([]), indent=2))
+        elif json_out:
             print(json_mod.dumps({"status": "empty", "message": "No URLs to scan"}))
         else:
             print(dim("  No URLs to scan. Use 'skillwatch add <file>' to start."))
@@ -259,7 +264,7 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
     if args.preset != "none" and args.preset in _PRESETS:
         ignore_patterns = _PRESETS[args.preset] + ignore_patterns
 
-    if not json_out:
+    if not machine_out:
         print(bold(f"\n  Scanning {len(urls)} URLs...\n"))
 
     total = len(urls)
@@ -287,7 +292,7 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
         if not result.ok:
             errors += 1
             store.add_snapshot(url_id, "", None, error=result.error, status_code=result.status_code)
-            if json_out:
+            if machine_out:
                 json_results.append({"url": url, "status": "error", "error": result.error})
             elif not args.quiet:
                 print(format_scan_result(url, False, error=result.error, progress=prog))
@@ -303,7 +308,7 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
 
         if prev is None:
             unchanged += 1
-            if json_out:
+            if machine_out:
                 json_results.append({"url": url, "status": "baseline"})
             elif not args.quiet:
                 print(format_scan_result(url, False, progress=prog))
@@ -311,7 +316,7 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
 
         if not content_changed(prev["content_hash"], result.content_hash):
             unchanged += 1
-            if json_out:
+            if machine_out:
                 json_results.append({"url": url, "status": "unchanged"})
             elif not args.quiet:
                 print(format_scan_result(url, False, progress=prog))
@@ -345,7 +350,7 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
         )
         alerts_created += 1
 
-        if json_out:
+        if machine_out:
             json_results.append({
                 "url": url, "status": "changed", "severity": severity,
                 "flags": [{"code": f.code, "severity": f.severity,
@@ -355,7 +360,10 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
         else:
             print(format_scan_result(url, True, flags, progress=prog))
 
-    if json_out:
+    if sarif_out:
+        changed_results = [r for r in json_results if r.get("status") == "changed"]
+        print(json_mod.dumps(build_sarif(changed_results), indent=2))
+    elif json_out:
         print(json_mod.dumps({
             "version": __version__,
             "total": total, "unchanged": unchanged, "changed": changed,
