@@ -17,6 +17,12 @@ The [ClawHavoc campaign](https://orca.security/resources/blog/ai-agent-skill-sup
 
 Tools like [Snyk Agent Scan](https://github.com/snyk/agent-scan) check tool descriptions and metadata. SkillWatch checks what those tools **point to**: the actual content at external URLs. They cover different layers and work well together.
 
+## Who this is for
+
+SkillWatch is a command-line tool for people who build, deploy, or review AI agent skills and MCP tools — developers, security engineers, and technically-comfortable maintainers. Using it means installing a Python package, running commands in a terminal, scheduling scans with cron or CI, and reading a diff to judge whether a change is malicious.
+
+**It is not yet usable by a non-technical person.** There is no app or website — it runs in a terminal, and interpreting an alert takes some security judgement (about 1 in 5 alerts is a false alarm). The plain-language alert explanations and the [Understanding your alerts](docs/UNDERSTANDING-ALERTS.md) guide are written to help, but a terminal and some manual review are still required.
+
 ## Install
 
 ```bash
