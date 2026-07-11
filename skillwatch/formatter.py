@@ -89,26 +89,34 @@ def format_url_table(urls: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def format_scan_result(url: str, changed: bool, flags: list | None = None, error: str | None = None) -> str:
-    """Format a single scan result line."""
+def format_scan_result(
+    url: str, changed: bool, flags: list | None = None,
+    error: str | None = None, progress: str = "",
+) -> str:
+    """Format a single scan result line.
+
+    `progress` (e.g. "[3/10]") is shown before the status so a scan of many
+    URLs shows how far along it is.
+    """
     url = _safe_url(url)
+    tag = f"{dim(progress)} " if progress else ""
     if error:
-        return f"  {red('ERR')}  {url}\n       {dim(_safe_url(error))}"
+        return f"  {tag}{red('ERR')}  {url}\n       {dim(_safe_url(error))}"
 
     if not changed:
-        return f"  {green('OK ')}  {url}"
+        return f"  {tag}{green('OK ')}  {url}"
 
     if flags:
         from .detector import WHAT_TO_DO, explain, severity_rank
         max_sev = max((f.severity for f in flags), key=severity_rank)
         icon = severity_icon(max_sev)
-        lines = [f"  {icon}  {url}  — {severity_label(max_sev)}"]
+        lines = [f"  {tag}{icon}  {url}  — {severity_label(max_sev)}"]
         for f in flags:
             lines.append(f"       • {explain(f.code)}  {dim('(' + f.code + ')')}")
         lines.append(f"       {dim('What to do: ' + WHAT_TO_DO)}")
         return "\n".join(lines)
 
-    return f"  {yellow('CHG')}  {url}  {dim('(content changed, no suspicious patterns)')}"
+    return f"  {tag}{yellow('CHG')}  {url}  {dim('(content changed, no suspicious patterns)')}"
 
 
 def format_scan_summary(total: int, unchanged: int, changed: int, alerts: int, errors: int) -> str:
