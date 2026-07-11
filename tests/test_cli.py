@@ -68,6 +68,22 @@ class TestCLI:
         captured = capsys.readouterr()
         assert "Blocked" in captured.err
 
+    def test_add_url_ssrf_error_is_actionable(self, db_path, capsys):
+        """A blocked URL explains why, not just that it was blocked."""
+        code, _ = self._run("add-url", "http://169.254.169.254/latest", db_path=db_path)
+        assert code == 1
+        err = capsys.readouterr().err
+        assert "Blocked" in err
+        assert "public web pages" in err
+
+    def test_add_missing_file_gives_actionable_error(self, db_path, capsys):
+        """A missing file error tells the user what to do next."""
+        code, _ = self._run("add", "/nonexistent/path/SKILL.md", db_path=db_path)
+        assert code == 1
+        err = capsys.readouterr().err
+        assert "not found" in err.lower()
+        assert "Check the path" in err
+
     def test_remove_url(self, db_path, capsys):
         self._run("add-url", "https://example.com/docs", db_path=db_path)
         code, _ = self._run("remove", "https://example.com/docs", db_path=db_path)
@@ -154,6 +170,19 @@ class TestCLI:
         assert "Examples:" in out
         assert "skillwatch add-url" in out
         assert "First run:" in out
+
+    @responses.activate
+    def test_scan_shows_progress_counter(self, db_path, capsys):
+        """Scan output includes an [i/total] progress counter."""
+        responses.add(
+            responses.GET, f"https://{MOCK_IP}/docs",
+            body="<html><body><p>Docs content here.</p></body></html>", status=200,
+        )
+        self._run("add-url", "https://example.com/docs", db_path=db_path)
+        capsys.readouterr()
+        with patch(_VALIDATE, side_effect=mock_validate_url):
+            self._run("scan", "--delay", "0", db_path=db_path)
+        assert "[1/1]" in capsys.readouterr().out
 
     @responses.activate
     def test_scan_initial_baseline(self, db_path, capsys):

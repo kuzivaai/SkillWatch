@@ -57,6 +57,10 @@ class TestScanResult:
         assert "(new_exec_command)" in output                   # raw code retained
         assert "What to do" in output                           # next-step guidance
 
+    def test_progress_prefix_shown(self):
+        output = format_scan_result("https://example.com", changed=False, progress="[2/5]")
+        assert "[2/5]" in output
+
 
 class TestScanSummary:
     def test_all_unchanged(self):
