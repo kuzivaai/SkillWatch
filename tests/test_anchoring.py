@@ -166,3 +166,60 @@ class TestVerifyAutoChecksAnchors:
         out = capsys.readouterr().out
         assert code == 0
         assert "Anchor verified" in out
+
+
+class TestGitAnchor:
+    """The git backend commits the head to a repo — an independent, timestamped,
+    pushable anchor that needs no timestamp authority and no extra dependencies."""
+
+    @staticmethod
+    def _init_repo(path):
+        import subprocess
+        subprocess.run(["git", "-C", str(path), "init", "-q"], check=True)
+        subprocess.run(["git", "-C", str(path), "config", "user.email", "t@example.com"], check=True)
+        subprocess.run(["git", "-C", str(path), "config", "user.name", "Test"], check=True)
+
+    def test_module_commits_and_returns_sha(self, tmp_path):
+        repo = tmp_path / "r"
+        repo.mkdir()
+        self._init_repo(repo)
+        result = anchoring.anchor_head("c" * 64, method="git", repo_path=str(repo))
+        assert result.method == "git"
+        assert result.external_ref  # commit sha
+        assert result.timestamp  # commit ISO time
+        assert "c" * 64 in (repo / ".skillwatch-anchors.log").read_text()
+
+    def test_cli_git_anchor_records(self, store, tmp_path):
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        self._init_repo(repo)
+        head = _seed(store, 2)
+        db = str(store.db_path)
+        store.close()
+        code = main(["--db", db, "anchor", "--method", "git", "--repo", str(repo)])
+        assert code == 0
+        assert head in (repo / ".skillwatch-anchors.log").read_text()
+        with Store(db_path=db) as s:
+            a = s.latest_anchor()
+            assert a["method"] == "git" and a["head"] == head and a["external_ref"]
+
+    def test_requires_a_git_repo(self, store, tmp_path):
+        _seed(store, 1)
+        db = str(store.db_path)
+        store.close()
+        code = main(["--db", db, "anchor", "--method", "git", "--repo", str(tmp_path / "nope")])
+        assert code == 1
+
+    def test_verify_shows_git_anchor(self, store, tmp_path, capsys):
+        repo = tmp_path / "repo3"
+        repo.mkdir()
+        self._init_repo(repo)
+        _seed(store, 2)
+        db = str(store.db_path)
+        store.close()
+        main(["--db", db, "anchor", "--method", "git", "--repo", str(repo)])
+        capsys.readouterr()
+        code = main(["--db", db, "verify"])
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "Anchor present" in out and "git" in out

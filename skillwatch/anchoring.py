@@ -20,12 +20,15 @@ extra is not installed.
 from __future__ import annotations
 
 import hashlib
+import subprocess
 from dataclasses import dataclass
+from pathlib import Path
 
 from .ssrf import SSRFError, validate_url
 
 DEFAULT_TSA_URL = "https://freetsa.org/tsr"
 DEFAULT_METHOD = "rfc3161"
+GIT_ANCHOR_LOG = ".skillwatch-anchors.log"
 
 INSTALL_HINT = (
     "RFC 3161 anchoring needs the optional extra. Install it with:\n"
@@ -58,11 +61,23 @@ def anchoring_available() -> bool:
 
 
 def anchor_head(
-    head: str, method: str = DEFAULT_METHOD, tsa_url: str = DEFAULT_TSA_URL
+    head: str,
+    method: str = DEFAULT_METHOD,
+    tsa_url: str = DEFAULT_TSA_URL,
+    repo_path: str = ".",
 ) -> AnchorResult:
-    """Obtain external anchor evidence for ``head``."""
+    """Obtain external anchor evidence for ``head``.
+
+    - ``rfc3161``: a signed timestamp token from a Time-Stamp Authority
+      (needs the ``[anchor]`` extra; depends on that authority being reachable).
+    - ``git``: commit the head to a git repo you control, so pushing it to a
+      remote (e.g. GitHub) gives an independent, timestamped record that does not
+      depend on any timestamp authority. No extra dependencies.
+    """
     if method == "rfc3161":
         return _rfc3161_anchor(head, tsa_url)
+    if method == "git":
+        return _git_anchor(head, repo_path)
     raise AnchorError(f"Unknown anchoring method: {method}")
 
 
@@ -154,6 +169,42 @@ def _rfc3161_verify(head: str, proof: bytes, cacert_pem: bytes | None) -> bool:
     except Exception:
         # Any parse / signature / trust failure means the proof does not verify.
         return False
+
+
+# --- git backend (no extra dependencies) ---------------------------------
+
+
+def _git_anchor(head: str, repo_path: str) -> AnchorResult:
+    repo = Path(repo_path)
+    if not (repo / ".git").is_dir():
+        raise AnchorError(
+            f"{repo} is not a git repository. Point --repo at a git repo you can "
+            "push (e.g. this project) so the anchor commit is preserved remotely."
+        )
+
+    log = repo / GIT_ANCHOR_LOG
+    try:
+        with open(log, "a", encoding="utf-8") as f:
+            f.write(head + "\n")
+    except OSError as exc:
+        raise AnchorError(f"Could not write {log}: {exc}") from exc
+
+    def _git(*args: str) -> str:
+        try:
+            proc = subprocess.run(
+                ["git", "-C", str(repo), *args], capture_output=True, text=True
+            )
+        except FileNotFoundError as exc:
+            raise AnchorError("git is not installed or not on PATH") from exc
+        if proc.returncode != 0:
+            raise AnchorError(f"git {args[0]} failed: {proc.stderr.strip()}")
+        return proc.stdout.strip()
+
+    _git("add", GIT_ANCHOR_LOG)
+    _git("commit", "-m", f"skillwatch anchor {head}")
+    sha = _git("rev-parse", "HEAD")
+    when = _git("log", "-1", "--format=%cI")
+    return AnchorResult(method="git", external_ref=sha, proof=b"", timestamp=when)
 
 
 def _bundled_freetsa_cacert() -> bytes:

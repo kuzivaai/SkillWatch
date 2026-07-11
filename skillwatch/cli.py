@@ -188,7 +188,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     anchor_p.add_argument(
         "--out", type=str, metavar="PATH",
-        help="Also write the raw proof token here, to preserve or publish it",
+        help="For --method rfc3161: also write the raw proof token here",
+    )
+    anchor_p.add_argument(
+        "--repo", type=str, default=".", metavar="PATH",
+        help="For --method git: the git repo to commit the anchor into (default: .)",
     )
     _add_db_arg(anchor_p)
 
@@ -666,7 +670,9 @@ def _cmd_anchor(store: Store, args: argparse.Namespace) -> int:
         return 1
 
     try:
-        anchor = anchoring.anchor_head(head, method=args.method, tsa_url=args.tsa)
+        anchor = anchoring.anchor_head(
+            head, method=args.method, tsa_url=args.tsa, repo_path=args.repo
+        )
     except anchoring.AnchorError as exc:
         print(red(f"\n  Anchoring failed: {exc}"), file=sys.stderr)
         return 1

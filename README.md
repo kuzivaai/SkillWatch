@@ -204,6 +204,7 @@ Every scan records what each URL served as an append-only, hash-chained entry in
 skillwatch verify                        # recompute the chain; print the head; auto-check anchors
 skillwatch verify --against <head>       # confirm history up to a head you published earlier
 skillwatch anchor                        # RFC 3161 timestamp the head (optional [anchor] extra)
+skillwatch anchor --method git --repo .  # or commit the head to a git repo (no TSA, no extra)
 skillwatch ledger                        # show recent entries
 skillwatch ledger --export ledger.json   # portable record anyone can re-verify
 ```

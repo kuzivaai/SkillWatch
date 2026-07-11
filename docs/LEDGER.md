@@ -104,12 +104,25 @@ default). The TSA's signature cannot be forged, so the token is proof that the
 head existed at the attested time.
 
 ```bash
-pip install 'skillwatch[anchor]'         # optional extra: rfc3161-client + cryptography
-skillwatch anchor                        # timestamp the current head via the default TSA
-skillwatch anchor --out head.tsr         # also save the token to preserve/publish
-skillwatch anchor --tsa https://my.tsa/  # use a different RFC 3161 authority
-skillwatch verify                        # now auto-checks every recorded anchor
+pip install 'skillwatch[anchor]'          # optional extra: rfc3161-client + cryptography
+skillwatch anchor                         # RFC 3161 timestamp via the default TSA (freeTSA.org)
+skillwatch anchor --out head.tsr          # also save the token to preserve/publish
+skillwatch anchor --tsa https://my.tsa/   # use a different RFC 3161 authority
+skillwatch anchor --method git --repo .   # commit the head to a git repo (no TSA, no extra)
+skillwatch verify                         # now auto-checks every recorded anchor
 ```
+
+Two backends, so you are not tied to one authority:
+
+- **`rfc3161`** (default) gets a signed timestamp token whose signature cannot be
+  forged. It depends on a Time-Stamp Authority being reachable at anchor time
+  (only freeTSA.org currently parses cleanly with `rfc3161-client`); verification
+  is always offline. Needs the `[anchor]` extra.
+- **`git`** appends the head to `.skillwatch-anchors.log` and commits it. Push
+  that repo to GitHub (or any remote) and the commit is an independent,
+  timestamped record that depends on no timestamp authority and needs no extra
+  dependency. A rewrite of anchored history is caught by `verify` (the head
+  leaves the chain), and the pushed commit is your out-of-band proof of when.
 
 Anchors are stored in an `anchors` table (head, method, the token, the attested
 time). `skillwatch verify` then automatically, for every recorded anchor, (a)
