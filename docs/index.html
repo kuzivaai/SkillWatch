@@ -32,7 +32,7 @@
   "applicationSubCategory": "AI Agent Security",
   "operatingSystem": "Linux, macOS, Windows",
   "programmingLanguage": "Python",
-  "softwareVersion": "0.2.0",
+  "softwareVersion": "0.3.0",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
   "description": "Watches the web pages AI tools point to and alerts when they change. 13 pattern checks flag suspicious changes. 75% recall, 78.9% precision in testing. The checks can be evaded and do not replace human review.",
   "url": "https://github.com/kuzivaai/SkillWatch",
@@ -48,6 +48,7 @@
     "JSON output for CI/CD and webhook integration",
     "Built-in ignore presets to reduce false positives",
     "75% recall, 78.9% precision in synthetic testing",
+    "Tamper-evident, append-only content ledger with independent re-verification (skillwatch verify)",
     "Zero infrastructure cost"
   ]
 }
@@ -219,7 +220,7 @@ footer a { color: var(--muted); }
     <code>pip install skillwatch</code>
     <a href="https://github.com/kuzivaai/SkillWatch" class="btn-secondary" aria-label="View SkillWatch on GitHub">GitHub</a>
   </div>
-  <p class="meta">Python 3.10+ &middot; 5 dependencies &middot; Apache 2.0 &middot; v0.2.0</p>
+  <p class="meta">Python 3.10+ &middot; 5 dependencies &middot; Apache 2.0 &middot; v0.3.0</p>
 </section>
 
 <!-- Problem -->
@@ -336,6 +337,12 @@ footer a { color: var(--muted); }
         <td class="yes">Yes</td>
       </tr>
       <tr>
+        <td>Tamper-evident, independently verifiable history</td>
+        <td class="no">No</td>
+        <td class="no">No</td>
+        <td class="yes">Yes</td>
+      </tr>
+      <tr>
         <td>Scheduled re-checking</td>
         <td class="partial">Enterprise only</td>
         <td class="no">No</td>
@@ -389,7 +396,7 @@ footer a { color: var(--muted); }
 </main>
 
 <footer>
-  <p>SkillWatch v0.2.0 &middot; <a href="https://github.com/kuzivaai/SkillWatch">GitHub</a> &middot; Apache 2.0</p>
+  <p>SkillWatch v0.3.0 &middot; <a href="https://github.com/kuzivaai/SkillWatch">GitHub</a> &middot; Apache 2.0</p>
 </footer>
 
 </body>

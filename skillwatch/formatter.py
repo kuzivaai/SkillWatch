@@ -174,6 +174,24 @@ def format_alert_detail(alert: dict) -> str:
     return "\n".join(lines)
 
 
+def format_ledger(entries: list[dict], total: int) -> str:
+    """Format recent ledger entries (newest first) as a terminal table."""
+    lines = [
+        bold(f"\n  Content ledger — {total} entries (showing {len(entries)} most recent)"),
+        f"  {'Seq':<6}  {'Fetched At':<20}  {'Hash':<14}  {'URL'}",
+        "  " + "-" * 76,
+    ]
+    for e in entries:
+        seq = str(e["seq"])
+        ts = (e.get("fetched_at") or "")[:19]
+        h = (e.get("content_hash") or "")[:12] + ".."
+        url = _safe_url(e["url"])
+        url_display = url[:40] + ".." if len(url) > 42 else url
+        lines.append(f"  {seq:<6}  {ts:<20}  {h:<14}  {url_display}")
+    lines.append(dim("\n  Verify the whole chain with 'skillwatch verify'."))
+    return "\n".join(lines)
+
+
 def format_history(url: str, snapshots: list[dict]) -> str:
     """Format snapshot history for a URL."""
     if not snapshots:

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "skillwatch"
-version = "0.2.0"
+version = "0.3.0"
 description = "Monitor external URLs referenced by AI agent skills and MCP tools for bait-and-switch content changes"
 readme = "README.md"
 license = "Apache-2.0"
@@ -56,6 +56,13 @@ Changelog = "https://github.com/kuzivaai/SkillWatch/blob/main/CHANGELOG.md"
 skillwatch = "skillwatch.cli:main"
 
 [project.optional-dependencies]
+# Optional external anchoring (RFC 3161 timestamping). Keeps the core install
+# dependency-light and fully offline; only users who want cryptographic
+# anchoring need these.
+anchor = [
+    "rfc3161-client>=1.0",
+    "cryptography>=42",
+]
 dev = [
     "pytest>=8.0",
     "pytest-cov",
@@ -65,10 +72,16 @@ dev = [
     "types-PyYAML",
     "types-requests",
     "types-beautifulsoup4",
+    # so the anchoring tests run in CI:
+    "rfc3161-client>=1.0",
+    "cryptography>=42",
 ]
 
 [tool.setuptools.packages.find]
 include = ["skillwatch*"]
+
+[tool.setuptools.package-data]
+skillwatch = ["data/*.pem"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -87,6 +100,10 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "trafilatura.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "rfc3161_client.*"
 ignore_missing_imports = true
 
 [tool.ruff]

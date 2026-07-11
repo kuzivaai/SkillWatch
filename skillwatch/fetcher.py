@@ -3,6 +3,7 @@
 import concurrent.futures
 import hashlib
 import re
+import sys
 from urllib.parse import urljoin, urlparse
 
 import requests
@@ -182,7 +183,6 @@ def fetch_url(
             try:
                 compiled = re.compile(pattern)
             except re.error as exc:
-                import sys
                 print(f"  Warning: invalid --ignore-pattern '{pattern}': {exc}", file=sys.stderr)
                 continue
             hash_text = _safe_regex_sub(compiled, hash_text, pattern)
@@ -216,7 +216,6 @@ def _safe_regex_sub(compiled: re.Pattern, text: str, pattern_str: str) -> str:
     try:
         return future.result(timeout=_REGEX_TIMEOUT)
     except concurrent.futures.TimeoutError:
-        import sys
         print(
             f"  Warning: --ignore-pattern '{pattern_str}' timed out after "
             f"{_REGEX_TIMEOUT}s (possible ReDoS), skipping",

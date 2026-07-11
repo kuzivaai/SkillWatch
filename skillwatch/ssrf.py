@@ -13,24 +13,39 @@ import requests
 from requests.adapters import HTTPAdapter
 
 
+# Explicit supplemental blocklist. The primary gate is the stdlib classification
+# in _check_ip (is_private/is_reserved/...), which is comprehensive and tracks
+# the IANA special-purpose registries across Python versions. This list is
+# belt-and-braces for cases a given Python version's flags may miss (e.g. CGNAT
+# on older 3.10), ranges that embed private IPv4 (6to4/NAT64), and reserved /
+# benchmark / documentation ranges. Blocking here can only refuse a non-public
+# address; it can never block a globally-routable one.
 _BLOCKED_NETWORKS = [
     # IPv4
     ipaddress.ip_network("0.0.0.0/8"),
     ipaddress.ip_network("10.0.0.0/8"),
-    ipaddress.ip_network("100.64.0.0/10"),
+    ipaddress.ip_network("100.64.0.0/10"),   # CGNAT (not is_private on all versions)
     ipaddress.ip_network("127.0.0.0/8"),
     ipaddress.ip_network("169.254.0.0/16"),
     ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.0.0.0/24"),    # IETF protocol assignments
+    ipaddress.ip_network("192.0.2.0/24"),    # TEST-NET-1 (documentation)
     ipaddress.ip_network("192.168.0.0/16"),
-    ipaddress.ip_network("224.0.0.0/4"),
+    ipaddress.ip_network("198.18.0.0/15"),   # benchmarking (RFC 2544)
+    ipaddress.ip_network("198.51.100.0/24"), # TEST-NET-2 (documentation)
+    ipaddress.ip_network("203.0.113.0/24"),  # TEST-NET-3 (documentation)
+    ipaddress.ip_network("224.0.0.0/4"),     # multicast
+    ipaddress.ip_network("240.0.0.0/4"),     # reserved (Class E), incl. 255.255.255.255
     # IPv6
     ipaddress.ip_network("::/128"),        # unspecified
     ipaddress.ip_network("::1/128"),       # loopback
-    ipaddress.ip_network("fe80::/10"),     # link-local unicast
-    ipaddress.ip_network("fc00::/7"),      # unique local
-    ipaddress.ip_network("ff00::/8"),      # multicast
+    ipaddress.ip_network("64:ff9b::/96"),  # NAT64
+    ipaddress.ip_network("100::/64"),      # discard-only
+    ipaddress.ip_network("2001:db8::/32"), # documentation
     ipaddress.ip_network("2002::/16"),     # 6to4 (can wrap private IPv4)
-    ipaddress.ip_network("64:ff9b::/96"), # NAT64
+    ipaddress.ip_network("fc00::/7"),      # unique local
+    ipaddress.ip_network("fe80::/10"),     # link-local unicast
+    ipaddress.ip_network("ff00::/8"),      # multicast
 ]
 
 _ALLOWED_SCHEMES = {"http", "https"}
@@ -114,6 +129,20 @@ def _check_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address, url: str) -> No
         _check_ip(ip.ipv4_mapped, url)
         return
 
+    # Primary gate: refuse anything the stdlib does not consider globally
+    # routable. This tracks the IANA special-purpose registries and covers
+    # ranges the explicit list below might omit on newer allocations.
+    if (
+        ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_multicast
+        or ip.is_reserved
+        or ip.is_unspecified
+    ):
+        raise SSRFError(f"Blocked private/reserved IP {ip} for URL: {url}")
+
+    # Belt-and-braces: explicit supplemental ranges (see _BLOCKED_NETWORKS).
     for network in _BLOCKED_NETWORKS:
         if ip in network:
             raise SSRFError(f"Blocked private/reserved IP {ip} for URL: {url}")
