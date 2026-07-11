@@ -149,6 +149,7 @@ The workflow can also be triggered manually from the Actions tab.
 | `skillwatch remove <url>` | Stop monitoring a URL |
 | `skillwatch scan` | Scan all URLs for content changes |
 | `skillwatch list` | Show all monitored URLs and their status |
+| `skillwatch sources` | Re-check tracked skill/config files for changes (definition drift) |
 | `skillwatch history <url>` | Show change history for a URL |
 | `skillwatch alerts` | Show unreviewed alerts |
 | `skillwatch alert <id>` | Show alert details with diff |
@@ -161,13 +162,27 @@ The workflow can also be triggered manually from the Actions tab.
 | `--delay N` | Seconds between requests (default: 1.0) |
 | `--timeout N` | Request timeout in seconds (default: 10) |
 | `--quiet` | Only show changes and errors |
-| `--output text\|json` | Output format: text (default) or JSON for piping to webhooks |
+| `--output text\|json\|sarif` | Output format: text (default), JSON for webhooks, or SARIF for GitHub Code Scanning |
 | `--preset docs` | Built-in ignore patterns for timestamps, UUIDs, build hashes |
 | `--user-agent STRING` | Custom User-Agent for HTTP requests |
 | `--ignore-pattern REGEX` | Strip matching text before hashing (repeatable) |
 | `--db PATH` | Path to SQLite database |
 
 `--db` works before or after the subcommand: `skillwatch --db /path scan` and `skillwatch scan --db /path` are equivalent.
+
+## Detecting skill-file changes (definition drift)
+
+`skillwatch scan` watches the *content* at the URLs a skill points to. `skillwatch sources` watches the *skill files themselves*. When you `add` a SKILL.md or MCP config, its content hash and the set of URLs it references are recorded. Running `skillwatch sources` re-reads each tracked file and flags:
+
+- the file was edited since it was added,
+- a new URL reference appeared (a new external target to watch),
+- a reference was removed.
+
+New references are added to monitoring automatically, and the command exits `1` if anything changed, so it fits cron and CI. This is a local, offline check inspired by MCP-Scan's tool pinning, but aimed at the SKILL.md threat model rather than MCP tool descriptions.
+
+## SARIF output for CI
+
+`skillwatch scan --output sarif` emits SARIF 2.1.0, which GitHub Code Scanning ingests. SkillWatch's findings then appear in the Security tab alongside static scanners like Cisco skill-scanner and SkillTotal that also emit SARIF: different layers, one dashboard.
 
 ## Security
 

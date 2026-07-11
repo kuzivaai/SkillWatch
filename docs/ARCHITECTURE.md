@@ -28,6 +28,7 @@ Input (SKILL.md / MCP config / URL list)
 | `store.py` | SQLite read/write: URLs, snapshots, alerts | sqlite3 (stdlib) |
 | `differ.py` | Hash comparison + unified diff generation | hashlib, difflib (stdlib) |
 | `detector.py` | Rule-based detection on diffs/HTML + plain-language flag explanations | bs4 |
+| `sarif.py` | SARIF 2.1.0 output for GitHub Code Scanning | (stdlib) |
 | `formatter.py` | Terminal output with colours and summary tables | (stdlib) |
 
 ## Key Decisions

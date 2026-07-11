@@ -9,6 +9,7 @@
 - On the next scan, compares fingerprints. If the content changed, it runs 13 pattern checks and creates an alert.
 - Decodes common obfuscation (ROT13, reversed text, hidden HTML comments) before checking.
 - Stores everything locally in SQLite. No cloud, no accounts, no cost. Runs periodically via cron or CI.
+- Also detects when a tracked skill/config file itself is edited or gains new URL references (`skillwatch sources`, a local rug-pull check), and can emit SARIF for GitHub Code Scanning (`scan --output sarif`).
 
 ## Honest limits
 

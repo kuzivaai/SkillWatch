@@ -40,6 +40,14 @@ CREATE TABLE IF NOT EXISTS alerts (
     reviewed INTEGER NOT NULL DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS sources (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    path TEXT UNIQUE NOT NULL,
+    content_hash TEXT NOT NULL,
+    urls TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_snapshots_url ON snapshots(url_id, fetched_at DESC);
 CREATE INDEX IF NOT EXISTS idx_alerts_url ON alerts(url_id, detected_at DESC);
 """
@@ -215,3 +223,26 @@ class Store:
         if d.get("flags"):
             d["flags"] = json.loads(d["flags"])
         return d
+
+    # --- Sources (definition drift) ---
+
+    def record_source(self, path: str, content_hash: str, urls: list[str]) -> None:
+        """Insert or update a monitored source file's fingerprint (hash + URL set)."""
+        self._conn.execute(
+            "INSERT INTO sources (path, content_hash, urls) VALUES (?, ?, ?) "
+            "ON CONFLICT(path) DO UPDATE SET "
+            "content_hash = excluded.content_hash, urls = excluded.urls, "
+            "updated_at = datetime('now')",
+            (path, content_hash, json.dumps(urls)),
+        )
+        self._conn.commit()
+
+    def get_sources(self) -> list[dict]:
+        """Return all tracked source files, each with its recorded URL set."""
+        rows = self._conn.execute("SELECT * FROM sources ORDER BY id").fetchall()
+        result = []
+        for r in rows:
+            d = dict(r)
+            d["urls"] = json.loads(d["urls"]) if d.get("urls") else []
+            result.append(d)
+        return result

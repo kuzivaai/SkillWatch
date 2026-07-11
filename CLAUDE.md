@@ -26,7 +26,7 @@ python3 analysis/measure_efficacy.py
 
 ## Architecture
 
-Nine Python modules under `skillwatch/`:
+Ten Python modules under `skillwatch/`:
 
 | Module | Purpose |
 |---|---|
@@ -38,6 +38,7 @@ Nine Python modules under `skillwatch/`:
 | store.py | SQLite storage (urls, snapshots, alerts) |
 | formatter.py | Terminal output formatting, ANSI colours |
 | ssrf.py | SSRF validation, DNS pinning adapter |
+| sarif.py | SARIF 2.1.0 output for CI / GitHub Code Scanning |
 | __init__.py | Version declaration |
 
 ## Settled constraints

@@ -1,5 +1,6 @@
 """Extract URLs from SKILL.md files, MCP configs, and URL lists."""
 
+import hashlib
 import ipaddress
 import json
 import re
@@ -34,6 +35,17 @@ def extract_urls_from_file(path: str) -> list[dict]:
     else:
         # Try markdown extraction as fallback
         return _extract_from_markdown(p)
+
+
+def source_fingerprint(path: str) -> tuple[str, list[str]]:
+    """Return (sha256 of the file's bytes, sorted unique URLs it references).
+
+    Used to detect when a monitored source file (SKILL.md, MCP config) is
+    edited or gains new references between scans — a local rug-pull check.
+    """
+    content_hash = hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    urls = sorted({u["url"] for u in extract_urls_from_file(path)})
+    return content_hash, urls
 
 
 def extract_urls_from_text(text: str, source_type: str = "text", source_path: str = "") -> list[dict]:
