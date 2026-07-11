@@ -45,7 +45,7 @@ cd SkillWatch
 pip install .
 ```
 
-Requires Python 3.10+. Five dependencies, all Apache/MIT/BSD licensed.
+Requires Python 3.10+. Five dependencies, all Apache/MIT/BSD licensed. Optional cryptographic anchoring (`pip install 'skillwatch[anchor]'`) adds `cryptography` (Apache-2.0/BSD) and `rfc3161-client` (Apache-2.0); the core install and all monitoring work without them.
 
 ## Quick start
 
@@ -71,6 +71,7 @@ skillwatch alert 1
 3. **Take a fingerprint** (SHA-256 hash) of the extracted text and store it locally in a SQLite database.
 4. **On the next scan, compare fingerprints.** If the hash has changed, the content has changed.
 5. **Run 13 pattern checks** on the changed content to flag anything suspicious. Before checking, the tool decodes common obfuscation tricks (HTML comments containing hidden text, reversed text, ROT13 encoding) so that disguised payloads are checked in their readable form. See [Measured detection rates](#measured-detection-rates) for what it catches and what it misses.
+6. **Record the observation** in an append-only, hash-chained ledger, so you keep a permanent, verifiable history of what each URL served and when. Verify it any time with `skillwatch verify`. See [Verifiable content ledger](#verifiable-content-ledger).
 
 SkillWatch checks for 13 suspicious patterns across three severity levels. Each check only looks at content that was added since the last scan, so pre-existing scripts or iframes on a page will not trigger false alerts.
 
@@ -162,6 +163,9 @@ The workflow can also be triggered manually from the Actions tab.
 | `skillwatch alerts` | Show unreviewed alerts |
 | `skillwatch alert <id>` | Show alert details with diff |
 | `skillwatch alert <id> --review` | Mark an alert as reviewed |
+| `skillwatch verify` | Check the tamper-evident content ledger is intact; auto-check anchors |
+| `skillwatch ledger` | Show or `--export` the verifiable record of what URLs served |
+| `skillwatch anchor` | RFC 3161 timestamp the ledger head (optional `[anchor]` extra) |
 
 ### Scan options
 
@@ -191,6 +195,28 @@ New references are added to monitoring automatically, and the command exits `1` 
 ## SARIF output for CI
 
 `skillwatch scan --output sarif` emits SARIF 2.1.0, which GitHub Code Scanning ingests. SkillWatch's findings then appear in the Security tab alongside static scanners like Cisco skill-scanner and SkillTotal that also emit SARIF: different layers, one dashboard.
+
+## Verifiable content ledger
+
+Every scan records what each URL served as an append-only, hash-chained entry in a local ledger. Unlike the snapshot cache (which keeps the last 50 versions per URL to save disk), the ledger keeps a tiny hash entry for **every** observation, permanently. So you keep a complete, tamper-evident history of what a page served and when, even after the full content is pruned.
+
+```bash
+skillwatch verify                        # recompute the chain; print the head; auto-check anchors
+skillwatch verify --against <head>       # confirm history up to a head you published earlier
+skillwatch anchor                        # RFC 3161 timestamp the head (optional [anchor] extra)
+skillwatch ledger                        # show recent entries
+skillwatch ledger --export ledger.json   # portable record anyone can re-verify
+```
+
+`skillwatch verify` recomputes the whole chain. If any past entry was edited, reordered, or deleted, the recorded hashes no longer line up; `verify` names the first broken entry and exits `1`. An exported ledger re-verifies with the same public function (`skillwatch.ledger.verify_chain`) with no database access, so a third party can independently confirm a record you produce.
+
+**What this does and does not give you (honest scope):**
+
+- It **does** give you integrity and independent re-verification. Accidental corruption or a naive edit to the history is detected, and anyone can re-check an exported ledger without trusting your machine.
+- On its own, a purely local chain is **not** tamper-*proof*: an attacker with write access to your database could rewrite an earlier entry and recompute the whole chain so that plain `verify` still passes. Nothing inside the chain pins its history.
+- To close that gap, `verify` prints the chain **head** (which commits to the entire history). Two ways to anchor it: **(a) by hand, zero-dependency** — publish the head somewhere you do not control (a git commit, a public note) and re-check with `skillwatch verify --against <head>`; or **(b) automatically** — `pip install 'skillwatch[anchor]'` and run `skillwatch anchor`, which gets a signed [RFC 3161](https://www.rfc-editor.org/rfc/rfc3161) timestamp for the head from a public authority (freeTSA.org by default). `skillwatch verify` then auto-checks every recorded anchor, catching any rewrite of anchored history even after a full-chain recompute. Only a hash ever leaves your machine; the anchoring crypto is an optional extra, so the core stays offline. See [docs/LEDGER.md](docs/LEDGER.md).
+
+See [docs/LEDGER.md](docs/LEDGER.md) for the exact hash construction, the anchoring workflow, and how to re-verify an export yourself.
 
 ## Security
 
@@ -293,6 +319,7 @@ Yes to both. `pip install skillwatch`, Apache 2.0.
 ## Documentation
 
 - [Understanding your alerts](docs/UNDERSTANDING-ALERTS.md): what each flag means and what to do, in plain language
+- [Verifiable content ledger](docs/LEDGER.md): the hash-chain spec, `verify`, and how to re-verify an export yourself
 - [Architecture](docs/ARCHITECTURE.md): how the pipeline fits together
 - [Threat model](docs/THREAT-MODEL.md): SSRF, DoS, terminal injection, and privacy
 - [Changelog](CHANGELOG.md): release history
@@ -308,7 +335,7 @@ pip install -e ".[dev]"
 pytest
 ```
 
-249 tests, 96% code coverage.
+326 tests, 95% code coverage.
 
 ## Licence
 

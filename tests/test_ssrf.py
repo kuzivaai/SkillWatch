@@ -89,3 +89,26 @@ class TestSSRFValidation:
     def test_handles_unicode_hostname_error(self):
         with pytest.raises(SSRFError, match="Cannot resolve"):
             validate_url("http://.localhost/")
+
+
+class TestSSRFReservedRanges:
+    """Ranges that are not globally routable must be refused, via both the
+    stdlib classification and the explicit supplemental list."""
+
+    @pytest.mark.parametrize("url", [
+        "http://240.0.0.1/",            # Class E / reserved
+        "http://255.255.255.255/",      # limited broadcast (in 240/4)
+        "http://192.0.0.1/",            # IETF protocol assignments
+        "http://198.18.0.1/",           # benchmarking (RFC 2544)
+        "http://192.0.2.5/",            # TEST-NET-1 (documentation)
+        "http://203.0.113.9/",          # TEST-NET-3
+        "http://[2001:db8::1]/",        # IPv6 documentation
+    ])
+    def test_blocks_additional_reserved(self, url):
+        with pytest.raises(SSRFError):
+            validate_url(url)
+
+    def test_allows_global_ip_literal(self):
+        # A globally-routable literal must still pass (no false block).
+        result = validate_url("http://1.1.1.1/")
+        assert result.resolved_ip == "1.1.1.1"
