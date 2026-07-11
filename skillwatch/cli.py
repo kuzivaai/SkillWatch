@@ -31,6 +31,25 @@ _PRESETS: dict[str, list[str]] = {
 }
 
 
+# Shown at the bottom of `skillwatch --help` and on the no-argument screen.
+# Leads with concrete examples: users reach for examples before flag lists
+# (clig.dev, lucasfcosta, ThoughtWorks all recommend "lead with examples").
+_EXAMPLES = """\
+Examples:
+  skillwatch add SKILL.md              Watch every URL a skill file points to
+  skillwatch add-url https://a.co/x    Watch a single page
+  skillwatch scan                      Check all watched pages for changes now
+  skillwatch alerts                    See what changed, in plain language
+  skillwatch alert 1                   Full detail for one alert, with the diff
+
+First run:
+  skillwatch add-url https://example.com && skillwatch scan
+
+Run it regularly with cron or GitHub Actions - see the README.
+Docs: https://github.com/kuzivaai/SkillWatch
+"""
+
+
 def _safe(url: str) -> str:
     """Strip escape sequences from a URL before printing to terminal."""
     return strip_escape_sequences(url)
@@ -52,6 +71,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="skillwatch",
         description="Periodic URL content monitoring for AI skills and MCP tools",
+        epilog=_EXAMPLES,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--version", action="version", version=f"skillwatch {__version__}")
     parser.add_argument("--db", type=str, default=None, help="Path to SQLite database")
