@@ -1,6 +1,6 @@
 # SkillWatch
 
-> SkillWatch is a free, open-source Python CLI that monitors the external web pages AI agent skills and MCP tools point to, and alerts you when the content changes. It exists because those pages can be swapped to contain malicious instructions after a tool has already passed a security scan (a "bait-and-switch" attack). It runs 13 pattern checks on the changed content and complements static scanners; it does not replace them.
+> SkillWatch is a free, open-source Python CLI that monitors the external web pages AI agent skills and MCP tools point to, and alerts you when the content changes. It exists because those pages can be swapped to contain malicious instructions after a tool has already passed a security scan (a "bait-and-switch" attack). It runs 13 pattern checks on the changed content and complements static scanners; it does not replace them. It runs entirely on your machine, sends nothing to anyone, is open source (Apache 2.0) with no paid tier or telemetry, and is candid about exactly what it catches and misses.
 
 ## What it does
 
