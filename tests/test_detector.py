@@ -677,3 +677,31 @@ class TestSeverity:
 
     def test_severity_empty(self):
         assert max_severity([]) == "info"
+
+
+class TestFlagExplanations:
+    """The plain-language layer that makes alerts readable to non-experts."""
+
+    def test_every_emitted_code_has_plain_language_entry(self):
+        """Every flag code the detector can emit must have a plain-language explanation."""
+        import re
+        from pathlib import Path
+
+        import skillwatch.detector as det
+
+        src = Path(det.__file__).read_text(encoding="utf-8")
+        emitted = set(re.findall(r'code="([a-z0-9_]+)"', src))
+        missing = emitted - set(det.FLAG_EXPLANATIONS)
+        assert not missing, f"flag codes with no plain-language explanation: {sorted(missing)}"
+
+    def test_explanations_are_plain_text_not_the_raw_code(self):
+        from skillwatch.detector import FLAG_EXPLANATIONS, explain
+
+        for code, text in FLAG_EXPLANATIONS.items():
+            assert explain(code) == text
+            assert explain(code) != code  # a real sentence, not the raw code
+
+    def test_explain_falls_back_to_code_when_unknown(self):
+        from skillwatch.detector import explain
+
+        assert explain("totally_unknown_code") == "totally_unknown_code"

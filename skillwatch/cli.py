@@ -31,6 +31,25 @@ _PRESETS: dict[str, list[str]] = {
 }
 
 
+# Shown at the bottom of `skillwatch --help` and on the no-argument screen.
+# Leads with concrete examples: users reach for examples before flag lists
+# (clig.dev, lucasfcosta, ThoughtWorks all recommend "lead with examples").
+_EXAMPLES = """\
+Examples:
+  skillwatch add SKILL.md              Watch every URL a skill file points to
+  skillwatch add-url https://a.co/x    Watch a single page
+  skillwatch scan                      Check all watched pages for changes now
+  skillwatch alerts                    See what changed, in plain language
+  skillwatch alert 1                   Full detail for one alert, with the diff
+
+First run:
+  skillwatch add-url https://example.com && skillwatch scan
+
+Run it regularly with cron or GitHub Actions - see the README.
+Docs: https://github.com/kuzivaai/SkillWatch
+"""
+
+
 def _safe(url: str) -> str:
     """Strip escape sequences from a URL before printing to terminal."""
     return strip_escape_sequences(url)
@@ -52,6 +71,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="skillwatch",
         description="Periodic URL content monitoring for AI skills and MCP tools",
+        epilog=_EXAMPLES,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--version", action="version", version=f"skillwatch {__version__}")
     parser.add_argument("--db", type=str, default=None, help="Path to SQLite database")
@@ -161,6 +182,7 @@ def _cmd_add(store: Store, args: argparse.Namespace) -> int:
         urls = extract_urls_from_file(args.file)
     except FileNotFoundError as exc:
         print(red(f"  Error: {exc}"), file=sys.stderr)
+        print(dim("  Check the path, or pass a SKILL.md, .json, .yaml, or .txt file."), file=sys.stderr)
         return 1
 
     if not urls:
@@ -201,6 +223,7 @@ def _cmd_add_url(store: Store, args: argparse.Namespace) -> int:
         validate_url(args.url)
     except SSRFError as exc:
         print(red(f"  Blocked: {exc}"), file=sys.stderr)
+        print(dim("  SkillWatch only monitors public web pages, not private or local addresses."), file=sys.stderr)
         return 1
 
     _, is_new = store.add_url(args.url, "manual")
@@ -252,6 +275,7 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
 
         url = url_record["url"]
         url_id = url_record["id"]
+        prog = f"[{i + 1}/{total}]"
 
         result = fetch_url(
             url,
@@ -266,7 +290,7 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
             if json_out:
                 json_results.append({"url": url, "status": "error", "error": result.error})
             elif not args.quiet:
-                print(format_scan_result(url, False, error=result.error))
+                print(format_scan_result(url, False, error=result.error, progress=prog))
             continue
 
         prev = store.get_latest_good_snapshot(url_id)
@@ -282,7 +306,7 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
             if json_out:
                 json_results.append({"url": url, "status": "baseline"})
             elif not args.quiet:
-                print(format_scan_result(url, False))
+                print(format_scan_result(url, False, progress=prog))
             continue
 
         if not content_changed(prev["content_hash"], result.content_hash):
@@ -290,7 +314,7 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
             if json_out:
                 json_results.append({"url": url, "status": "unchanged"})
             elif not args.quiet:
-                print(format_scan_result(url, False))
+                print(format_scan_result(url, False, progress=prog))
             continue
 
         changed += 1
@@ -329,7 +353,7 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
                           for f in flags],
             })
         else:
-            print(format_scan_result(url, True, flags))
+            print(format_scan_result(url, True, flags, progress=prog))
 
     if json_out:
         print(json_mod.dumps({

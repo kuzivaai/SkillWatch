@@ -27,4 +27,4 @@ jobs:
       - name: Type check
         run: mypy skillwatch/
       - name: Test
-        run: pytest --cov=skillwatch --cov-report=term-missing -q
+        run: pytest --cov=skillwatch --cov-report=term-missing --cov-fail-under=90 -q
