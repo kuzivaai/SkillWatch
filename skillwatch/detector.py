@@ -85,7 +85,7 @@ _SUSPICIOUS_SCRIPT_KEYWORDS = [
 
 # --- Pattern 7: Prompt injection ---
 # Comprehensive patterns derived from ATR-2026-00001 (Agent Threat Rules, MIT licensed).
-# 38 patterns covering English, German, Spanish, French, Arabic, Russian, Serbian/Croatian,
+# 32 patterns covering English, German, Spanish, French, Arabic, Russian, Serbian/Croatian,
 # plus obfuscation techniques (base64, zero-width, spaced letters, URL-encoding).
 # Only the subset applicable to static web page text is included; patterns requiring
 # conversation context (praise-redirect, task switching) are excluded.
