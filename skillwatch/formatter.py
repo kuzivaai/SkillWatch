@@ -99,11 +99,14 @@ def format_scan_result(url: str, changed: bool, flags: list | None = None, error
         return f"  {green('OK ')}  {url}"
 
     if flags:
-        from .detector import severity_rank
+        from .detector import WHAT_TO_DO, explain, severity_rank
         max_sev = max((f.severity for f in flags), key=severity_rank)
         icon = severity_icon(max_sev)
-        flag_codes = ", ".join(f.code for f in flags)
-        return f"  {icon}  {url}\n       {severity_label(max_sev)}: {flag_codes}"
+        lines = [f"  {icon}  {url}  — {severity_label(max_sev)}"]
+        for f in flags:
+            lines.append(f"       • {explain(f.code)}  {dim('(' + f.code + ')')}")
+        lines.append(f"       {dim('What to do: ' + WHAT_TO_DO)}")
+        return "\n".join(lines)
 
     return f"  {yellow('CHG')}  {url}  {dim('(content changed, no suspicious patterns)')}"
 
@@ -136,9 +139,13 @@ def format_alert_detail(alert: dict) -> str:
 
     flags = alert.get("flags", [])
     if flags:
-        lines.append("  Flags:")
+        from .detector import WHAT_TO_DO, explain
+        lines.append("")
+        lines.append(bold("  What changed:"))
         for f in flags:
-            lines.append(f"    - {f}")
+            lines.append(f"    • {explain(str(f))}  {dim('(' + str(f) + ')')}")
+        lines.append("")
+        lines.append(f"  {dim('What to do: ' + WHAT_TO_DO)}")
 
     if alert.get("diff_text"):
         from .fetcher import strip_escape_sequences
