@@ -146,6 +146,15 @@ class TestCLI:
         code, _ = self._run(db_path=db_path)
         assert code == 0
 
+    def test_help_leads_with_examples(self, capsys):
+        """Main help includes a worked-examples section (examples-first)."""
+        with pytest.raises(SystemExit):
+            main(["--help"])
+        out = capsys.readouterr().out
+        assert "Examples:" in out
+        assert "skillwatch add-url" in out
+        assert "First run:" in out
+
     @responses.activate
     def test_scan_initial_baseline(self, db_path, capsys):
         """First scan stores baseline — no alerts."""
