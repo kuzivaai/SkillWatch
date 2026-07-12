@@ -72,53 +72,62 @@ patterns-<version>.json.sig   # ed25519 signature over the file
   (feed verification can live behind the same optional extra, with a clear message
   if a user runs `update` without it).
 
-## B. Local false-positive adaptation
+## B. Local false-positive adaptation — IMPLEMENTED
 
 The tool learns which flags **this user** repeatedly dismisses and quietens them —
-100% on-device, counts only, no ML.
+100% on-device, counts only, no ML. Shipped on branch `feat/moat-two-plane`
+(`store.py`, `cli.py`, `formatter.py`, `tests/test_fp_adaptation.py`).
 
 ### Storage (`store.py`)
 
-New table:
-
 ```sql
-CREATE TABLE flag_feedback (
-  flag_code   TEXT NOT NULL,
-  url_id      INTEGER NOT NULL,
-  content_fp  TEXT NOT NULL,   -- fingerprint of the flagged content span
-  decision    TEXT NOT NULL,   -- 'dismissed' | 'confirmed'
-  ts          TEXT NOT NULL,
-  PRIMARY KEY (flag_code, url_id, content_fp, ts)
+CREATE TABLE IF NOT EXISTS flag_feedback (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    url_id     INTEGER NOT NULL REFERENCES urls(id),
+    flag_code  TEXT NOT NULL,
+    content_fp TEXT NOT NULL DEFAULT '',  -- audit: fingerprint of the diff dismissed
+    decision   TEXT NOT NULL,             -- 'dismissed' | 'confirmed'
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 ```
 
+Auto-migrates: it is added to the `CREATE TABLE IF NOT EXISTS` schema that runs on
+every connect, so existing databases gain the table with no migration step.
+
 ### Behaviour
 
-- `skillwatch alert <id> --dismiss` / `--confirm` records a decision.
-- On future scans, `formatter.py` demotes a flag to a "previously dismissed"
-  low-priority line when the same `(flag_code, url_id, content_fp)` has been
-  dismissed ≥ N times (default 2) and never confirmed. It is **shown, not hidden**
-  — suppression is reversible and auditable (`skillwatch feedback --list/--reset`).
-- Severity ordering still flows through `severity_rank()` (single source of truth);
-  adaptation only adjusts *display priority*, never deletes a finding.
+- `skillwatch alert <id> --dismiss` / `--confirm` records one decision **per flag**
+  in that alert (`--dismiss` also marks the alert reviewed).
+- A flag is **demoted** for a URL when it has been dismissed **≥ 2 times and never
+  confirmed**, aggregated by `(url_id, flag_code)`. `content_fp` is stored per row
+  for audit but does **not** gate the decision — a recurring benign change yields a
+  different diff each time, so keying demotion on it would never trigger. (This is
+  the deliberate refinement over the first draft's composite key.)
+- `formatter.py` annotates demoted flags as "(previously dismissed)" in both the
+  scan output (`format_scan_result`) and the alert detail (`format_alert_detail`).
+  It is **shown, not hidden** — the alert is never deleted, only its display note
+  changes. Severity still flows through `severity_rank()` (single source of truth).
+- `skillwatch feedback` lists recorded decisions; `skillwatch feedback --reset`
+  clears them. Removing a URL clears its feedback.
 
 ### Non-goals
 
 No cross-user learning, no model, no network. Adaptation is per-machine and resets
 with the local DB.
 
-## C. Local multi-persona fetch (cloaking-lite) — optional
+## C. Local multi-persona fetch (cloaking-lite) — IMPLEMENTED
 
-`fetcher.py` gains an optional mode: fetch each URL under a few local personas
-(User-Agent + Accept-Language + headers), extract text, and compare hashes. If they
-differ, emit a `content-varies-by-requester` signal (possible cloaking).
+Shipped as a standalone command `skillwatch cloak <url>` (`skillwatch/cloak.py`,
+`tests/test_cloak.py`): fetch the URL under browser/agent/bot **User-Agents** through
+the existing SSRF-protected fetcher and report if the server returns different content
+to different clients. Exit 0 clean / 1 varies / 2 insufficient.
 
-- Uses the existing SSRF/DNS-pinning path; **no proxies** → no geo variety, no new
-  trust cost (still only contacts the watched URLs).
-- Full geo/residential cloaking detection is Plane 2 (Apify) — see
-  [spec Plane 2](plane-2-observatory.md). The comparison logic is shared
-  (prototype: `prototypes/cloaking_prototype.py`).
-- Off by default; `--personas` opt-in; respects "periodic, not continuous".
+- Uses `fetcher.fetch_url` (SSRF/DNS-pinning); **no proxies** → no geo variety, no new
+  trust cost (still only contacts the URL you pass it).
+- **Honest scope:** User-Agent only, not Accept-Language. Full geo/residential cloaking
+  detection is Plane 2 (Apify) — see [spec Plane 2](plane-2-observatory.md). The
+  comparison logic is prototyped for geo in `prototypes/cloaking_prototype.py`.
+- One-shot; respects "periodic, not continuous".
 
 ## Testing
 
