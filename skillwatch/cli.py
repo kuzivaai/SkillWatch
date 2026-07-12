@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 
 from . import __version__, anchoring
+from .cloak import PERSONAS, check_url
 from .detector import detect_suspicious_changes, max_severity
 from .differ import content_changed, generate_diff
 from .fetcher import DEFAULT_USER_AGENT, fetch_url, strip_escape_sequences
@@ -196,12 +197,22 @@ def main(argv: list[str] | None = None) -> int:
     )
     _add_db_arg(anchor_p)
 
+    # cloak (stateless — no database needed)
+    cloak_p = sub.add_parser(
+        "cloak",
+        help="Check if a URL serves different content to different clients (UA-based)",
+    )
+    cloak_p.add_argument("url", help="URL to check")
+
     args = parser.parse_args(argv)
 
     if not args.command:
         parser.print_help()
         print(dim("\n  Get started: skillwatch add <SKILL.md>  then  skillwatch scan"))
         return 0
+
+    if args.command == "cloak":
+        return _cmd_cloak(args)
 
     store = Store(db_path=args.db)
 
@@ -237,6 +248,27 @@ def main(argv: list[str] | None = None) -> int:
             return 0
     finally:
         store.close()
+
+
+def _cmd_cloak(args: argparse.Namespace) -> int:
+    """Check whether a URL serves different content to different clients."""
+    result = check_url(args.url)
+    if not result.comparable:
+        print(yellow(
+            f"Could not compare {_safe(args.url)} "
+            f"(only {len(result.ok_personas)} of {len(PERSONAS)} fetches succeeded)"
+        ))
+        return 2
+    if result.varies:
+        print(red(f"Content varies by client for {_safe(args.url)}"))
+        for content_hash, personas in result.groups.items():
+            print(f"  {content_hash[:12]}  {', '.join(personas)}")
+        print(dim(f"  lowest pairwise similarity: {result.min_similarity}"))
+        return 1
+    print(green(
+        f"Same content for all {len(result.ok_personas)} clients: {_safe(args.url)}"
+    ))
+    return 0
 
 
 def _cmd_add(store: Store, args: argparse.Namespace) -> int:
