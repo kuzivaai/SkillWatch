@@ -205,7 +205,7 @@ the change alert and the tamper-evident ledger; if a page you watch changes,
 review the diff yourself.
 
 That is a plain reading of the measurement, not modesty. Against evasive
-payloads the tool catches **11 of 25**. Every proportion below is given as
+payloads the tool catches **17 of 32**. Every proportion below is given as
 `k/n (point estimate, 95% confidence interval)`, because at these sample sizes
 the point estimate alone is close to uninformative — an earlier version of this
 README reported "50.0%" from 5/10, a result equally consistent with a true rate
@@ -214,14 +214,17 @@ of a quarter or of three quarters.
 These are synthetic corpora, not real-world data. They are in
 `analysis/corpus/`; reproduce every figure with `python3 analysis/measure_efficacy.py`.
 
-**Original corpus (67 items: 32 benign, 10 pattern-matching, 25 evasive):**
+**Original corpus (79 items: 37 benign, 10 pattern-matching, 32 evasive):**
 
 | Metric | Value |
 |---|---|
-| Precision | 21/25 (84.0%, 95% CI [65.3%, 93.6%]) |
-| Overall recall | 21/35 (60.0%, 95% CI [43.6%, 74.4%]) |
-| Recall against evasive attacks | 11/25 (44.0%, 95% CI [26.7%, 62.9%]) |
-| Benign false positives | 4/32 (12.5%, 95% CI [5.0%, 28.1%]) |
+| Precision | 27/33 (81.8%, 95% CI [65.6%, 91.4%]) |
+| Overall recall | 27/42 (64.3%, 95% CI [49.2%, 77.0%]) |
+| Recall against evasive attacks | 17/32 (53.1%, 95% CI [36.4%, 69.1%]) |
+| Benign false positives | 6/37 (16.2%, 95% CI [7.7%, 31.1%]) |
+
+By attack family, summing to the 17/32 above: mechanical obfuscation 7/7,
+structural (hidden in markup) 6/10, semantic framing 3/13, non-English 1/2.
 
 **Holdout corpus (18 items, committed before any detector changes):**
 
@@ -247,25 +250,73 @@ versions of this README listed both.
 Read that interval, not the 100%. Six of six is consistent with a true rate as low
 as 61%. The DOM checks look strong and the corpus is too small to show it.
 
-**Why the published figures moved between 0.3.0 and 0.4.0.** Version 0.3.0
-reported overall recall 15/20 (75.0%) and evasive recall 5/10 (50.0%). This
-release reports 21/35 (60.0%) and 11/25 (44.0%). Nothing regressed — the corpus
-changed and the detector did not. `skillwatch/detector.py` is byte-identical
-between the two releases (`git diff v0.3.0..HEAD -- skillwatch/detector.py` is
-empty). Decomposed:
+### Real pages, not our corpus
 
-| Subset | 0.3.0 | 0.4.0 |
+Every figure above is measured on a corpus this project wrote, including the items
+each detector change was built to catch. It shows the implementation does what its
+own taxonomy says, and nothing about pages we did not write.
+
+`analysis/corpus/realpage/` is the first corpus here that is not self-authored:
+**201 pages, each referenced by a real `SKILL.md` sampled from 157 distinct public
+repositories.** None of them carries a payload, so every occurrence below is a
+legitimate use. Reproduce with `python3 analysis/measure_base_rate.py`.
+
+| Concealment technique | Real pages carrying it | Flagged? |
 |---|---|---|
-| Non-evasive malicious | 10/10 | 10/10 |
-| Evasive malicious | 5/10 | 11/25 |
-| Overall recall | 15/20 (75.0%) | 21/35 (60.0%) |
-| Benign false positives | 4/32 | 4/32 |
+| `aria-hidden` | 141/201 (70.1%) | no — inverse of the threat |
+| HTML `hidden` attribute | 111/201 (55.2%) | **no — removed 0.4.1** |
+| `display:none` | 103/201 (51.2%) | yes |
+| `visibility:hidden` | 73/201 (36.3%) | yes |
+| `opacity:0` | 11/201 (5.5%) | yes |
+| `clip-path` sr-only | 10/201 (5.0%) | no — accessibility idiom |
+| `font-size:0` | 3/201 (1.5%) | yes |
+| zero box, clipped | 2/201 (1.0%) | yes |
+| off-screen positioning | 1/201 (0.5%) | **no — removed 0.4.1** |
+| `text-indent:-9999px` | 0/201 (0.0%) | no — accessibility idiom |
 
-Fifteen evasive items were added and six of them are caught. The headline recall
-fell because the malicious corpus went from 50% evasive to 71% evasive — a
-harder and more honest test, not a worse detector. Precision moved the other way
-over the same period, 15/19 (78.9%) to 21/25 (84.0%), for the same structural
-reason.
+**What this does and does not tell you.** It is a base rate, not a false-positive
+rate, and the difference matters. `hidden_content` is a *delta* check: it fires on
+content that is newly hidden. A first fetch is a baseline that runs no detection at
+all, and detection runs only when the extracted text changes. So a page that
+permanently contains a collapsed accordion never produces an alert.
+
+**The real-page false-positive rate is not yet measured, and this README will not
+imply otherwise.** Across 199 paired snapshots the raw HTML changed on 97 (48.7%)
+but the extracted text on only 3 (1.5%), and none of those 3 flagged. `0/3` has a
+95% interval of [0.0%, 56.1%] — consistent with almost any true rate. The snapshots
+were minutes apart; editorial drift needs days. **That measurement is pending.**
+
+**Why the published figures have moved.** Two separate causes, kept apart
+because conflating them would hide a real reduction in detection.
+
+*0.3.0 to 0.4.0 — the corpus changed, the detector did not.* 0.3.0 reported
+overall recall 15/20 (75.0%) and evasive recall 5/10 (50.0%); 0.4.0 reported
+21/35 (60.0%) and 11/25 (44.0%). `skillwatch/detector.py` was byte-identical
+between those two releases. Fifteen evasive items were added and six were caught;
+the headline fell because the malicious corpus went from 50% evasive to 71%
+evasive — a harder test, not a worse detector.
+
+*0.4.0 to 0.4.1 — the detector changed twice, in opposite directions.* The
+concealment check was rewritten to ask whether content is concealed rather than
+whether a substring matches, which raised evasive recall to 19/32. Then two
+techniques were moved **out** of the flagged set after their base rate was
+measured on real pages for the first time, which lowered it to 17/32:
+
+| Subset | 0.3.0 | 0.4.0 | 0.4.1 |
+|---|---|---|---|
+| Non-evasive malicious | 10/10 | 10/10 | 10/10 |
+| Evasive malicious | 5/10 | 11/25 | 17/32 |
+| Overall recall | 15/20 (75.0%) | 21/35 (60.0%) | 27/42 (64.3%) |
+| Benign false positives | 4/32 (12.5%) | 4/32 (12.5%) | 6/37 (16.2%) |
+
+The two techniques removed are the HTML `hidden` attribute and off-screen
+absolute positioning. Both conceal content, and both were dropped because
+measurement showed flagging them fires on ordinary pages rather than on attacks:
+the `hidden` attribute appears on 111 of 201 real pages (55.2%), and off-screen
+positioning is the implementation WebAIM *recommends* for screen-reader-only
+content. **This is a deliberate reduction in detection**, costing two corpus
+items, and it is described in full in
+[`docs/HIDING-TECHNIQUE-TAXONOMY.md`](docs/HIDING-TECHNIQUE-TAXONOMY.md).
 
 **What is and is not verifiable here.** The load-bearing fact is checkable:
 `skillwatch/detector.py` is byte-identical between the two releases, so no
@@ -309,8 +360,8 @@ edit — a version bump, a reworded paragraph, a new link. Precision is
 tells you nothing about a stream that runs at 1000:1.
 
 Do not carry the corpus precision figure into an expectation about your alerts.
-The transferable number is the **false-positive rate: 4/32 (12.5%, 95% CI
-[5.0%, 28.1%])** on the original benign corpus and 1/6 on the holdout. At a
+The transferable number is the **false-positive rate: 6/37 (16.2%, 95% CI
+[7.7%, 31.1%])** on the original benign corpus and 1/6 on the holdout. At a
 realistic base rate, most flags you see will be false positives. That is a
 property of the arithmetic, not a defect being confessed — it is why the tool
 tells you to read the diff rather than trust the flag.
@@ -322,24 +373,27 @@ All five false positives across both benign corpora (38 items) came from three
 
 | Flag code | False positives |
 |---|---|
-| `new_exec_command` | 2/38 |
-| `new_domains` | 2/38 |
-| `new_base64` | 1/38 |
-| `prompt_injection` | 0/38 |
-| `credential_reference` | 0/38 |
-| `unicode_homoglyph` | 0/38 |
+| `new_exec_command` | 2/43 |
+| `new_domains` | 2/43 |
+| `hidden_content` | 2/43 |
+| `new_base64` | 1/43 |
+| `prompt_injection` | 0/43 |
+| `credential_reference` | 0/43 |
+| `unicode_homoglyph` | 0/43 |
 
 The content checks — the ones that assert something about *what the text says* —
-produced no false positives at all (0/38, 95% CI [0.0%, 9.2%]). The delta checks
-fire on the appearance of a shell command, a domain or a base64-like string,
-which are all things benign pages legitimately add.
+produced no false positives at all (0/43, 95% CI [0.0%, 8.2%]). Every false
+positive comes from a check that fires on the *appearance* of something: a shell
+command, a domain, a base64-like string, or newly concealed markup — all things
+benign pages legitimately add.
 
-This is a trade, not a bug to be fixed. Those same three checks are the *only*
-thing catching five evasive payloads in the corpus (E-04, E-05, E-09, E-10 via
-`new_exec_command`/`new_domains`; E-19 via `new_base64`). Deleting all three
-would take the corpus false-positive count to zero and precision to 16/16, and
-drop overall recall from 21/35 (60.0%) to 16/35 (45.7%). They earn their place;
-weight them accordingly when triaging.
+This is a trade, not a bug to be fixed. Those same four checks are the *only*
+thing catching eleven evasive payloads in the corpus (E-04, E-05, E-09, E-10 via
+`new_exec_command`/`new_domains`; E-19 via `new_base64`; E-26 to E-30 and E-32
+via `hidden_content`). Deleting all four would take the corpus false-positive
+count to zero and precision to 16/16 (100.0%, 95% CI [80.6%, 100.0%]), and drop
+overall recall from 27/42 (64.3%) to 16/42 (38.1%, 95% CI [25.0%, 53.2%]). They
+earn their place; weight them accordingly when triaging.
 
 ## Automate with cron
 
@@ -454,8 +508,8 @@ skillwatch scan --ignore-pattern 'v\d+\.\d+\.\d+'
 
 ## Limitations
 
-- **False positives**: About 1 in 8 safe pages (12.5% in testing) will trigger an alert. Common causes are pages with legitimate `pip install` instructions, new domain references, or base64-like strings in educational content. Review all alerts manually.
-- **Evasion**: The checks include decoding for ROT13, reversed text, and HTML comments, but they are fundamentally pattern-based. Attacks phrased as polite requests, stories, or academic language will not be caught. Against deliberately evasive payloads the tool catches 11/25 (44.0%, 95% CI [26.7%, 62.9%]). That figure splits by attack family, and the families sum to the total: mechanical obfuscation 7/7, semantic framing 3/13, structural (hidden in markup) 0/3, non-English instruction 1/2. Treat the triage as decorative against semantic and structural evasion, and rely on the change alert there.
+- **False positives**: About 1 in 6 safe pages (16.2% in testing) will trigger an alert. Common causes are pages with legitimate `pip install` instructions, new domain references, or base64-like strings in educational content. Review all alerts manually.
+- **Evasion**: The checks include decoding for ROT13, reversed text, and HTML comments, but they are fundamentally pattern-based. Attacks phrased as polite requests, stories, or academic language will not be caught. Against deliberately evasive payloads the tool catches 17/32 (53.1%, 95% CI [36.4%, 69.1%]). That figure splits by attack family, and the families sum to the total: mechanical obfuscation 7/7, structural (hidden in markup) 6/10, semantic framing 3/13, non-English instruction 1/2. Treat the triage as decorative against semantic and structural evasion, and rely on the change alert there.
 - **Dynamic pages**: Single-page applications and JavaScript-rendered content may cause false changes. Use `--ignore-pattern` to filter out dynamic elements.
 - **Fetch limitations**: SkillWatch uses a standard browser User-Agent by default (configurable via `--user-agent`). Pages that cloak content by IP address, TLS fingerprint, or require JavaScript rendering can evade fetching entirely.
 
@@ -463,7 +517,7 @@ skillwatch scan --ignore-pattern 'v\d+\.\d+\.\d+'
 
 - A replacement for Snyk Agent Scan or other static scanners (use both)
 - A scanner for tool descriptions or metadata (Snyk Agent Scan does this)
-- A guarantee of catching all attacks (overall recall is 21/35, 60.0%; against evasive payloads 11/25, 44.0% — attacks phrased as polite requests or stories bypass detection by design)
+- A guarantee of catching all attacks (overall recall is 27/42, 64.3%; against evasive payloads 17/32, 53.1% — attacks phrased as polite requests or stories bypass detection by design)
 - Real-time protection (it runs periodically, not as a proxy)
 - A replacement for human review of alerts (see the base-rate warning below — on a
   real change stream, most flags you see will be false positives)
@@ -519,7 +573,7 @@ A free, open-source Python CLI that watches the web pages your AI agent skills a
 Those check the code and descriptions inside AI tools at install time. SkillWatch checks the external web pages those tools point to, over time. Different layers. Use them together.
 
 **What does it catch, and what does it miss?**
-It catches cleartext shell commands, known prompt-injection phrasings (32 patterns across 7 languages), suspicious HTML, Unicode look-alike characters, and more, including some ROT13, reversed-text, and HTML-comment obfuscation. It misses attacks phrased as polite requests, stories, or academic language, because those look like normal text. Overall recall is 21/35 (60.0%), falling to 11/25 (44.0%) against deliberately evasive payloads; the benign false-positive rate is 4/32 (12.5%). Corpus precision is 21/25 (84.0%), but that figure depends on the corpus benign:malicious ratio and does not transfer to a real change stream, which is overwhelmingly benign — expect most flags you see to be false positives. That evasive figure splits by attack family: mechanical obfuscation 7/7, semantic framing 3/13, structural 0/3, non-English 1/2 — so treat the triage as decorative against semantic and structural evasion. Review every alert manually.
+It catches cleartext shell commands, known prompt-injection phrasings (32 patterns across 7 languages), suspicious HTML, Unicode look-alike characters, and more, including some ROT13, reversed-text, and HTML-comment obfuscation. It misses attacks phrased as polite requests, stories, or academic language, because those look like normal text. Overall recall is 27/42 (64.3%), falling to 17/32 (53.1%) against deliberately evasive payloads; the benign false-positive rate is 6/37 (16.2%). Corpus precision is 27/33 (81.8%), but that figure depends on the corpus benign:malicious ratio and does not transfer to a real change stream, which is overwhelmingly benign — expect most flags you see to be false positives. That evasive figure splits by attack family: mechanical obfuscation 7/7, structural 6/10, semantic framing 3/13, non-English 1/2 — so treat the triage as decorative against semantic evasion. Review every alert manually.
 
 **Can non-technical people use it?**
 Not yet. It is a terminal tool, and reading an alert takes some security judgement. The [Understanding your alerts](docs/UNDERSTANDING-ALERTS.md) guide helps, but a terminal and manual review are still required.
