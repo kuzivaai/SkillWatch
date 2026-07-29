@@ -1,0 +1,8 @@
+{
+  "id": "B-08",
+  "label": "benign",
+  "subset": "hash",
+  "source": "synthetic: npm package integrity hash",
+  "old": "name: @scope/pkg\nversion: 3.0.0\nintegrity: sha512-abcdefABCDEF0123456789abcdefABCDEF0123456789abcdefABCDEF012345==",
+  "new": "name: @scope/pkg\nversion: 3.0.1\nintegrity: sha512-FEDCBA9876543210fedcba9876543210FEDCBA9876543210fedcba987654321==\ndeprecated: false"
+}

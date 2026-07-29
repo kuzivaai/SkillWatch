@@ -21,7 +21,7 @@ Tools like [Snyk Agent Scan](https://github.com/snyk/agent-scan) check tool desc
 
 SkillWatch is a command-line tool for people who build, deploy, or review AI agent skills and MCP tools: developers, security engineers, and maintainers who are comfortable at a terminal. Using it means installing a Python package, running commands in a terminal, scheduling scans with cron or CI, and reading a diff to judge whether a change is malicious.
 
-**It is not yet usable by a non-technical person.** There is no app or website. It runs in a terminal, and reading an alert takes some security judgement (about 1 in 5 alerts is a false alarm). The plain-language explanations and the [Understanding your alerts](docs/UNDERSTANDING-ALERTS.md) guide help with that, but you still need a terminal and some manual review.
+**It is not yet usable by a non-technical person.** There is no app or website. It runs in a terminal, and reading an alert takes some security judgement (about 1 in 6 alerts is a false alarm). The plain-language explanations and the [Understanding your alerts](docs/UNDERSTANDING-ALERTS.md) guide help with that, but you still need a terminal and some manual review.
 
 ## Why trust SkillWatch
 
@@ -93,27 +93,54 @@ SkillWatch checks for 13 suspicious patterns across three severity levels. Each 
 
 ### Measured detection rates
 
-In testing, SkillWatch caught 75% of attacks overall, and 50% of attacks designed to avoid detection. It incorrectly flagged about 1 in 8 safe pages.
+**Treat the triage as decorative against an adversary who is trying to evade it.**
+It catches under half of deliberately evasive payloads. Its value is the change
+alert and the tamper-evident ledger, not the flags. If a page you watch changes,
+review the diff yourself; do not read an absence of flags as safety.
 
-These numbers come from a synthetic test corpus, not real-world data.
+That is a plain reading of the measurement, not modesty. Against evasive
+payloads the tool catches **11 of 25**. Every proportion below is given as
+`k/n (point estimate, 95% confidence interval)`, because at these sample sizes
+the point estimate alone is close to uninformative — an earlier version of this
+README reported "50.0%" from 5/10, a result equally consistent with a true rate
+of a quarter or of three quarters.
 
-**Original corpus (52 items: 32 benign, 10 pattern-matching, 10 evasive):**
+These are synthetic corpora, not real-world data. They are in
+`analysis/corpus/`; reproduce every figure with `python3 analysis/measure_efficacy.py`.
+
+**Original corpus (67 items: 32 benign, 10 pattern-matching, 25 evasive):**
 
 | Metric | Value |
 |---|---|
-| Precision | 78.9% (15/19) |
-| Overall recall | 75.0% (15/20 malicious items detected) |
-| Recall against evasive attacks | 50.0% (5/10) |
-| Benign false positives | 4/32 (12.5%) |
+| Precision | 21/25 (84.0%, 95% CI [65.3%, 93.6%]) |
+| Overall recall | 21/35 (60.0%, 95% CI [43.6%, 74.4%]) |
+| Recall against evasive attacks | 11/25 (44.0%, 95% CI [26.7%, 62.9%]) |
+| Benign false positives | 4/32 (12.5%, 95% CI [5.0%, 28.1%]) |
 
 **Holdout corpus (18 items, committed before any detector changes):**
 
 | Metric | Value |
 |---|---|
-| Precision | 90.0% (9/10) |
-| Overall recall | 75.0% (9/12 malicious items detected) |
-| Recall against evasive attacks | 75.0% (9/12) |
-| Benign false positives | 1/6 (16.7%) |
+| Precision | 9/10 (90.0%, 95% CI [59.6%, 98.2%]) |
+| Overall recall | 9/12 (75.0%, 95% CI [46.8%, 91.1%]) |
+| Benign false positives | 1/6 (16.7%, 95% CI [3.0%, 56.4%]) |
+
+The holdout corpus does not report a separate "evasive recall". All 12 of its
+malicious items are evasive, so that figure would be the same 9/12 as overall
+recall — one measurement printed twice, not two independent results. Earlier
+versions of this README listed both.
+
+**Why the evasive figure fell from 50% to 44%:** the evasive corpus was expanded
+from 10 items to 25 in July 2026. The detector's behaviour on the original ten is
+unchanged — the same five are caught. A wider sample of the same population
+simply corrected an optimistic small-sample estimate. Nothing regressed.
+
+Detection is almost perfectly split by attack family: **7 of 7** obfuscation
+payloads are caught (ROT13, reversal, base64, zero-width characters, homoglyphs,
+letter spacing), because obfuscation leaves mechanical traces. **2 of 13**
+semantic-framing payloads are caught, because those are ordinary English
+sentences whose meaning is hostile and whose form is unremarkable. No amount of
+pattern work closes that second gap.
 
 **What the checks catch:** Payloads that use expected phrasings ("ignore all previous instructions"), cleartext shell commands (`curl`, `pip install`), ROT13-encoded commands, reversed text containing command words, and injection phrases hidden in HTML comments.
 
@@ -243,7 +270,7 @@ skillwatch scan --ignore-pattern 'v\d+\.\d+\.\d+'
 ## Limitations
 
 - **False positives**: About 1 in 8 safe pages (12.5% in testing) will trigger an alert. Common causes are pages with legitimate `pip install` instructions, new domain references, or base64-like strings in educational content. Review all alerts manually.
-- **Evasion**: The checks include decoding for ROT13, reversed text, and HTML comments, but they are fundamentally pattern-based. Attacks phrased as polite requests, stories, or academic language will not be caught. Against deliberately evasive payloads, detection is 50% on the original corpus and 75% on a separate holdout set.
+- **Evasion**: The checks include decoding for ROT13, reversed text, and HTML comments, but they are fundamentally pattern-based. Attacks phrased as polite requests, stories, or academic language will not be caught. Against deliberately evasive payloads the tool catches 11/25 (44.0%, 95% CI [26.7%, 62.9%]) — treat the triage as decorative against an adversary who is trying to evade it, and rely on the change alert instead.
 - **Dynamic pages**: Single-page applications and JavaScript-rendered content may cause false changes. Use `--ignore-pattern` to filter out dynamic elements.
 - **Fetch limitations**: SkillWatch uses a standard browser User-Agent by default (configurable via `--user-agent`). Pages that cloak content by IP address, TLS fingerprint, or require JavaScript rendering can evade fetching entirely.
 
@@ -251,9 +278,9 @@ skillwatch scan --ignore-pattern 'v\d+\.\d+\.\d+'
 
 - A replacement for Snyk Agent Scan or other static scanners (use both)
 - A scanner for tool descriptions or metadata (Snyk Agent Scan does this)
-- A guarantee of catching all attacks (overall recall is 75%; attacks phrased as polite requests or stories bypass detection by design)
+- A guarantee of catching all attacks (overall recall is 21/35, 60.0%; against evasive payloads 11/25, 44.0% — attacks phrased as polite requests or stories bypass detection by design)
 - Real-time protection (it runs periodically, not as a proxy)
-- A replacement for human review of alerts (precision is 78.9%; about 1 in 5 alerts is a false positive)
+- A replacement for human review of alerts (precision is 21/25, 84.0%; about 1 in 6 alerts is a false positive)
 
 ## Using SkillWatch alongside a static scanner
 
@@ -306,7 +333,7 @@ A free, open-source Python CLI that watches the web pages your AI agent skills a
 Those check the code and descriptions inside AI tools at install time. SkillWatch checks the external web pages those tools point to, over time. Different layers. Use them together.
 
 **What does it catch, and what does it miss?**
-It catches cleartext shell commands, known prompt-injection phrasings (32 patterns across 7 languages), suspicious HTML, Unicode look-alike characters, and more, including some ROT13, reversed-text, and HTML-comment obfuscation. It misses attacks phrased as polite requests, stories, or academic language, because those look like normal text. Overall recall is 75% (50% against deliberately evasive attacks); precision is 78.9%. Review every alert manually.
+It catches cleartext shell commands, known prompt-injection phrasings (32 patterns across 7 languages), suspicious HTML, Unicode look-alike characters, and more, including some ROT13, reversed-text, and HTML-comment obfuscation. It misses attacks phrased as polite requests, stories, or academic language, because those look like normal text. Overall recall is 21/35 (60.0%), falling to 11/25 (44.0%) against deliberately evasive payloads; precision is 21/25 (84.0%). Against an adversary who is trying to evade it, treat the triage as decorative and rely on the change alert. Review every alert manually.
 
 **Can non-technical people use it?**
 Not yet. It is a terminal tool, and reading an alert takes some security judgement. The [Understanding your alerts](docs/UNDERSTANDING-ALERTS.md) guide helps, but a terminal and manual review are still required.

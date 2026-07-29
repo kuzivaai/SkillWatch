@@ -1,0 +1,8 @@
+{
+  "id": "B-29",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: roadmap",
+  "old": "# Roadmap\n\nPlanned features.",
+  "new": "# Roadmap\n\nPlanned features.\n\n- v2.1: WebSocket support\n- v2.2: Plugin system\n- v3.0: Async rewrite"
+}

@@ -1,0 +1,8 @@
+{
+  "id": "B-12",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: link updated",
+  "old": "See docs at https://old-docs.example.com/guide",
+  "new": "See docs at https://new-docs.example.com/guide"
+}

@@ -1,0 +1,8 @@
+{
+  "id": "B-11",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: new section added",
+  "old": "# Docs\n\n## Install\nRun setup.py",
+  "new": "# Docs\n\n## Install\nRun setup.py\n\n## Configuration\nEdit config.yaml to set options."
+}

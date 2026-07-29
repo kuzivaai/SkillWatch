@@ -1,0 +1,8 @@
+{
+  "id": "B-07",
+  "label": "benign",
+  "subset": "hash",
+  "source": "synthetic: Terraform state file reference",
+  "old": "resource_id: i-0abcdef1234567890\nchecksum: a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1",
+  "new": "resource_id: i-0abcdef1234567890\nchecksum: b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2\nlast_modified: 2026-07-01T10:00:00Z"
+}

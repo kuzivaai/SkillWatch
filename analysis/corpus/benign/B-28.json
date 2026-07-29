@@ -1,0 +1,8 @@
+{
+  "id": "B-28",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: acknowledgements",
+  "old": "Built by the core team.",
+  "new": "Built by the core team.\n\nThanks to the open source community for contributions."
+}

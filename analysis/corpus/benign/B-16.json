@@ -1,0 +1,8 @@
+{
+  "id": "B-16",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: table of contents added",
+  "old": "# Guide\n\nIntroduction text here.",
+  "new": "# Guide\n\n## Table of Contents\n- Introduction\n- Getting Started\n- API\n\nIntroduction text here."
+}

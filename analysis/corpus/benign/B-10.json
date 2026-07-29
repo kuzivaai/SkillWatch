@@ -1,0 +1,8 @@
+{
+  "id": "B-10",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: typo fix",
+  "old": "The libary supports Python 3.8+.",
+  "new": "The library supports Python 3.8+."
+}
