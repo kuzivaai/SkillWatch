@@ -648,8 +648,15 @@ TECHNIQUE_BUCKETS: dict[str, str] = {
     "opacity:0": "a",
     "font-size:0": "a",
     "zero-box-clipped": "a",
-    "offscreen-position": "a",
-    "html-hidden-attr": "a",
+    # Moved to (b) 2026-07-29 on measured evidence. WebAIM calls
+    # `position:absolute; left:-10000px` "the recommended styles for visually
+    # hiding content that will be read by a screen reader" — so flagging it fires
+    # on the correct implementation of .sr-only. Costs corpus item E-24.
+    "offscreen-position": "b",
+    # Moved to (b) 2026-07-29: 111/201 real pages (55.2%), 1534 occurrences. It is
+    # the platform's UI-state primitive (tab panels, dialogs, hidden form fields),
+    # not a concealment technique. Costs corpus item E-31; clears the B-35 FP.
+    "html-hidden-attr": "b",
     "clip-path-inset": "b",
     "text-indent-negative": "b",
     "aria-hidden": "c",

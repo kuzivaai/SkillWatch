@@ -35,11 +35,13 @@ TECHNIQUES = [
     ("inline visibility:hidden", "a", f'<p style="visibility:hidden">{PAYLOAD}</p>', True),
     ("UPPERCASE DISPLAY:NONE", "a", f'<p style="DISPLAY:NONE">{PAYLOAD}</p>', True),
     ("mixed-case Display:None", "a", f'<p style="Display: None">{PAYLOAD}</p>', True),
+    # Moved to (b) 2026-07-29: WebAIM calls this the RECOMMENDED .sr-only
+    # implementation, so flagging it fires on correct accessibility markup.
     (
         "off-screen position",
-        "a",
+        "b",
         f'<p style="position:absolute;left:-9999px">{PAYLOAD}</p>',
-        True,
+        False,
     ),
     ("opacity:0", "a", f'<p style="opacity:0">{PAYLOAD}</p>', True),
     ("font-size:0", "a", f'<p style="font-size:0">{PAYLOAD}</p>', True),
@@ -49,7 +51,9 @@ TECHNIQUES = [
         f'<p style="height:0;overflow:hidden">{PAYLOAD}</p>',
         True,
     ),
-    ("HTML hidden attribute", "a", f"<p hidden>{PAYLOAD}</p>", True),
+    # Moved to (b) 2026-07-29: 111/201 real pages (55.2%) carry it. It is the
+    # platform's UI-state primitive, not a concealment technique.
+    ("HTML hidden attribute", "b", f"<p hidden>{PAYLOAD}</p>", False),
     (
         "<style> block rule",
         "a",
@@ -57,7 +61,9 @@ TECHNIQUES = [
         True,
     ),
     # --- bucket (b): accessibility idiom, must NOT be detected ---
-    ("clip-path inset(100%)", "b", f'<p style="clip-path:inset(100%)">{PAYLOAD}</p>', False),
+    # inset(50%) is the value the canonical WebAIM ruleset actually uses;
+    # the taxonomy previously named inset(100%), which it does not use.
+    ("clip-path inset(50%)", "b", f'<p style="clip-path:inset(50%)">{PAYLOAD}</p>', False),
     ("text-indent:-9999px", "b", f'<p style="text-indent:-9999px">{PAYLOAD}</p>', False),
     # --- bucket (c): inverse of the threat, must NOT be detected ---
     ("aria-hidden", "c", f'<p aria-hidden="true">{PAYLOAD}</p>', False),
