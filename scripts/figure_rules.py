@@ -170,9 +170,33 @@ MIN_PROPORTIONS_PER_COMMAND = {
 }
 
 
-def derived_floor() -> int:
-    """Total minimum proportions across all harness commands."""
-    return sum(MIN_PROPORTIONS_PER_COMMAND.values())
+# THERE IS DELIBERATELY NO GLOBAL FLOOR.
+#
+# `derived_floor()` used to return the SUM of the per-command minimums (28) and that
+# number was printed beside the DEDUPLICATED distinct count (34). Those two are not
+# comparable: five proportions are produced by BOTH commands, so the sum
+# double-counts what the distinct set collapses. Printing them together invited the
+# reader — and a future maintainer — to treat 28 as a threshold for 34.
+#
+# Worse, a global check would reject healthy output. If measure_efficacy parses 18
+# (meeting its minimum of 18) and measure_base_rate parses 10 (meeting its minimum of
+# 10) with eight overlapping, both per-command checks pass while the distinct set is
+# 20 — below 28. A gate that fails on healthy output is a gate someone removes.
+#
+# Decision: per-command minimums are compared against per-command PARSES, and never
+# against the deduplicated total. The only global assertion left is that the set is
+# non-empty, which is a different claim and cannot be confused with a threshold.
+#
+# REASONED, not evidenced: that per-command minimums alone are sufficient to catch a
+# partial parse. The assumption is that a degradation shows up as one command's count
+# dropping, which is what a format change or a crashed corpus load produces. What
+# would overturn it: a failure where both commands parse enough rows but the WRONG
+# rows — which a count floor of any shape cannot see (see the note below).
+#
+# A COUNT FLOOR CANNOT DETECT A PARSE RETURNING THE WRONG PROPORTIONS. Scraping
+# confidence-interval bounds as fractions, for instance, would keep every count high.
+# Detecting that needs the parsed values compared against an independently computed
+# expectation — recomputing a known metric and asserting the parse contains it.
 
 
 # --- 3a. Metric families, for correspondence --------------------------------
@@ -473,8 +497,10 @@ def find_figure_violations(
 def main() -> int:
     """Check every declared surface. Used by CI and by the pre-release gate."""
     allowed = harness_proportions()
-    print(f"Harness currently produces {len(allowed.pairs)} distinct proportions "
-          f"(floor {derived_floor()}, derived per command).")
+    print(f"Harness currently produces {len(allowed.pairs)} distinct proportions.")
+    print("Per-command parses are checked against per-command minimums. There is no "
+          "global floor: the minimums sum without deduplication and the distinct "
+          "count deduplicates, so the two are not comparable.")
     for name, count in sorted(allowed.per_command.items()):
         minimum = MIN_PROPORTIONS_PER_COMMAND.get(name, 0)
         print(f"  {name:<24} {count:>3} parsed, minimum {minimum}")
