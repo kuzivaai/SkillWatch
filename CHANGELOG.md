@@ -7,6 +7,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-07-29
+
+**This release exists to publish corrections that were made in the repository and
+reached no user.** Version 0.4.0 shipped on 2026-07-29; later the same day three
+claims on its page were found to be wrong or incomplete and were corrected here.
+Nothing in the published artefact changed until this release, because the PyPI
+long description is only regenerated when a version is published.
+
+There are no code changes to the detector. Efficacy figures are unchanged and
+remain reproducible with `python3 analysis/measure_efficacy.py`.
+
+### Fixed — claims on the published page
+
+- **Trail of Bits scope and quantifier.** The 0.4.0 page states that every public
+  skill scanner tested "was bypassed in under an hour". The source
+  ([Judson and Hess, 3 June 2026](https://blog.trailofbits.com/2026/06/03/the-sorry-state-of-skill-distribution/))
+  writes: *"it took us less than an hour to conceive and implement three of the
+  four malicious skills … The fourth malicious skill took a few hours."* The hour
+  belongs to **building three of four attacks**, not to bypassing scanners, and
+  not to all four. The scope is the five scanners they tested, not every scanner
+  in existence. OWASP's incident timeline carries the compressed form and this
+  project repeated it.
+- **OWASP AST05 mitigations, with OWASP's own wording restored.** The 0.4.0 page
+  says the mitigations listed against AST05 are "source inventory, content
+  pinning, repeated rescanning" and that they "describe what this tool does". The
+  [AST05 page](https://owasp.org/www-project-agentic-skills-top-10/ast05.html)
+  lists **six**: *Pin and verify referenced content; Prefer inlining over
+  fetching; Allowlist permitted reference domains; Audit references transitively;
+  Maintain fleet-wide visibility of referenced sources; Rescan continuously.* The
+  three-item phrasing came from the compressed summary row on the project index,
+  and it altered OWASP's **"continuous"** to "repeated" to fit this project's
+  periodic-only constraint. SkillWatch covers one of the six and part of two more.
+- **`hidden_content` coverage disclosed.** The check reads an element's inline
+  `style` attribute for a lower-case `display:none` or `visibility:hidden` and
+  nothing else. It does not fire on upper- or mixed-case declarations, `<style>`
+  blocks, external stylesheets, the HTML `hidden` attribute, `aria-hidden`,
+  off-screen positioning, `opacity:0`, `font-size:0`, `height:0`, `clip-path` or
+  `text-indent`. Stylesheet-based hiding is the largest of these in practice.
+  **Absence of the flag is not evidence that nothing is hidden.** The code gap is
+  unchanged and remains open; only the disclosure is new.
+
+### Added — machinery so this cannot recur silently
+
+- **`scripts/claim_rules.py`** — the claim rules as a shared module with one
+  entry point, `find_violations(text, source=...)`, so the same rules can run
+  against repository files, a built artefact, and the live page.
+- **`scripts/check_release_claims.py`** — a **blocking pre-release gate** over
+  `README.md` and a freshly built sdist's `PKG-INFO`. Offline and deterministic.
+- **`scripts/check_published_claims.py`** — a **non-gating report** over the live
+  PyPI long description, which also reports claim-bearing drift between the
+  published text and `README.md` at HEAD. It exits non-zero when it cannot reach
+  PyPI, because a check that could not inspect its subject has not passed. It is
+  deliberately not a release gate: only a release can make the live page correct,
+  so gating on it would deadlock.
+- **`tests/test_claim_rules.py`** — tests for the rules engine itself, including
+  a positive fixture per negative rule.
+
+### Fixed — a rule that could never fire
+
+One of the negative claim rules shipped vacuous. Its span was `[^.\n]{0,60}`
+where the text it was written to catch had 94 characters and a newline in that
+position, so it never matched and passed against the very README it was meant to
+flag. Widened to `[^.]{0,160}` and now proven to fire. **A rule that has never
+fired has not been tested**; every negative rule now has a positive fixture.
+
 ### Changed
 
 - **Ship condition 2 re-specified from "precision ≥75%" to "benign false-positive

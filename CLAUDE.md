@@ -113,6 +113,52 @@ two distortions, one public surface.
 `tests/test_published_claims.py` enforces the mechanical half of this: a cited
 finding on a public surface must be accompanied by a source URL.
 
+### The claims checks: one gate, one report, and why they cannot be merged
+
+The rules live in **`scripts/claim_rules.py`** — one entry point,
+`find_violations(text, source=...)`, taking arbitrary text. Three callers run the
+same rules against three different subjects:
+
+| Check | Subject | Role | Blocking? |
+|---|---|---|---|
+| `tests/test_published_claims.py` | repository files | CI | yes, in CI |
+| **`scripts/check_release_claims.py`** | `README.md` + a freshly built sdist's `PKG-INFO` | **THE GATE** | **yes — run before every release** |
+| `scripts/check_published_claims.py` | the live PyPI long description | **THE REPORT** | **no — never gate on it** |
+
+**Why they cannot be the same check.** The gate asks *"is what we are about to
+publish correct?"* — answerable, and true, before a release. The report asks *"is
+what is currently published correct?"* — which nothing but a release can make
+true. Gating a release on the report would deadlock: the live page stays stale
+until you release, and you could not release until the live page stopped being
+stale. Run the report on a schedule or after a release, never as a precondition
+for one.
+
+The report **exits non-zero when it cannot reach PyPI**, and says so. A check that
+could not inspect its subject has not passed.
+
+**Release procedure — the gate is a required step:**
+
+```bash
+python3 scripts/check_release_claims.py     # must exit 0. Do not release otherwise.
+gh release create vX.Y.Z --title "vX.Y.Z" --notes-file <notes>
+python3 scripts/check_published_claims.py   # after the release; expect exit 0 once PyPI updates
+```
+
+**Why this exists.** On 2026-07-29 the repository corrected two misquoted external
+claims and `tests/test_published_claims.py` went green — while the live PyPI page
+carried both distortions for the rest of the day. The guard read four repository
+paths and its own docstring said it "does not fetch anything", so the most public
+surface this project has was outside its scope. Same fail-open shape as the
+dependency auditor treating an unparseable specifier as satisfied: **a check that
+passes because what it should examine is out of scope.**
+
+**A rule that has never fired has not been tested.** One of the original negative
+rules shipped vacuous — its span was `[^.\n]{0,60}` where the text it was written
+to catch had 94 characters and a newline in that position, so it could never
+match and passed against the very README it was meant to flag. Every negative
+rule now has a positive fixture in `tests/test_claim_rules.py` proving it fires.
+Add one for any rule you add.
+
 ## Conventions
 
 - British English in all user-facing text
