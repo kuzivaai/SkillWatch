@@ -114,3 +114,37 @@ B-33, B-35 and B-37 use bucket-(a) techniques legitimately. **They are expected 
 be flagged** — the flag is `info` severity and means "content is hidden here",
 which is true of a collapsed accordion. They are in the corpus so that the cost of
 the rule is visible in the false-positive rate rather than hidden.
+
+## Measurement: before the fix
+
+Run against the **expanded corpus with the detector unmodified**, 2026-07-29. This
+is the honest "before" and it is worse than the figure it replaces, because items
+were just added that nothing catches. Recording it as such.
+
+```
+Corpus: 37 benign (8 hash, 29 standard)
+        10 adversarial A (pattern-matching)
+        32 adversarial B (evasive)
+
+False-positive rate (overall):  5/37 (13.5%, 95% CI [5.9%, 28.0%])
+Precision:      21/26 (80.8%, 95% CI [62.1%, 91.5%])
+Overall recall: 21/42 (50.0%, 95% CI [35.5%, 64.5%])
+Evasive recall: 11/32 (34.4%, 95% CI [20.4%, 51.7%])
+
+  structural   0/10 (0.0%, 95% CI [0.0%, 27.8%])
+
+FP breakdown by flag code:
+  new_exec_command: 2/37 = 5.4%
+  new_domains: 2/37 = 5.4%
+  hidden_content: 1/37 = 2.7%
+```
+
+Against the pre-expansion corpus (32 benign / 25 evasive) the same detector scored
+evasive recall 11/25 (44.0%) and FP 4/32 (12.5%). **The detector did not change
+between those two runs; the corpus got harder.** Structural is 0/10 because the
+one structural item the old check could catch was never among them.
+
+The `hidden_content` false positive at 1/37 is **B-33**, the collapsed accordion —
+it uses inline lower-case `display:none`, which the old check already caught. It
+is a true statement about the page (content is hidden there) at `info` severity,
+and it is in the corpus deliberately so the cost of the rule is counted.
