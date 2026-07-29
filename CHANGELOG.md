@@ -7,6 +7,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Ship condition 2 re-specified from "precision ≥75%" to "benign false-positive
+  rate ≤30%".** Precision is `TP/(TP+FP)`, so it depends on the benign:malicious
+  ratio of the corpus it was measured on (~38:47 here). A real change stream is
+  overwhelmingly benign, so a corpus precision figure does not transfer to
+  deployment and should never have been published as though it did. The
+  false-positive rate is measured on benign items only and is ratio-independent.
+  Condition 2 now PASSES at 4/32 (12.5%, CI [5.0%, 28.1%]).
+
+  The remedy previously recorded against this condition — "more benign items are
+  needed" — was arithmetically backwards: benign items can only add false
+  positives, taking precision to 21/29 (72.4%, lower bound 54.3%). Reasoning in
+  `SHIP-READINESS.md`.
+- **Base-rate warning added to every surface publishing precision** (README,
+  `docs/llms.txt`, `docs/index.html`). The claim "about 1 in 6 alerts is a false
+  positive" was a deployment claim the measurement could not support and has been
+  removed.
+
+### Added
+
+- **Why the published figures moved between 0.3.0 and 0.4.0**, decomposed in the
+  README. Overall recall 15/20 (75.0%) → 21/35 (60.0%) is entirely a corpus-mix
+  effect: `skillwatch/detector.py` is byte-identical across the two releases, the
+  non-evasive subset scores 10/10 in both, the false-positive set is the same four
+  items, and the original ten evasive items give the same five catches. Fifteen
+  evasive items were added and six are caught. Nothing regressed.
+- **HTML corpus results published** (6/6 precision and recall, both 95% CI
+  [61.0%, 100.0%]), and holdout results kept alongside the original corpus. All
+  three corpora now appear in the README.
+- **Which flags produce the false positives.** All five across both benign corpora
+  (38 items) come from three delta checks: `new_exec_command` (2/38),
+  `new_domains` (2/38), `new_base64` (1/38). The content checks
+  (`prompt_injection`, `credential_reference`, `unicode_homoglyph`) produced 0/38,
+  95% CI [0.0%, 9.2%]. Deleting the three delta checks would zero the corpus
+  false positives and drop overall recall to 16/35 (45.7%); the trade is not worth
+  taking.
+- **OWASP AST05 positioning.** SkillWatch addresses AST05 "Untrusted External
+  Instructions" in the OWASP Agentic Skills Top 10 (v1.0, 2026 Edition). That
+  project is an **Incubator** initiative, not a flagship standard, and the
+  qualifier is mandatory in every claim. AST07 "Update Drift" is a partial fit
+  only.
+- **`OPEN-ITEMS.md`** — a tracked continuity ledger with first-raised dates,
+  replacing per-session handover tables that lost items between sessions.
+- **`tests/test_efficacy_harness.py`** (14 tests). The harness producing every
+  published efficacy figure previously had no tests at all.
+
+### Fixed
+
+- **`specifier_allows` failed open in the dependency-floor auditor.** An
+  unparseable requires_python clause — a transposed operator like `=>3.10`, a
+  non-numeric bound — was silently reported as satisfied, in the check that gates
+  the release. Replaced with a three-valued `SpecifierVerdict`
+  (ALLOWED/EXCLUDED/UNEVALUABLE) in which only ALLOWED is truthy, so a caller
+  writing `if verdict:` fails closed. Unevaluable metadata is now an audit
+  failure reported distinctly from incompatible metadata. `_parse_version_strict`
+  backs the correctness path, kept separate from `_version_key`'s ordering path.
+- **The HTML corpus report published bare percentages.** It printed
+  `Precision: 100.0%` with no interval while the other two reports carried Wilson
+  bounds — the exact failure the project corrected elsewhere. 6/6 is 100% with a
+  lower bound of 61.0%.
+- **`analysis/` was outside the CI lint and type gate** despite
+  `measure_efficacy.py` being tracked as evidence for published figures. Added to
+  both. This surfaced a real omission: `fp_rate_standard` was computed and then
+  dropped from the returned results while its four siblings were kept; it is now
+  returned.
+- **Removed a citation that did not support its claim.** The README cited
+  arXiv 2508.12538 as independent corroboration of the bait-and-switch technique.
+  That paper is MCPXKIT, an offensive MCP toolkit, and its abstract does not
+  document URL content swapping. Replaced with arXiv 2605.05274 (SIGIL), which
+  addresses the audit-runtime gap directly.
+- **Stale documentation corrected.** `CLAUDE.md` said ten modules (there are 13)
+  and v0.2.0 (PyPI serves 0.3.0, `main` is 0.4.0);
+  `docs/skillwatch-overview.js` said v0.3.0, 323 tests, 12 modules.
+
 ## [0.4.0] - 2026-07-29
 
 Minor, not patch: this adds two subcommands. The 0.3.1 entry below is retained as

@@ -11,17 +11,41 @@ SkillWatch watches the web pages that AI tools rely on, and tells you when somet
 
 AI tools pull in instructions from the internet. Security scanners check those tools when they are installed, but the external pages the tools point to can be changed afterwards. The scanners do not re-check.
 
-In June 2026, [security researchers demonstrated](https://www.air.security/blog-posts/the-story-of-skills) that a fake AI skill could pass every major scanner by keeping its code clean while pointing to an external URL. After distribution, the URL content was swapped from legitimate documentation to malicious instructions. (Disclosure: AIR, which published this research, simultaneously launched a managed skill marketplace. Their headline claim of 26,000 AI agents indexed is self-reported and unaudited. The bait-and-switch technique is independently corroborated by the [CSA research note](https://labs.cloudsecurityalliance.org/research/csa-research-note-skill-md-agent-context-poisoning-20260506/) and [arxiv 2508.12538](https://arxiv.org/abs/2508.12538).)
+In June 2026, [security researchers demonstrated](https://www.air.security/blog-posts/the-story-of-skills) that a fake AI skill could pass every major scanner by keeping its code clean while pointing to an external URL. After distribution, the URL content was swapped from legitimate documentation to malicious instructions. (Disclosure: AIR, which published this research, simultaneously launched a managed skill marketplace. Their headline claim of 26,000 AI agents indexed is self-reported and unaudited. The bait-and-switch technique is independently corroborated by the [CSA research note](https://labs.cloudsecurityalliance.org/research/csa-research-note-skill-md-agent-context-poisoning-20260506/) and by [arXiv 2605.05274](https://arxiv.org/abs/2605.05274) (SIGIL, "Sealing the Audit-Runtime Gap for LLM Skills"), a preprint. An earlier version of this README also cited arXiv 2508.12538; that paper is MCPXKIT, an offensive MCP toolkit whose abstract does not document URL content swapping, so it did not support the claim and has been removed.)
 
 The [ClawHavoc campaign](https://orca.security/resources/blog/ai-agent-skill-supply-chain-security/) compromised 1,184 skills using similar techniques. The [Cloud Security Alliance](https://labs.cloudsecurityalliance.org/research/csa-research-note-skill-md-agent-context-poisoning-20260506/) published a dedicated research note on SKILL.md context poisoning.
 
 Tools like [Snyk Agent Scan](https://github.com/snyk/agent-scan) check tool descriptions and metadata. SkillWatch checks what those tools **point to**: the actual content at external URLs. They cover different layers and work well together.
 
+### Where this sits in the OWASP taxonomy
+
+SkillWatch addresses **AST05 — Untrusted External Instructions** in the [OWASP
+Agentic Skills Top 10](https://owasp.org/www-project-agentic-skills-top-10/)
+(v1.0, 2026 Edition), the category covering skills that retrieve instructions
+from external sources. That OWASP project is an **Incubator** initiative, not a
+flagship standard; it lists Q4 2026 as its target for flagship submission. Cite
+it with that qualifier.
+
+The same document reports that when payload logic is held externally, every
+public skill scanner its authors tested is bypassed within an hour. That is the
+category SkillWatch operates in, and it is why this README does not claim the
+triage catches determined attackers — see [measured detection
+rates](#measured-detection-rates). The dependable mechanism is change detection
+and the tamper-evident ledger, which do not depend on recognising the payload.
+
+**AST07 — Update Drift** is adjacent: it concerns version-pinning failure, where
+SkillWatch watches content changing at a stable URL. Related, not the same
+thing, and only claimed here as a partial fit.
+
+A note on what this does *not* mean: an OWASP category is a description of a
+risk, not an endorsement of any tool. Nothing here is OWASP-certified,
+OWASP-recommended, or OWASP-reviewed.
+
 ## Who this is for
 
 SkillWatch is a command-line tool for people who build, deploy, or review AI agent skills and MCP tools: developers, security engineers, and maintainers who are comfortable at a terminal. Using it means installing a Python package, running commands in a terminal, scheduling scans with cron or CI, and reading a diff to judge whether a change is malicious.
 
-**It is not yet usable by a non-technical person.** There is no app or website. It runs in a terminal, and reading an alert takes some security judgement (about 1 in 6 alerts is a false alarm). The plain-language explanations and the [Understanding your alerts](docs/UNDERSTANDING-ALERTS.md) guide help with that, but you still need a terminal and some manual review.
+**It is not yet usable by a non-technical person.** There is no app or website. It runs in a terminal, and reading an alert takes some security judgement — on a real change stream, where nearly every change is a legitimate edit, expect most flags to be false alarms (see [the base-rate note](#precision-does-not-transfer-to-your-change-stream)). The plain-language explanations and the [Understanding your alerts](docs/UNDERSTANDING-ALERTS.md) guide help with that, but you still need a terminal and some manual review.
 
 ## Why trust SkillWatch
 
@@ -134,10 +158,37 @@ malicious items are evasive, so that figure would be the same 9/12 as overall
 recall — one measurement printed twice, not two independent results. Earlier
 versions of this README listed both.
 
-**Why the evasive figure fell from 50% to 44%:** the evasive corpus was expanded
-from 10 items to 25 in July 2026. The detector's behaviour on the original ten is
-unchanged — the same five are caught. A wider sample of the same population
-simply corrected an optimistic small-sample estimate. Nothing regressed.
+**HTML corpus (12 items, DOM-level checks):**
+
+| Metric | Value |
+|---|---|
+| Precision | 6/6 (100.0%, 95% CI [61.0%, 100.0%]) |
+| Recall | 6/6 (100.0%, 95% CI [61.0%, 100.0%]) |
+| Benign false positives | 0/6 (0.0%, 95% CI [0.0%, 39.0%]) |
+
+Read that interval, not the 100%. Six of six is consistent with a true rate as low
+as 61%. The DOM checks look strong and the corpus is too small to show it.
+
+**Why the published figures moved between 0.3.0 and 0.4.0.** Version 0.3.0
+reported overall recall 15/20 (75.0%) and evasive recall 5/10 (50.0%). This
+release reports 21/35 (60.0%) and 11/25 (44.0%). Nothing regressed — the corpus
+changed and the detector did not. `skillwatch/detector.py` is byte-identical
+between the two releases (`git diff v0.3.0..HEAD -- skillwatch/detector.py` is
+empty). Decomposed:
+
+| Subset | 0.3.0 | 0.4.0 |
+|---|---|---|
+| Non-evasive malicious | 10/10 | 10/10 |
+| Evasive malicious | 5/10 | 11/25 |
+| Overall recall | 15/20 (75.0%) | 21/35 (60.0%) |
+| Benign false positives | 4/32 | 4/32 |
+
+Fifteen evasive items were added and six of them are caught. The non-evasive
+subset is unchanged, the false-positive set is the same four items, and the
+original ten evasive items give the same five catches. The headline recall fell
+because the malicious corpus went from 50% evasive to 71% evasive — a harder and
+more honest test, not a worse detector. Precision moved the other way over the
+same period, 15/19 (78.9%) to 21/25 (84.0%), for the same structural reason.
 
 Detection is almost perfectly split by attack family: **7 of 7** obfuscation
 payloads are caught (ROT13, reversal, base64, zero-width characters, homoglyphs,
@@ -159,6 +210,47 @@ pattern work closes that second gap.
 These are fundamental limits of pattern matching. Catching them would require a language model or similar semantic analysis, which is out of scope for this tool.
 
 **False positives:** SRI integrity hashes (sha256-/sha384-/sha512- prefixed base64) are structurally excluded. Remaining false positives come from pages with legitimate `pip install` instructions, new domain references, or base64-like strings in educational content.
+
+### Precision does not transfer to your change stream
+
+The corpora above are 38 benign items against 47 malicious ones. Your monitored
+URLs are not. Almost every change SkillWatch shows you will be a legitimate
+edit — a version bump, a reworded paragraph, a new link. Precision is
+`TP/(TP+FP)`, so it depends on that ratio, and a figure measured at roughly 1:1
+tells you nothing about a stream that runs at 1000:1.
+
+Do not carry the corpus precision figure into an expectation about your alerts.
+The transferable number is the **false-positive rate: 4/32 (12.5%, 95% CI
+[5.0%, 28.1%])** on the original benign corpus and 1/6 on the holdout. At a
+realistic base rate, most flags you see will be false positives. That is a
+property of the arithmetic, not a defect being confessed — it is why the tool
+tells you to read the diff rather than trust the flag.
+
+### Which flags produce the false positives
+
+All five false positives across both benign corpora (38 items) came from three
+"something new appeared" delta checks:
+
+| Flag code | False positives |
+|---|---|
+| `new_exec_command` | 2/38 |
+| `new_domains` | 2/38 |
+| `new_base64` | 1/38 |
+| `prompt_injection` | 0/38 |
+| `credential_reference` | 0/38 |
+| `unicode_homoglyph` | 0/38 |
+
+The content checks — the ones that assert something about *what the text says* —
+produced no false positives at all (0/38, 95% CI [0.0%, 9.2%]). The delta checks
+fire on the appearance of a shell command, a domain or a base64-like string,
+which are all things benign pages legitimately add.
+
+This is a trade, not a bug to be fixed. Those same three checks are the *only*
+thing catching five evasive payloads in the corpus (E-04, E-05, E-09, E-10 via
+`new_exec_command`/`new_domains`; E-19 via `new_base64`). Deleting all three
+would take the corpus false-positive count to zero and precision to 16/16, and
+drop overall recall from 21/35 (60.0%) to 16/35 (45.7%). They earn their place;
+weight them accordingly when triaging.
 
 ## Automate with cron
 
@@ -284,7 +376,8 @@ skillwatch scan --ignore-pattern 'v\d+\.\d+\.\d+'
 - A scanner for tool descriptions or metadata (Snyk Agent Scan does this)
 - A guarantee of catching all attacks (overall recall is 21/35, 60.0%; against evasive payloads 11/25, 44.0% — attacks phrased as polite requests or stories bypass detection by design)
 - Real-time protection (it runs periodically, not as a proxy)
-- A replacement for human review of alerts (precision is 21/25, 84.0%; about 1 in 6 alerts is a false positive)
+- A replacement for human review of alerts (see the base-rate warning below — on a
+  real change stream, most flags you see will be false positives)
 
 ## Using SkillWatch alongside a static scanner
 
@@ -337,7 +430,7 @@ A free, open-source Python CLI that watches the web pages your AI agent skills a
 Those check the code and descriptions inside AI tools at install time. SkillWatch checks the external web pages those tools point to, over time. Different layers. Use them together.
 
 **What does it catch, and what does it miss?**
-It catches cleartext shell commands, known prompt-injection phrasings (32 patterns across 7 languages), suspicious HTML, Unicode look-alike characters, and more, including some ROT13, reversed-text, and HTML-comment obfuscation. It misses attacks phrased as polite requests, stories, or academic language, because those look like normal text. Overall recall is 21/35 (60.0%), falling to 11/25 (44.0%) against deliberately evasive payloads; precision is 21/25 (84.0%). That evasive figure splits by attack family: mechanical obfuscation 7/7, semantic framing 3/13, structural 0/3, non-English 1/2 — so treat the triage as decorative against semantic and structural evasion. Review every alert manually.
+It catches cleartext shell commands, known prompt-injection phrasings (32 patterns across 7 languages), suspicious HTML, Unicode look-alike characters, and more, including some ROT13, reversed-text, and HTML-comment obfuscation. It misses attacks phrased as polite requests, stories, or academic language, because those look like normal text. Overall recall is 21/35 (60.0%), falling to 11/25 (44.0%) against deliberately evasive payloads; the benign false-positive rate is 4/32 (12.5%). Corpus precision is 21/25 (84.0%), but that figure depends on the corpus benign:malicious ratio and does not transfer to a real change stream, which is overwhelmingly benign — expect most flags you see to be false positives. That evasive figure splits by attack family: mechanical obfuscation 7/7, semantic framing 3/13, structural 0/3, non-English 1/2 — so treat the triage as decorative against semantic and structural evasion. Review every alert manually.
 
 **Can non-technical people use it?**
 Not yet. It is a terminal tool, and reading an alert takes some security judgement. The [Understanding your alerts](docs/UNDERSTANDING-ALERTS.md) guide helps, but a terminal and manual review are still required.
