@@ -33,13 +33,15 @@ python3 analysis/measure_efficacy.py
 
 | # | Condition | Status | Basis |
 |---|-----------|--------|-------|
-| 1 | Evasive recall ≥50% **or** documentation makes unmissable that the triage is decorative | **PASS via the documentation route** | Recall route fails: 11/25 (44.0%, CI [26.7%, 62.9%]). The README now states plainly that the triage is decorative against a competent adversary. |
+| 1 | Evasive recall ≥50% **or** documentation makes unmissable that the triage is decorative | **PASS via the documentation route** | Recall route fails: 11/25 (44.0%, CI [26.7%, 62.9%]). The README states plainly that the triage is decorative against *semantic* evasion (2/13), while noting it catches mechanical obfuscation 7/7. |
 | 2 | Precision ≥75% | **NOT DEMONSTRATED** | 21/25 (84.0%, CI [65.3%, 93.6%]). Point clears 75%; lower bound does not. |
 | 3 | Named maintenance owner and pattern update cadence | **PASS, with an overdue review** | `MAINTENANCE.md` names the owner and a quarterly cadence. The July 2026 review was outstanding and is recorded in `PATTERNS.md`. |
-| 4 | ≥1 independent, non-conflicted evidence source for the premise | **UNDER REVIEW** | One of the two cited sources does not support the claim made of it — see below. Not re-established in this pass. |
+| 4 | ≥1 independent, non-conflicted evidence source for the premise | **PASS** | arXiv 2605.05274 (SIGIL), abstract checked against the primary source and quoted below. A preprint, not peer-reviewed. The previously cited arXiv 2508.12538 is an offensive toolkit and is retired. |
 | 5 | Evidence of minimal user demand | **FAIL** | 0 stars, 0 forks, 0 watchers, no external users. |
 
-**Verdict: HOLD.** Conditions 2, 4 and 5 are unmet or unverified.
+**Verdict: HOLD.** Conditions 2 and 5 are unmet: precision is not demonstrated on
+the interval lower bound, and there is no user demand. Condition 4 was restored on
+2026-07-29.
 
 ## Condition 1 — the honest outcome
 
@@ -59,7 +61,12 @@ The point estimate is now **below** the 50% threshold, not merely its lower
 bound. The threshold has not been moved to accommodate this. Condition 1 offers
 two routes, and the recall route has failed on the evidence, so the condition is
 met by the second route: the README states that the triage is decorative against
-an adversary who is trying to evade it.
+*semantic* evasion.
+
+The qualifier matters and is not softening. A blanket "decorative against any
+evasion" would be wrong in the opposite direction: mechanical obfuscation is
+caught 7 of 7. The honest statement is that an attacker who encodes their payload
+is caught and an attacker who simply writes plain English is not.
 
 Corpus composition, since a recall figure is a property of the corpus as much as
 of the detector — 25 evasive items, expanded while preserving the family
@@ -101,16 +108,57 @@ done and what remains.
 
 ## Condition 4 — premise evidence
 
-Previously recorded as PASS on two sources. One of them, **arXiv 2508.12538**, is
-*MCPXkit: The Unified Toolkit for Analyzing Model Context Protocol Security* — an
-offensive toolkit cataloguing attack methods. It is not independent evidence that
-the bait-and-switch premise occurs; citing it as such overstates what it says.
-The second source (a CSA AI Safety Initiative note) has not been re-verified in
-this pass.
+**Status: PASS**, on a citation checked against its primary source.
 
-The premise may well be supportable — stronger sources appear to exist — but this
-condition is marked UNDER REVIEW rather than PASS until a citation has actually
-been checked against its primary source. Re-establishing it is separate work.
+### The source
+
+**arXiv 2605.05274 — "Sealing the Audit-Runtime Gap for LLM Skills"** (SIGIL).
+Tingda Shen, Yebo Feng, Konglin Zhu, Xiaojun Jia, Yang Liu, Lin Zhang. Submitted
+6 May 2026. Abstract retrieved from the arXiv API on 2026-07-29.
+
+The premise sentence, quoted verbatim from the abstract:
+
+> "Once in the LLM's context, skill content cannot be reliably separated from
+> trusted instructions, and a skill's executable side can invoke privileged
+> actions, exposing the skill supply chain to injection, tampering, and rug-pull
+> attacks."
+
+And on why install-time review is not enough, also verbatim:
+
+> "Existing defenses are stage-bound: centralized signing, audit reports unbound
+> from the runtime artifact, or policy engines that cannot attest to what was
+> approved."
+
+That is an independent academic treatment of the exact gap SkillWatch exists to
+watch: a skill approved once, whose content is not bound to what runs later.
+
+### Qualifications, stated rather than buried
+
+- **This is a preprint. It is not peer-reviewed.** It is cited as evidence that
+  the gap is recognised and characterised in the literature, not as a settled
+  result.
+- **The paper proposes a competing approach**, and this cuts both ways. SIGIL's
+  answer is a cooperation model — an on-chain registry plus a mandatory Skill
+  Verification Loader embedded in the platform. SkillWatch's answer is the
+  opposite: an independent observer that assumes no cooperation. The paper is
+  therefore strong evidence *for the premise* and simultaneously evidence that
+  better-resourced approaches to the same problem exist. Both are true and both
+  should be said.
+- **I did not verify the authors' institutional affiliations**; they are not in
+  the abstract. The claim of independence rests on there being no connection to
+  this project, which is straightforward, not on any assessment of the authors.
+
+### The citation that must never be reused
+
+**arXiv 2508.12538 is *MCPXkit: The Unified Toolkit for Analyzing Model Context
+Protocol Security*** — an offensive toolkit cataloguing attack methods. It was
+previously cited here as independent premise evidence. It is not, and it must
+never be cited as such again. It may be cited, if at all, as a taxonomy of attack
+techniques.
+
+The second source previously claimed (a CSA AI Safety Initiative note) still has
+not been re-verified against its primary source and is **not** relied on here.
+This condition passes on arXiv 2605.05274 alone.
 
 ## Condition 5 — demand
 

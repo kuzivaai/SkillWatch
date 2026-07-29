@@ -93,10 +93,14 @@ SkillWatch checks for 13 suspicious patterns across three severity levels. Each 
 
 ### Measured detection rates
 
-**Treat the triage as decorative against an adversary who is trying to evade it.**
-It catches under half of deliberately evasive payloads. Its value is the change
-alert and the tamper-evident ledger, not the flags. If a page you watch changes,
-review the diff yourself; do not read an absence of flags as safety.
+**Treat the triage as decorative against semantic evasion.** An attacker who writes
+their instruction as ordinary English — a polite request, a story, a changelog
+entry — gets past it: 2 of 13 such payloads are caught. Mechanical obfuscation is
+a different story and is caught reliably: 7 of 7 (ROT13, reversal, base64,
+zero-width characters, homoglyphs, letter spacing). So the flags are worth
+reading, but never treat their absence as safety. The tool's dependable value is
+the change alert and the tamper-evident ledger; if a page you watch changes,
+review the diff yourself.
 
 That is a plain reading of the measurement, not modesty. Against evasive
 payloads the tool catches **11 of 25**. Every proportion below is given as
@@ -270,7 +274,7 @@ skillwatch scan --ignore-pattern 'v\d+\.\d+\.\d+'
 ## Limitations
 
 - **False positives**: About 1 in 8 safe pages (12.5% in testing) will trigger an alert. Common causes are pages with legitimate `pip install` instructions, new domain references, or base64-like strings in educational content. Review all alerts manually.
-- **Evasion**: The checks include decoding for ROT13, reversed text, and HTML comments, but they are fundamentally pattern-based. Attacks phrased as polite requests, stories, or academic language will not be caught. Against deliberately evasive payloads the tool catches 11/25 (44.0%, 95% CI [26.7%, 62.9%]) — treat the triage as decorative against an adversary who is trying to evade it, and rely on the change alert instead.
+- **Evasion**: The checks include decoding for ROT13, reversed text, and HTML comments, but they are fundamentally pattern-based. Attacks phrased as polite requests, stories, or academic language will not be caught. Against deliberately evasive payloads the tool catches 11/25 (44.0%, 95% CI [26.7%, 62.9%]). That figure splits sharply by technique: mechanical obfuscation is caught 7/7, semantic framing 2/13. Treat the triage as decorative against semantic evasion specifically, and rely on the change alert there.
 - **Dynamic pages**: Single-page applications and JavaScript-rendered content may cause false changes. Use `--ignore-pattern` to filter out dynamic elements.
 - **Fetch limitations**: SkillWatch uses a standard browser User-Agent by default (configurable via `--user-agent`). Pages that cloak content by IP address, TLS fingerprint, or require JavaScript rendering can evade fetching entirely.
 
@@ -333,7 +337,7 @@ A free, open-source Python CLI that watches the web pages your AI agent skills a
 Those check the code and descriptions inside AI tools at install time. SkillWatch checks the external web pages those tools point to, over time. Different layers. Use them together.
 
 **What does it catch, and what does it miss?**
-It catches cleartext shell commands, known prompt-injection phrasings (32 patterns across 7 languages), suspicious HTML, Unicode look-alike characters, and more, including some ROT13, reversed-text, and HTML-comment obfuscation. It misses attacks phrased as polite requests, stories, or academic language, because those look like normal text. Overall recall is 21/35 (60.0%), falling to 11/25 (44.0%) against deliberately evasive payloads; precision is 21/25 (84.0%). Against an adversary who is trying to evade it, treat the triage as decorative and rely on the change alert. Review every alert manually.
+It catches cleartext shell commands, known prompt-injection phrasings (32 patterns across 7 languages), suspicious HTML, Unicode look-alike characters, and more, including some ROT13, reversed-text, and HTML-comment obfuscation. It misses attacks phrased as polite requests, stories, or academic language, because those look like normal text. Overall recall is 21/35 (60.0%), falling to 11/25 (44.0%) against deliberately evasive payloads; precision is 21/25 (84.0%). That evasive figure splits by technique: mechanical obfuscation 7/7, semantic framing 2/13 — so treat the triage as decorative against semantic evasion specifically. Review every alert manually.
 
 **Can non-technical people use it?**
 Not yet. It is a terminal tool, and reading an alert takes some security judgement. The [Understanding your alerts](docs/UNDERSTANDING-ALERTS.md) guide helps, but a terminal and manual review are still required.

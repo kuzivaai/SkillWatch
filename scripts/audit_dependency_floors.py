@@ -37,10 +37,13 @@ PYPI_JSON_URL = "https://pypi.org/pypi/{name}/json"
 TIMEOUT = 30
 RETRIES = 3
 
-# Requirements deliberately left without a floor: type stubs and lint/format tools
-# that carry no runtime attack surface and no published advisories to pin against.
-# Anything with a floor is audited; anything here must stay floor-free on purpose.
-NO_FLOOR_EXPECTED = {"pytest-cov", "ruff", "types-pyyaml", "types-requests", "types-beautifulsoup4", "wheel"}
+# There is no allowlist. A requirement with no lower bound is the maximum-exposure
+# case, not an exempt one: it permits every release ever published, including any
+# that predate the advisory database's coverage. Auditing only declared floors
+# would be blind to exactly the dependencies at greatest risk.
+#
+# This is not hypothetical. `pytest-cov` had no floor, and the lowest-direct CI leg
+# duly resolved it to 0.6 — a release from 2010 — while the audit reported success.
 
 
 class Requirement(NamedTuple):
@@ -235,8 +238,6 @@ def main() -> int:
         print(f"error: advisory lookup failed: {exc}", file=sys.stderr)
         return 2
 
-    unexpected_floorless = [r for r in without_floor if r.name not in NO_FLOOR_EXPECTED]
-
     if args.json:
         print(
             json.dumps(
@@ -251,24 +252,30 @@ def main() -> int:
                         }
                         for f in findings
                     ],
-                    "floorless": [r.name for r in unexpected_floorless],
+                    "floorless": [
+                        {"package": r.name, "origin": r.origin} for r in without_floor
+                    ],
                 },
                 indent=2,
             )
         )
     else:
-        print(f"Audited {len([r for r in requirements if r.floor])} declared dependency floors.")
+        audited = len([r for r in requirements if r.floor])
+        print(f"Audited {audited} declared dependency floors.")
         for finding in findings:
             req = finding.requirement
             print(f"\n  {req.name}>={req.floor}  ({req.origin})")
             print(f"    permits versions with: {', '.join(finding.advisories)}")
             print(f"    minimum safe floor:    {finding.minimum_safe or 'none found'}")
-        for req in unexpected_floorless:
-            print(f"\n  {req.name}  ({req.origin}) has no floor and is not in the allowlist")
-        if not findings and not unexpected_floorless:
+        for req in without_floor:
+            print(f"\n  {req.name}  ({req.origin}) declares NO lower bound")
+            print("    every published release is permitted, including any older than")
+            print("    the advisory database's coverage. Give it a floor.")
+        if not findings and not without_floor:
             print("All declared floors are clear of known advisories.")
+            print("Every declared requirement has a lower bound.")
 
-    return 1 if (findings or unexpected_floorless) else 0
+    return 1 if (findings or without_floor) else 0
 
 
 if __name__ == "__main__":

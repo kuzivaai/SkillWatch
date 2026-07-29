@@ -114,7 +114,18 @@ class TestDeclaredFloors:
             if req.origin == "project.dependencies":
                 assert req.floor is not None, f"{req.name} has no lower bound to audit"
 
-    def test_floorless_requirements_are_all_allowlisted(self) -> None:
-        """Adding a floor-free requirement should fail here, not silently skip the audit."""
-        floorless = {r.name for r in audit_mod.collect_requirements(_pyproject()) if not r.floor}
-        assert floorless <= audit_mod.NO_FLOOR_EXPECTED
+    def test_no_requirement_is_left_without_a_lower_bound(self) -> None:
+        """A floorless requirement is the maximum-exposure case, not an exempt one.
+
+        There is no allowlist. Without a bound, every release ever published is
+        permitted — including releases older than the advisory database's
+        coverage, which the floor audit then cannot reason about at all. This
+        was not theoretical: `pytest-cov` had no floor and the lowest-direct CI
+        leg resolved it to 0.6, a 2010 release, while the audit reported success.
+        """
+        floorless = {
+            f"{r.name} ({r.origin})"
+            for r in audit_mod.collect_requirements(_pyproject())
+            if not r.floor
+        }
+        assert not floorless, f"requirements with no lower bound: {sorted(floorless)}"
