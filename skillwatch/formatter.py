@@ -92,6 +92,7 @@ def format_url_table(urls: list[dict]) -> str:
 def format_scan_result(
     url: str, changed: bool, flags: list | None = None,
     error: str | None = None, progress: str = "",
+    demoted_flags: set[str] | None = None,
 ) -> str:
     """Format a single scan result line.
 
@@ -112,7 +113,8 @@ def format_scan_result(
         icon = severity_icon(max_sev)
         lines = [f"  {tag}{icon}  {url}  — {severity_label(max_sev)}"]
         for f in flags:
-            lines.append(f"       • {explain(f.code)}  {dim('(' + f.code + ')')}")
+            note = "  " + dim("(previously dismissed)") if demoted_flags and f.code in demoted_flags else ""
+            lines.append(f"       • {explain(f.code)}  {dim('(' + f.code + ')')}{note}")
         lines.append(f"       {dim('What to do: ' + WHAT_TO_DO)}")
         return "\n".join(lines)
 
@@ -134,7 +136,7 @@ def format_scan_summary(total: int, unchanged: int, changed: int, alerts: int, e
     return " | ".join(parts)
 
 
-def format_alert_detail(alert: dict) -> str:
+def format_alert_detail(alert: dict, demoted_flags: set[str] | None = None) -> str:
     """Format a single alert with full details."""
     lines = [
         "",
@@ -151,7 +153,8 @@ def format_alert_detail(alert: dict) -> str:
         lines.append("")
         lines.append(bold("  What changed:"))
         for f in flags:
-            lines.append(f"    • {explain(str(f))}  {dim('(' + str(f) + ')')}")
+            note = "  " + dim("(previously dismissed)") if demoted_flags and str(f) in demoted_flags else ""
+            lines.append(f"    • {explain(str(f))}  {dim('(' + str(f) + ')')}{note}")
         lines.append("")
         lines.append(f"  {dim('What to do: ' + WHAT_TO_DO)}")
 
