@@ -19,12 +19,30 @@ Tools like [Snyk Agent Scan](https://github.com/snyk/agent-scan) check tool desc
 
 ### Where this sits in the OWASP taxonomy
 
-SkillWatch addresses **AST05 — Untrusted External Instructions** in the [OWASP
-Agentic Skills Top 10](https://owasp.org/www-project-agentic-skills-top-10/)
+SkillWatch addresses part of **AST05 — Untrusted External Instructions** in the
+[OWASP Agentic Skills Top 10](https://owasp.org/www-project-agentic-skills-top-10/)
 (v1.0, 2026 Edition), the category covering skills that retrieve instructions
-from external sources. The mitigations that document lists against AST05 —
-source inventory, content pinning, repeated rescanning — describe what this tool
-does.
+from external sources.
+
+The [AST05 page](https://owasp.org/www-project-agentic-skills-top-10/ast05.html)
+lists six preventive mitigations. SkillWatch addresses one of them and part of two
+more; it does not address the other three. Their headings, quoted verbatim:
+
+| OWASP AST05 mitigation | SkillWatch |
+|---|---|
+| 1. "Pin and verify referenced content" | **Partial.** Records a content hash and alerts on drift, but does not refuse drifted content — it is a monitor, not an enforcement point. |
+| 2. "Prefer inlining over fetching" | **No.** A publishing-side control; nothing to do with this tool. |
+| 3. "Allowlist permitted reference domains" | **No.** |
+| 4. "Audit references transitively" | **No.** SkillWatch watches the URLs you give it and does not follow reference chains. |
+| 5. "Maintain fleet-wide visibility of referenced sources" | **Yes.** This is what the URL inventory and `skillwatch sources` do. |
+| 6. "Rescan continuously" | **Partial, and deliberately not as worded.** SkillWatch runs periodically via cron or CI. It has no daemon and no continuous mode, by design. |
+
+Mitigation 6 is worth stating plainly rather than glossing: OWASP's word is
+*continuously*, and this tool is *periodic*. An earlier version of this README
+listed the mitigations as "source inventory, content pinning, repeated
+rescanning" — that phrasing came from the compressed summary row on the project
+index, not from the AST05 page, and it silently changed OWASP's "continuous" to
+"repeated" to fit this project's own constraint. Both are corrected here.
 
 **Read that with the right weight.** The Agentic Skills Top 10 is an
 early-stage OWASP project in active development, not a flagship standard. At the
@@ -34,16 +52,32 @@ before repeating any maturity claim. An OWASP category describes a risk; it is
 not an endorsement. Nothing here is OWASP-certified, OWASP-recommended, or
 OWASP-reviewed.
 
-That document's incident timeline cites **Trail of Bits** ("The Sorry State of
-Skill Distribution") for the finding that every public skill scanner tested —
-ClawHub's VirusTotal and LLM guard model, Cisco's `skill-scanner`, the skills.sh
-scanners — was bypassed in under an hour. That finding is Trail of Bits', not
-OWASP's, and this project has not independently reproduced it. It is quoted here
-because it describes the category SkillWatch operates in, and it is why this
-README does not claim the triage catches determined attackers — see [measured
-detection rates](#measured-detection-rates). The dependable mechanism is change
-detection and the tamper-evident ledger, neither of which depends on recognising
-the payload.
+**Trail of Bits on scanner bypass, stated as the source states it.** In
+[The sorry state of skill distribution](https://blog.trailofbits.com/2026/06/03/the-sorry-state-of-skill-distribution/)
+(Samuel Judson and Tjaden Hess, 3 June 2026), Trail of Bits report bypassing
+ClawHub's malicious skill detector, Cisco's agent skill scanner, and all three
+scanners integrated into skills.sh. Their words:
+
+> "These were not advanced attacks: it took us less than an hour to conceive and
+> implement three of the four malicious skills in
+> trailofbits/overtly-malicious-skills, using standard tricks and rapid
+> inspection of the scanner source code. The fourth malicious skill took a few
+> hours, but only because the prompt injection required some trial and error."
+
+Two things that get garbled when this is repeated, including by us. The **scope**
+is the five scanners they tested, not every scanner that exists. The **hour**
+is how long it took to build three of the four attacks — not how long it took to
+bypass the scanners, and not all four attacks. OWASP's own incident timeline
+compresses this to "every public skill scanner tested … is bypassed in under an
+hour", and an earlier version of this README repeated that compression. It is
+corrected above against the primary source.
+
+This project has not reproduced Trail of Bits' work. It is cited because it
+describes the category SkillWatch operates in, and it is why this README does not
+claim the triage catches determined attackers — see [measured detection
+rates](#measured-detection-rates). The dependable mechanism is change detection
+and the tamper-evident ledger, neither of which depends on recognising the
+payload.
 
 **AST07 — Update Drift** is adjacent: it concerns version-pinning failure, where
 SkillWatch watches content changing at a stable URL. Related, not the same
@@ -121,7 +155,36 @@ SkillWatch checks for 13 suspicious patterns across three severity levels. Each 
 | Meta refresh | Warning | New `<meta http-equiv="refresh">` redirects |
 | Major deletion | Warning | More than 50% of original content removed |
 | Iframes | Warning | New `<iframe>` elements |
-| Hidden content | Info | New elements with `display:none` or `visibility:hidden` |
+| Hidden content | Info | New elements with an **inline** `style` attribute containing lower-case `display:none` or `visibility:hidden`. Narrow by design of the current implementation — see [what this check does not catch](#what-hidden_content-does-not-catch) |
+
+### What `hidden_content` does not catch
+
+This check is narrower than its name suggests, and the gap is worth stating
+because **absence of the flag is not evidence that nothing is hidden**.
+
+`_extract_hidden_texts()` inspects an element's own inline `style` attribute for
+a lower-case `display:none` or `visibility:hidden`. Measured on 2026-07-29:
+
+| Hiding technique | Flagged |
+|---|---|
+| `style="display:none"` / `display: none` | yes |
+| `style="visibility:hidden"` | yes |
+| `style="DISPLAY:NONE"` or `Display:None` | **no** — the pattern is case-sensitive |
+| A rule in a `<style>` block, e.g. `.x{display:none}` | **no** |
+| An external stylesheet | **no** |
+| `hidden` attribute, `aria-hidden` | **no** |
+| `position:absolute;left:-9999px` | **no** |
+| `opacity:0`, `font-size:0`, `height:0;overflow:hidden` | **no** |
+| `clip-path:inset(100%)`, `text-indent:-9999px` | **no** |
+
+Stylesheet-based hiding is the largest of these in practice: real pages hide
+content with a CSS class far more often than with an inline style.
+
+This is an implementation gap, not the semantic ceiling described above, and it
+is fixable. It is not fixed yet because widening the check changes detection and
+forces a full efficacy re-measure, which has to be a separate change from any
+measurement work to keep the comparison honest. Tracked in `PATTERNS.md` and
+`OPEN-ITEMS.md`.
 
 ### Measured detection rates
 

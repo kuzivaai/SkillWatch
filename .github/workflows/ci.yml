@@ -9,6 +9,27 @@ on:
 permissions:
   contents: read
 
+# Why every job that runs pytest sets PYTHONDONTWRITEBYTECODE=1.
+#
+# CPython decides whether a cached .pyc is still valid by comparing the source
+# file's mtime and size against the header it wrote into the cache. Both must
+# match. mtime is stored at whole-second granularity, so two edits of a source
+# file within the same second that leave the size unchanged are indistinguishable
+# from no edit at all, and the stale bytecode is reused.
+#
+# That is not hypothetical here. A previous session changed a single digit in a
+# test (identical size), re-ran within the same second, and read a passing result
+# produced by the pre-change bytecode. The apparent conclusion — that the fix was
+# unnecessary — was wrong.
+#
+# Deleting __pycache__ before each run fixes it on one machine and only for as
+# long as someone remembers. Setting this variable removes the cache from the
+# equation entirely: no .pyc is written, so none can go stale. The cost is a few
+# hundred milliseconds of re-compilation per run, which is not worth one more
+# false result.
+env:
+  PYTHONDONTWRITEBYTECODE: "1"
+
 jobs:
   test:
     runs-on: ubuntu-latest

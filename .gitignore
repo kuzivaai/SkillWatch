@@ -13,7 +13,9 @@ htmlcov/
 # Research docs (not part of the tool)
 PREMISE.md
 PMF-ASSESSMENT.md
-COMPETITORS.md
+# COMPETITORS.md was ignored here until 2026-07-29. It is now tracked and public
+# at docs/COMPETITORS.md, purged of uniqueness claims. An untracked input to
+# launch copy is an unverified claim with a clear path to a public surface.
 DISTRIBUTION.md
 ECONOMICS.md
 
