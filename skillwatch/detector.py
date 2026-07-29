@@ -622,31 +622,74 @@ class _Concealment(enum.Enum):
         return self is _Concealment.CONCEALED
 
 
+# Bucket assignment for every hiding technique this project has considered.
+#
+# THIS TABLE IS THE SINGLE SOURCE OF TRUTH IN CODE. It is specified by
+# docs/HIDING-TECHNIQUE-TAXONOMY.md, and tests/test_hiding_taxonomy.py asserts
+# that this dict and that document agree — so an assignment cannot be changed in
+# one place and left stale in the other, which is how the two drifted before.
+#
+#   "a" — flagged. Conceals content from a human while leaving it in the ingested
+#         text, AND is rare enough on ordinary pages to be a signal rather than a
+#         false-positive generator.
+#   "b" — NOT flagged. Conceals, but its measured base rate on real pages, or its
+#         status as a canonical accessibility idiom, makes flagging it fire on
+#         correct behaviour rather than on attacks.
+#   "c" — NOT flagged. The inverse of the threat: hidden from assistive technology
+#         while visually present to a human.
+#
+# The second half of the "a" criterion is new as of 2026-07-29. The taxonomy
+# previously classified on concealment alone, which cannot distinguish a detection
+# from a false-positive generator. See docs/HIDING-TECHNIQUE-TAXONOMY.md for the
+# measured base rates and the per-technique derivation.
+TECHNIQUE_BUCKETS: dict[str, str] = {
+    "display:none": "a",
+    "visibility:hidden": "a",
+    "opacity:0": "a",
+    "font-size:0": "a",
+    "zero-box-clipped": "a",
+    # Moved to (b) 2026-07-29 on measured evidence. WebAIM calls
+    # `position:absolute; left:-10000px` "the recommended styles for visually
+    # hiding content that will be read by a screen reader" — so flagging it fires
+    # on the correct implementation of .sr-only. Costs corpus item E-24.
+    "offscreen-position": "b",
+    # Moved to (b) 2026-07-29: 111/201 real pages (55.2%), 1534 occurrences. It is
+    # the platform's UI-state primitive (tab panels, dialogs, hidden form fields),
+    # not a concealment technique. Costs corpus item E-31; clears the B-35 FP.
+    "html-hidden-attr": "b",
+    "clip-path-inset": "b",
+    "text-indent-negative": "b",
+    "aria-hidden": "c",
+}
+
 # Declarations that conceal content from a human reader while leaving the text in
 # the DOM for an agent to ingest. Values are matched case-insensitively because CSS
 # property names and keyword values are case-insensitive — treating DISPLAY:NONE as
 # different from display:none was a bug, not a scope decision.
 #
-# Bucket (b) idioms (clip-path:inset(100%), text-indent:-9999px) are deliberately
-# ABSENT: they are the canonical .sr-only implementations and flagging them spends
-# the benign false-positive budget on correct behaviour. Bucket (c) aria-hidden is
-# absent because it hides from assistive technology while leaving content visually
-# present, which is the inverse of this threat.
-#
-# See docs/HIDING-TECHNIQUE-TAXONOMY.md for the classification and its reasoning.
-_CONCEALING_DECLARATIONS: tuple[tuple[str, re.Pattern[str]], ...] = (
-    ("display", re.compile(r"^none$", re.IGNORECASE)),
-    ("visibility", re.compile(r"^(hidden|collapse)$", re.IGNORECASE)),
-    ("opacity", re.compile(r"^0(\.0+)?$")),
-    ("font-size", re.compile(r"^0(\.0+)?(px|pt|em|rem|%)?$", re.IGNORECASE)),
+# Each entry carries its technique identifier; only entries whose bucket is "a" are
+# consulted. Techniques in buckets "b" and "c" are absent from the active set by
+# that filter rather than by being silently omitted from this tuple, so the reason
+# a technique is not flagged is visible in TECHNIQUE_BUCKETS rather than implied by
+# an absence a reader has to notice.
+_DECLARATION_TECHNIQUES: tuple[tuple[str, str, re.Pattern[str]], ...] = (
+    ("display:none", "display", re.compile(r"^none$", re.IGNORECASE)),
+    ("visibility:hidden", "visibility", re.compile(r"^(hidden|collapse)$", re.IGNORECASE)),
+    ("opacity:0", "opacity", re.compile(r"^0(\.0+)?$")),
+    ("font-size:0", "font-size", re.compile(r"^0(\.0+)?(px|pt|em|rem|%)?$", re.IGNORECASE)),
     # Off-screen positioning: a large negative offset. Requires positioning too,
     # checked by the caller, because left:-9999px on a static element does nothing.
-    ("left", re.compile(r"^-\d{4,}(px|pt|em|rem)?$", re.IGNORECASE)),
-    ("top", re.compile(r"^-\d{4,}(px|pt|em|rem)?$", re.IGNORECASE)),
+    ("offscreen-position", "left", re.compile(r"^-\d{4,}(px|pt|em|rem)?$", re.IGNORECASE)),
+    ("offscreen-position", "top", re.compile(r"^-\d{4,}(px|pt|em|rem)?$", re.IGNORECASE)),
     # Collapsed box. Only concealing when overflow clips, checked by the caller.
-    ("height", re.compile(r"^0(px|pt|em|rem|%)?$", re.IGNORECASE)),
-    ("width", re.compile(r"^0(px|pt|em|rem|%)?$", re.IGNORECASE)),
+    ("zero-box-clipped", "height", re.compile(r"^0(px|pt|em|rem|%)?$", re.IGNORECASE)),
+    ("zero-box-clipped", "width", re.compile(r"^0(px|pt|em|rem|%)?$", re.IGNORECASE)),
 )
+
+
+def _is_flagged(technique: str) -> bool:
+    """Is this technique in the flagged bucket? The table is the only authority."""
+    return TECHNIQUE_BUCKETS.get(technique) == "a"
 
 _DECLARATION_RE = re.compile(r"^\s*([-a-zA-Z]+)\s*:\s*(.+?)\s*$")
 
@@ -679,7 +722,9 @@ def _assess_declarations(declarations: dict[str, str], fully_parsed: bool) -> _C
     positioned = declarations.get("position", "").lower() in {"absolute", "fixed"}
     overflow_clips = declarations.get("overflow", "").lower() in {"hidden", "clip"}
 
-    for prop, value_re in _CONCEALING_DECLARATIONS:
+    for technique, prop, value_re in _DECLARATION_TECHNIQUES:
+        if not _is_flagged(technique):
+            continue  # bucket (b) or (c) — see TECHNIQUE_BUCKETS
         value = declarations.get(prop)
         if value is None or not value_re.match(value):
             continue
@@ -766,8 +811,9 @@ def _extract_hidden_texts(soup: BeautifulSoup) -> set[str]:
             result.add(text)
 
     # 1. The HTML hidden attribute — the platform's own "not relevant" primitive.
-    for elem in soup.find_all(hidden=True):
-        add(elem)
+    if _is_flagged("html-hidden-attr"):
+        for elem in soup.find_all(hidden=True):
+            add(elem)
 
     # 2. Inline style attributes.
     for elem in soup.find_all(style=True):
