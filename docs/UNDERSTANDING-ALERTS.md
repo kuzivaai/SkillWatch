@@ -53,7 +53,7 @@ Each alert has a **severity**:
 
 | Flag | What it means | What to do |
 |---|---|---|
-| `hidden_content` | The page added text that is hidden from view but still readable by software. | Read the hidden text in the diff; hiding it is itself a signal. |
+| `hidden_content` | The page added text hidden with an inline `style="display:none"` or `style="visibility:hidden"`. | Read the hidden text in the diff; hiding it is itself a signal. **Absence of this flag does not mean nothing is hidden** — the check only reads inline lower-case styles, so text hidden via a stylesheet, an upper-case declaration, off-screen positioning, `opacity:0` or the HTML `hidden` attribute will not raise it. |
 
 ## If you are still unsure
 

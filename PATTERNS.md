@@ -17,7 +17,7 @@ All patterns are regex-based heuristics. None provide guaranteed detection.
 | 8 | `unicode_homoglyph` | warning | Unicode Consortium | 2026-06-26 | Characters from non-Latin scripts (Cyrillic, Greek, Cherokee, Armenian, Coptic, Myanmar, Georgian, Ethiopic, Osage, Lisu) that visually imitate Latin letters. Uses confusable_homoglyphs library. |
 | 9 | `data_uri_payload` | warning | v0.2.0 | 2026-06-26 | data: URIs with text/html or application/javascript content type in added text. |
 | 10 | `iframe_detected` | warning | v0.2.0 | 2026-06-26 | New `<iframe>` elements in HTML. Diff-based. |
-| 11 | `hidden_content` | info | v0.2.0 | 2026-06-26 | New elements with display:none or visibility:hidden containing text. Diff-based. |
+| 11 | `hidden_content` | info | v0.2.0 | 2026-06-26 | New elements whose **inline `style` attribute** matches lower-case `display:\s*none` or `visibility:\s*hidden`, containing text. Diff-based. Does not see `<style>` blocks, external stylesheets, upper-case declarations, the HTML `hidden` attribute, or any other hiding technique — see the known-gaps table. |
 | 12 | `meta_refresh_redirect` | warning | v0.2.0 | 2026-06-26 | New `<meta http-equiv="refresh">` redirect. Diff-based. |
 | 13 | `data_uri_embed` | critical | v0.2.0 | 2026-06-26 | New iframe/embed/object with data: URI source. Diff-based. |
 
@@ -146,7 +146,7 @@ modified this cycle. Two items are carried forward:
 | Carried forward | Detail |
 |---|---|
 | ATR refresh | Adopt upstream changes through v3.5.11, then re-measure. |
-| `hidden_content` is narrower than documented | `_extract_hidden_texts()` (`detector.py:605`) matches only `display:none` and `visibility:hidden`. Corpus item `E-24` hides text with `position:absolute;left:-9999px` and is missed. Off-screen positioning, `clip-path`, `opacity:0`, `font-size:0` and `height:0` are all unhandled. This is a narrow implementation gap, not the semantic ceiling, and is fixable. |
+| `hidden_content` coverage is narrow (**code gap — still open**) | `_extract_hidden_texts()` (`detector.py:602`) calls `soup.find_all(style=re.compile(r"display:\s*none|visibility:\s*hidden"))`. Measured behaviour, 2026-07-29: **detected** — inline `display:none`, `display: none`, `visibility:hidden`. **Not detected** — upper- or mixed-case declarations (`DISPLAY:NONE`, `Display:None`; the regex carries no `re.IGNORECASE`), rules in a `<style>` block, external stylesheets, the HTML `hidden` attribute, `aria-hidden`, `position:absolute;left:-9999px` (corpus item `E-24`), `opacity:0`, `font-size:0`, `height:0;overflow:hidden`, `clip-path:inset(100%)`, `text-indent:-9999px`. The documentation half of this was closed on 2026-07-29 — every surface now describes the implementation accurately. **The code gap remains open**: fixing it changes detection and forces an efficacy re-run, which must be a separate commit from any measurement change. |
 
 ## Changelog
 
