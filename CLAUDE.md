@@ -118,6 +118,32 @@ two distortions, one public surface.
 `tests/test_published_claims.py` enforces the mechanical half of this: a cited
 finding on a public surface must be accompanied by a source URL.
 
+### The 2026-07-29 real-page capture lives outside the repository
+
+`analysis/corpus/realpage/DELTA-BASELINE.json` was derived from 56.2 MB of raw HTML
+captured on 2026-07-29. That HTML is **not committed** and is **not in /tmp** — it is
+preserved at:
+
+```
+/home/mkuziva/.skillwatch-archive/realpage-2026-07-29/fetched_pages.json
+```
+
+`analysis/run_delta_pass.py --rehearse --source capture` and
+`analysis/make_baseline.py --source <path>` both depend on it. Its integrity manifest
+— per-page hashes for all 201 pages — is committed at
+`analysis/corpus/realpage/CAPTURE-INTEGRITY.json`, so a copy can be verified without
+the original.
+
+**Why it matters that this survives.** Two things become impossible without it:
+re-verifying the baseline's derivation, and rehearsing against a source that
+exercises the **text** checks. The committed `html_v1` corpus runs only the five HTML
+checks, which is exactly why a corpus-only rehearsal could not see the
+`old_text=None` defect that disabled `new_domains` and `major_deletion`.
+
+If you are hunting for it in a scratchpad, note the path is **four** levels deep
+(`/tmp/claude-*/<project>/<session>/scratchpad`). A three-level glob finds nothing
+and makes a present file look lost.
+
 ### Figures are claims too
 
 `scripts/claim_rules.py` checks **citations**. `scripts/figure_rules.py` checks
