@@ -33,7 +33,7 @@ python3 analysis/measure_efficacy.py
 
 | # | Condition | Status | Basis |
 |---|-----------|--------|-------|
-| 1 | Evasive recall ≥50% **or** documentation makes unmissable that the triage is decorative | **PASS via the documentation route** | Recall route fails: 11/25 (44.0%, CI [26.7%, 62.9%]). The README states plainly that the triage is decorative against *semantic* evasion (2/13), while noting it catches mechanical obfuscation 7/7. |
+| 1 | Evasive recall ≥50% **or** documentation makes unmissable that the triage is decorative | **PASS via the documentation route** | Recall route fails: 11/25 (44.0%, CI [26.7%, 62.9%]). The README states plainly that the triage is decorative against *semantic* evasion (3/13) and structural evasion (0/3), while noting it catches mechanical obfuscation 7/7 and non-English 1/2. Families sum to 11/25. |
 | 2 | Precision ≥75% | **NOT DEMONSTRATED** | 21/25 (84.0%, CI [65.3%, 93.6%]). Point clears 75%; lower bound does not. |
 | 3 | Named maintenance owner and pattern update cadence | **PASS, with an overdue review** | `MAINTENANCE.md` names the owner and a quarterly cadence. The July 2026 review was outstanding and is recorded in `PATTERNS.md`. |
 | 4 | ≥1 independent, non-conflicted evidence source for the premise | **PASS** | arXiv 2605.05274 (SIGIL), abstract checked against the primary source and quoted below. A preprint, not peer-reviewed. The previously cited arXiv 2508.12538 is an offensive toolkit and is retired. |
