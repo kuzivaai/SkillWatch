@@ -114,10 +114,37 @@ def _run_detector(item: dict) -> dict:
         "id": item["id"],
         "true_label": item["label"],
         "subset": item["subset"],
+        "family": item.get("family", "unclassified"),
         "detected": detected,
         "flag_codes": flag_codes,
         "verdict": "flagged" if detected else "clean",
     }
+
+
+def _print_family_breakdown(adv_b_results: list[dict]) -> None:
+    """Break evasive recall down by attack family.
+
+    A single evasive-recall percentage hides the only thing that matters about
+    it: the tool is reliable against payloads that leave a mechanical trace and
+    near useless against payloads that are simply plain, hostile English. Reporting
+    the aggregate alone has twice led to a headline that was wrong — first too
+    flattering, then too harsh. The counts below must sum to the totals above.
+    """
+    if not adv_b_results:
+        return
+    families: dict[str, list[dict]] = {}
+    for result in adv_b_results:
+        families.setdefault(result["family"], []).append(result)
+
+    print("\n  Evasive recall by attack family (sums to the totals above):")
+    caught_sum = items_sum = 0
+    for family in sorted(families, key=lambda f: -len(families[f])):
+        group = families[family]
+        caught = sum(1 for r in group if r["detected"])
+        caught_sum += caught
+        items_sum += len(group)
+        print(f"    {family:12} {fmt_prop(caught, len(group))}")
+    print(f"    {'TOTAL':12} {caught_sum}/{items_sum}")
 
 
 def _print_corpus_report(label: str, items: list[dict]) -> dict:
@@ -201,6 +228,7 @@ def _print_corpus_report(label: str, items: list[dict]) -> dict:
     else:
         print(f"Evasive recall: {fmt_prop(evasive_detected, evasive_total)}")
         print(f"  gate >=50%:   {gate_verdict(evasive_detected, evasive_total, 0.50)}")
+        _print_family_breakdown(adv_b_results)
 
     if fp_by_code:
         print("\nFP breakdown by flag code:")
