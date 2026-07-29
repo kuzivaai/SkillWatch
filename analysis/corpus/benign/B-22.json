@@ -1,0 +1,8 @@
+{
+  "id": "B-22",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: performance note",
+  "old": "The tool processes files.",
+  "new": "The tool processes files. On a typical machine, expect 50 files per second."
+}

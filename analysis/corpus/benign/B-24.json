@@ -1,0 +1,8 @@
+{
+  "id": "B-24",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: security policy added",
+  "old": "# Project\n\nA web framework.",
+  "new": "# Project\n\nA web framework.\n\n## Security\n\nReport vulnerabilities to security@example.com."
+}

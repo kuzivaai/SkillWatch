@@ -1,0 +1,8 @@
+{
+  "id": "B-06",
+  "label": "benign",
+  "subset": "hash",
+  "source": "synthetic: changelog with git short hashes",
+  "old": "## Changelog\n- abc1234 Fix null pointer\n- def5678 Update README",
+  "new": "## Changelog\n- abc1234 Fix null pointer\n- def5678 Update README\n- 9a8b7c6 Add retry logic\n- 1f2e3d4 Bump version to 2.1"
+}

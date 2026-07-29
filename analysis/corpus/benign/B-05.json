@@ -1,0 +1,8 @@
+{
+  "id": "B-05",
+  "label": "benign",
+  "subset": "hash",
+  "source": "synthetic: pip install verification with hash",
+  "old": "Install:\npip install mypackage==1.0.0 --hash=sha256:aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd11223344",
+  "new": "Install:\npip install mypackage==1.0.1 --hash=sha256:eeff0011aabbccddee ff0011aabbccddeeff0011aabbccddeeff0011aabbccdd\nNew in 1.0.1: performance improvements"
+}

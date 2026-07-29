@@ -1,0 +1,8 @@
+{
+  "id": "B-31",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: env var docs",
+  "old": "Configuration is via config.yaml.",
+  "new": "Configuration is via config.yaml or environment variables:\n\n- APP_PORT: listening port (default 8080)\n- APP_LOG_LEVEL: debug, info, warn, error"
+}

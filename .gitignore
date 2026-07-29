@@ -17,13 +17,24 @@ COMPETITORS.md
 DISTRIBUTION.md
 ECONOMICS.md
 
-# Audit scaffolding (internal analysis, not part of the tool)
-analysis/
+# Audit scaffolding (internal analysis, not part of the tool).
+# `analysis/*` rather than `analysis/`: git cannot re-include a path whose parent
+# directory is excluded, and the two entries below must be re-includable.
+analysis/*
+# The labelled corpora and the measurement harness are the evidence behind the
+# efficacy figures published in the README and SHIP-READINESS.md. A reader who
+# cannot inspect the corpus cannot check the claim, so these are tracked. Until
+# 2026-07-29 only holdout_v2 and html_v1 were committed (via force-add) and the
+# 67 items behind the headline figures were not, which made those figures
+# unreproducible from a clean clone.
+!analysis/corpus/
+!analysis/measure_efficacy.py
 DOSSIER_*.md
 SECURITY_APPENDIX_*.md
 DECISION.md
 AUDIT-REPORT.md
 .handover.md
+.moat-handover.md
 
 # Generated overview docs with local filesystem paths
 docs/skillwatch-overview.js

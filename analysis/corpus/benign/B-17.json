@@ -1,0 +1,8 @@
+{
+  "id": "B-17",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: example code updated",
+  "old": "```python\nresult = process(data)\n```",
+  "new": "```python\nresult = process(data, validate=True)\n```"
+}

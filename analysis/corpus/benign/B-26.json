@@ -1,0 +1,8 @@
+{
+  "id": "B-26",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: architecture diagram added",
+  "old": "# Architecture\n\nThe system has three components.",
+  "new": "# Architecture\n\nThe system has three components.\n\nClient -> API Gateway -> Database"
+}

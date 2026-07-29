@@ -1,0 +1,8 @@
+{
+  "id": "B-14",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: contributor added",
+  "old": "Contributors: Alice, Bob",
+  "new": "Contributors: Alice, Bob, Carol"
+}

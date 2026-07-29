@@ -6,6 +6,7 @@ Computes FP/FN rates, precision, recall.
 """
 
 import json
+import math
 import os
 import sys
 
@@ -16,6 +17,58 @@ from skillwatch.detector import detect_suspicious_changes
 from skillwatch.differ import generate_diff
 
 CORPUS_DIR = os.path.join(os.path.dirname(__file__), "corpus")
+
+# 95% two-sided normal quantile, for Wilson score intervals.
+Z_95 = 1.959963984540054
+
+
+def wilson_interval(k: int, n: int, z: float = Z_95) -> tuple[float, float]:
+    """95% Wilson score interval for a binomial proportion k/n.
+
+    Wilson rather than the normal approximation because these corpora are small
+    (n=10 to n=32) and several proportions sit near 0 or 1, where the normal
+    approximation produces intervals that run outside [0, 1] and understate
+    uncertainty. Wilson is stable from about n=10 and is the standard
+    recommendation for this regime; Clopper-Pearson is needlessly conservative.
+
+    Returns (0.0, 1.0) for n == 0 — no data means no information, not certainty.
+    """
+    if n == 0:
+        return (0.0, 1.0)
+    p = k / n
+    denominator = 1 + z**2 / n
+    centre = (p + z**2 / (2 * n)) / denominator
+    margin = (z / denominator) * math.sqrt(p * (1 - p) / n + z**2 / (4 * n**2))
+    return (max(0.0, centre - margin), min(1.0, centre + margin))
+
+
+def fmt_prop(k: int, n: int) -> str:
+    """Format a proportion as `k/n (point, 95% CI [lo, hi])`.
+
+    One decimal place at most: at n < 100 a second decimal is false precision.
+    """
+    if n == 0:
+        return "0/0 (no data)"
+    low, high = wilson_interval(k, n)
+    return f"{k}/{n} ({k / n:.1%}, 95% CI [{low:.1%}, {high:.1%}])"
+
+
+def gate_verdict(k: int, n: int, threshold: float) -> str:
+    """Evaluate a gate on the CI lower bound, not the point estimate.
+
+    A point estimate that clears a threshold on n=10 tells you almost nothing:
+    5/10 clears a 50% gate exactly while its interval spans [23.7%, 76.3%]. The
+    honest question is whether the data *demonstrates* the threshold is met.
+    """
+    if n == 0:
+        return "NOT DEMONSTRATED (no data)"
+    low, _ = wilson_interval(k, n)
+    if low >= threshold:
+        return f"DEMONSTRATED (lower bound {low:.1%} >= {threshold:.0%})"
+    point = k / n
+    if point >= threshold:
+        return f"NOT DEMONSTRATED (point {point:.1%} clears {threshold:.0%}, lower bound {low:.1%} does not)"
+    return f"NOT DEMONSTRATED (point {point:.1%} below {threshold:.0%})"
 
 
 def _make_diff(old_text: str, new_text: str) -> str:
@@ -121,17 +174,33 @@ def _print_corpus_report(label: str, items: list[dict]) -> dict:
     print(f"        {len(adv_a_results)} adversarial A (pattern-matching)")
     print(f"        {len(adv_b_results)} adversarial B (evasive)")
     print(f"\nTP: {true_positives}  FP: {false_positives}  TN: {true_negatives}  FN: {false_negatives}")
-    print(f"\nFalse-positive rate (overall):  {fp_benign}/{len(benign_results)} = {fp_rate_overall:.1%}")
+    print(f"\nFalse-positive rate (overall):  {fmt_prop(fp_benign, len(benign_results))}")
     if benign_hash:
-        print(f"False-positive rate (hash):     {fp_hash}/{len(benign_hash)} = {fp_rate_hash:.1%}")
+        print(f"False-positive rate (hash):     {fmt_prop(fp_hash, len(benign_hash))}")
     if benign_standard:
-        print(f"False-positive rate (standard): {fp_standard}/{len(benign_standard)} = {fp_rate_standard:.1%}")
+        print(f"False-positive rate (standard): {fmt_prop(fp_standard, len(benign_standard))}")
     if adv_a_results:
-        print(f"\nFalse-negative rate (subset A): {fn_a}/{len(adv_a_results)} = {fn_rate_a:.1%}")
-    print(f"False-negative rate (subset B): {fn_b}/{len(adv_b_results)} = {fn_rate_b:.1%}")
-    print(f"\nPrecision: {precision:.1%}")
-    print(f"Recall:    {recall:.1%}")
-    print(f"Evasive recall: {evasive_detected}/{evasive_total} = {evasive_recall:.1%}")
+        print(f"\nFalse-negative rate (subset A): {fmt_prop(fn_a, len(adv_a_results))}")
+    print(f"False-negative rate (subset B): {fmt_prop(fn_b, len(adv_b_results))}")
+
+    malicious_total = true_positives + false_negatives
+    print(f"\nPrecision:      {fmt_prop(true_positives, true_positives + false_positives)}")
+    print(f"  gate >=75%:   {gate_verdict(true_positives, true_positives + false_positives, 0.75)}")
+    print(f"Overall recall: {fmt_prop(true_positives, malicious_total)}")
+    print(f"  gate >=70%:   {gate_verdict(true_positives, malicious_total, 0.70)}")
+
+    # If every malicious item is evasive, overall recall and evasive recall are the
+    # same measurement over the same items. Reporting both as independent results
+    # would overstate the evidence, so say so rather than print the figure twice.
+    if adv_b_results and not adv_a_results:
+        print(
+            f"Evasive recall: identical to overall recall above — every malicious item\n"
+            f"                in this corpus is subset B (evasive), n={evasive_total}.\n"
+            f"                These are not two independent results."
+        )
+    else:
+        print(f"Evasive recall: {fmt_prop(evasive_detected, evasive_total)}")
+        print(f"  gate >=50%:   {gate_verdict(evasive_detected, evasive_total, 0.50)}")
 
     if fp_by_code:
         print("\nFP breakdown by flag code:")
