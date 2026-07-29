@@ -42,6 +42,15 @@ analysis/*
 # command OPEN-ITEMS.md tells a later session to run, and a scheduled
 # measurement whose runner lives on one machine is not scheduled at all.
 !analysis/run_delta_pass.py
+# The baseline generator, tracked 2026-07-29. It produced DELTA-BASELINE.json,
+# which is committed evidence the scheduled delta pass reads. An untracked
+# generator of a committed artefact is the shape of items 24 and 34.
+!analysis/make_baseline.py
+# DELTA-REHEARSAL.json is deliberately NOT re-included. It is a zero-change
+# delta produced by feeding one snapshot in as both sides, so it is not a
+# measurement. Committing it would put a figure in the repository that a
+# reader could mistake for one. It stays local, and `analysis/*` above
+# already excludes it — recorded here so the exclusion is a decision.
 DOSSIER_*.md
 SECURITY_APPENDIX_*.md
 DECISION.md

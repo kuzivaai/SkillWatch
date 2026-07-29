@@ -57,10 +57,23 @@ class TestTheBaselineIsSufficient:
         assert not missing, f"{len(missing)} manifest URLs have no delta baseline"
 
     def test_every_page_carries_every_set_the_detector_diffs(self, baseline):
-        required = {"text_lines", "hidden_texts", "script_contents",
+        # `text` replaced `text_lines` on 2026-07-29. Line hashes left `old_text`
+        # falsy, and detector.py guards new_domains (line 401) and major_deletion
+        # (line 414) behind `if old_text:` — so neither could ever fire. Storing the
+        # text lets detect_suspicious_changes be called exactly as cli.py calls it.
+        required = {"text", "hidden_texts", "script_contents",
                     "iframe_srcs", "meta_refreshes", "data_uri_sources"}
         for url, state in baseline["items"].items():
             assert required <= set(state), f"{url} missing {required - set(state)}"
+
+    def test_the_stored_text_is_not_hashes(self, baseline):
+        # A regression guard: reverting to hashes silently disables two checks.
+        for url, state in list(baseline["items"].items())[:20]:
+            assert isinstance(state["text"], str), url
+        assert "text_lines" not in next(iter(baseline["items"].values())), (
+            "text_lines is the superseded form; storing it again would re-disable "
+            "new_domains and major_deletion"
+        )
 
     def test_reconstruction_was_verified_against_the_stored_hashes(self, baseline):
         # The baseline was rebuilt offline from the 2026-07-29 HTML. If the
