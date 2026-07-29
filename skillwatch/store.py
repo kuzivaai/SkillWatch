@@ -82,6 +82,20 @@ CREATE TABLE IF NOT EXISTS anchors (
 
 CREATE INDEX IF NOT EXISTS idx_snapshots_url ON snapshots(url_id, fetched_at DESC);
 CREATE INDEX IF NOT EXISTS idx_alerts_url ON alerts(url_id, detected_at DESC);
+
+-- Per-machine false-positive adaptation. Records the user's dismiss/confirm
+-- decisions on alert flags so a flag repeatedly dismissed for a URL can be shown
+-- as "previously dismissed" on future alerts. Local only; never leaves the
+-- machine; the alert itself is never deleted, only its display priority lowered.
+CREATE TABLE IF NOT EXISTS flag_feedback (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    url_id INTEGER NOT NULL REFERENCES urls(id),
+    flag_code TEXT NOT NULL,
+    content_fp TEXT NOT NULL DEFAULT '',
+    decision TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_feedback_url ON flag_feedback(url_id, flag_code);
 """
 
 
@@ -134,6 +148,7 @@ class Store:
             return False
         url_id = row["id"]
         with self._conn:
+            self._conn.execute("DELETE FROM flag_feedback WHERE url_id = ?", (url_id,))
             self._conn.execute("DELETE FROM alerts WHERE url_id = ?", (url_id,))
             self._conn.execute("DELETE FROM snapshots WHERE url_id = ?", (url_id,))
             self._conn.execute("DELETE FROM urls WHERE id = ?", (url_id,))
@@ -387,6 +402,58 @@ class Store:
         if d.get("flags"):
             d["flags"] = json.loads(d["flags"])
         return d
+
+    # --- Flag feedback (local false-positive adaptation) ---
+
+    def record_flag_feedback(
+        self, url_id: int, flag_code: str, decision: str, content_fp: str = ""
+    ) -> None:
+        """Record a 'dismissed' or 'confirmed' decision for a flag on a URL."""
+        if decision not in ("dismissed", "confirmed"):
+            raise ValueError(f"decision must be 'dismissed' or 'confirmed', got {decision!r}")
+        self._conn.execute(
+            "INSERT INTO flag_feedback (url_id, flag_code, content_fp, decision) "
+            "VALUES (?, ?, ?, ?)",
+            (url_id, flag_code, content_fp, decision),
+        )
+        self._conn.commit()
+
+    def demoted_flags(self, url_id: int, threshold: int = 2) -> set[str]:
+        """Flag codes for this URL dismissed >= threshold times and never confirmed.
+
+        Aggregated per (url_id, flag_code): a confirm anywhere cancels demotion.
+        content_fp is retained per row for audit but does not gate this decision,
+        since a recurring benign change produces a different diff each time.
+        """
+        rows = self._conn.execute(
+            "SELECT flag_code, "
+            "SUM(CASE WHEN decision = 'dismissed' THEN 1 ELSE 0 END) AS dismissed, "
+            "SUM(CASE WHEN decision = 'confirmed' THEN 1 ELSE 0 END) AS confirmed "
+            "FROM flag_feedback WHERE url_id = ? GROUP BY flag_code",
+            (url_id,),
+        ).fetchall()
+        return {
+            str(r["flag_code"])
+            for r in rows
+            if int(r["dismissed"]) >= threshold and int(r["confirmed"]) == 0
+        }
+
+    def list_flag_feedback(self) -> list[dict]:
+        """Summarise recorded feedback, grouped by URL, flag, and decision."""
+        rows = self._conn.execute(
+            "SELECT u.url AS url, f.flag_code AS flag_code, f.decision AS decision, "
+            "COUNT(*) AS n, MAX(f.created_at) AS last_at "
+            "FROM flag_feedback f JOIN urls u ON f.url_id = u.id "
+            "GROUP BY f.url_id, f.flag_code, f.decision "
+            "ORDER BY u.url, f.flag_code, f.decision"
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def reset_flag_feedback(self) -> int:
+        """Delete all recorded feedback. Returns the number of rows removed."""
+        with self._conn:
+            cur = self._conn.execute("DELETE FROM flag_feedback")
+        return cur.rowcount
 
     # --- Sources (definition drift) ---
 

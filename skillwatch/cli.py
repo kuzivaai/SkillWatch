@@ -1,6 +1,7 @@
 """SkillWatch CLI — periodic URL content monitoring for AI skills."""
 
 import argparse
+import hashlib
 import json as json_mod
 import sys
 import time
@@ -8,6 +9,7 @@ import time
 from pathlib import Path
 
 from . import __version__, anchoring
+from .cloak import PERSONAS, check_url
 from .detector import detect_suspicious_changes, max_severity
 from .differ import content_changed, generate_diff
 from .fetcher import DEFAULT_USER_AGENT, fetch_url, strip_escape_sequences
@@ -59,6 +61,11 @@ Docs: https://github.com/kuzivaai/SkillWatch
 def _safe(url: str) -> str:
     """Strip escape sequences from a URL before printing to terminal."""
     return strip_escape_sequences(url)
+
+
+def _content_fp(text: str) -> str:
+    """Short fingerprint of an alert's diff, stored with feedback for audit."""
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16] if text else ""
 
 
 def _add_db_arg(p: argparse.ArgumentParser) -> None:
@@ -150,7 +157,23 @@ def main(argv: list[str] | None = None) -> int:
     alert_p = sub.add_parser("alert", help="Show alert details")
     alert_p.add_argument("id", type=int, help="Alert ID")
     alert_p.add_argument("--review", action="store_true", help="Mark as reviewed")
+    _fb_group = alert_p.add_mutually_exclusive_group()
+    _fb_group.add_argument(
+        "--dismiss", action="store_true",
+        help="Record this alert's flags as a false alarm (quietens them for this URL)",
+    )
+    _fb_group.add_argument(
+        "--confirm", action="store_true",
+        help="Record this alert's flags as real (cancels any quietening for this URL)",
+    )
     _add_db_arg(alert_p)
+
+    # feedback
+    feedback_p = sub.add_parser(
+        "feedback", help="Show or reset the false-alarm decisions you've recorded"
+    )
+    feedback_p.add_argument("--reset", action="store_true", help="Delete all recorded feedback")
+    _add_db_arg(feedback_p)
 
     # verify
     verify_p = sub.add_parser(
@@ -196,12 +219,22 @@ def main(argv: list[str] | None = None) -> int:
     )
     _add_db_arg(anchor_p)
 
+    # cloak (stateless — no database needed)
+    cloak_p = sub.add_parser(
+        "cloak",
+        help="Check if a URL serves different content to different clients (UA-based)",
+    )
+    cloak_p.add_argument("url", help="URL to check")
+
     args = parser.parse_args(argv)
 
     if not args.command:
         parser.print_help()
         print(dim("\n  Get started: skillwatch add <SKILL.md>  then  skillwatch scan"))
         return 0
+
+    if args.command == "cloak":
+        return _cmd_cloak(args)
 
     store = Store(db_path=args.db)
 
@@ -226,6 +259,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_alerts(store, args)
         elif args.command == "alert":
             return _cmd_alert(store, args)
+        elif args.command == "feedback":
+            return _cmd_feedback(store, args)
         elif args.command == "verify":
             return _cmd_verify(store, args)
         elif args.command == "ledger":
@@ -237,6 +272,27 @@ def main(argv: list[str] | None = None) -> int:
             return 0
     finally:
         store.close()
+
+
+def _cmd_cloak(args: argparse.Namespace) -> int:
+    """Check whether a URL serves different content to different clients."""
+    result = check_url(args.url)
+    if not result.comparable:
+        print(yellow(
+            f"Could not compare {_safe(args.url)} "
+            f"(only {len(result.ok_personas)} of {len(PERSONAS)} fetches succeeded)"
+        ))
+        return 2
+    if result.varies:
+        print(red(f"Content varies by client for {_safe(args.url)}"))
+        for content_hash, personas in result.groups.items():
+            print(f"  {content_hash[:12]}  {', '.join(personas)}")
+        print(dim(f"  lowest pairwise similarity: {result.min_similarity}"))
+        return 1
+    print(green(
+        f"Same content for all {len(result.ok_personas)} clients: {_safe(args.url)}"
+    ))
+    return 0
 
 
 def _cmd_add(store: Store, args: argparse.Namespace) -> int:
@@ -409,6 +465,7 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
 
         severity = max_severity(flags)
         flag_codes = [f.code for f in flags]
+        demoted = store.demoted_flags(url_id)
 
         store.add_alert(
             url_id,
@@ -428,7 +485,7 @@ def _cmd_scan(store: Store, args: argparse.Namespace) -> int:
                           for f in flags],
             })
         else:
-            print(format_scan_result(url, True, flags, progress=prog))
+            print(format_scan_result(url, True, flags, progress=prog, demoted_flags=demoted))
 
     if sarif_out:
         changed_results = [r for r in json_results if r.get("status") == "changed"]
@@ -556,7 +613,9 @@ def _cmd_alerts(store: Store, args: argparse.Namespace) -> int:
         severity = a.get("severity", "info")
         icon = severity_icon(severity)
         flags = a.get("flags", [])
-        flag_str = ", ".join(flags) if isinstance(flags, list) else str(flags)
+        flags = flags if isinstance(flags, list) else []
+        demoted = store.demoted_flags(a["url_id"])
+        flag_str = ", ".join(f"{c} (dismissed)" if c in demoted else str(c) for c in flags)
         reviewed = " (reviewed)" if a.get("reviewed") else ""
         print(f"  {icon} #{a['id']}  {_safe(a['url'])[:80]}  {severity_label(severity)}  {dim(flag_str)}{dim(reviewed)}")
 
@@ -570,12 +629,43 @@ def _cmd_alert(store: Store, args: argparse.Namespace) -> int:
         print(yellow(f"  Alert #{args.id} not found."))
         return 1
 
+    if args.dismiss or args.confirm:
+        decision = "dismissed" if args.dismiss else "confirmed"
+        flags = alert.get("flags", []) or []
+        content_fp = _content_fp(alert.get("diff_text") or "")
+        for code in flags:
+            store.record_flag_feedback(alert["url_id"], str(code), decision, content_fp)
+        if args.dismiss:
+            store.mark_alert_reviewed(args.id)
+            alert["reviewed"] = 1
+        print(green(f"  Recorded {len(flags)} flag(s) as {decision} for {_safe(alert['url'])}."))
+
     if args.review:
         store.mark_alert_reviewed(args.id)
         alert["reviewed"] = 1
         print(green(f"  Alert #{args.id} marked as reviewed."))
 
-    print(format_alert_detail(alert))
+    demoted = store.demoted_flags(alert["url_id"])
+    print(format_alert_detail(alert, demoted_flags=demoted))
+    return 0
+
+
+def _cmd_feedback(store: Store, args: argparse.Namespace) -> int:
+    if args.reset:
+        removed = store.reset_flag_feedback()
+        print(green(f"  Cleared {removed} feedback record(s)."))
+        return 0
+    rows = store.list_flag_feedback()
+    if not rows:
+        print(dim("  No feedback recorded yet. "
+                  "Use 'skillwatch alert <id> --dismiss' to quieten a false alarm."))
+        return 0
+    print(bold(f"\n  {len(rows)} feedback record(s)\n"))
+    for r in rows:
+        print(f"  {str(r['decision']):<10} {str(r['flag_code']):<22} x{r['n']}  "
+              f"{_safe(str(r['url']))[:60]}")
+    print(dim("\n  A flag dismissed twice (and never confirmed) for a URL is shown as "
+              "'previously dismissed' on future alerts."))
     return 0
 
 
