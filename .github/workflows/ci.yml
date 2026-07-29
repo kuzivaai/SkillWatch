@@ -23,10 +23,12 @@ jobs:
       - name: Install dependencies
         run: pip install -e ".[dev]"
       - name: Lint
-        run: ruff check skillwatch/ tests/ scripts/
+        # analysis/ is in scope: measure_efficacy.py produces every published
+        # efficacy figure, so it is evidence, not a scratch script.
+        run: ruff check skillwatch/ tests/ scripts/ analysis/
       - name: Type check
         # scripts/ is included because the floor audit is now a security gate.
-        run: mypy skillwatch/ scripts/
+        run: mypy skillwatch/ scripts/ analysis/measure_efficacy.py
       - name: Test
         run: pytest --cov=skillwatch --cov-report=term-missing --cov-fail-under=90 -q
 

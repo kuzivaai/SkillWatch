@@ -21,6 +21,7 @@ Exit codes:
 from __future__ import annotations
 
 import argparse
+import enum
 import json
 import sys
 import urllib.error
@@ -169,41 +170,67 @@ def python_support_targets(pyproject: dict[str, Any]) -> list[tuple[int, int]]:
     return sorted(set(targets))
 
 
-def specifier_allows(specifier: str | None, version: tuple[int, ...]) -> bool:
+class SpecifierVerdict(enum.Enum):
+    """Three-valued result of evaluating a requires_python specifier.
+
+    Deliberately not a bool. The previous boolean version returned True both for
+    "this Python is permitted" and for "I could not parse this clause", which
+    meant a typo like `=>3.10` sailed through the audit as a pass. Those are
+    different answers and callers must be forced to distinguish them.
+
+    ALLOWED is truthy; EXCLUDED and UNEVALUABLE are both falsey, so a caller who
+    writes `if verdict:` fails closed rather than open.
+    """
+
+    ALLOWED = "allowed"
+    EXCLUDED = "excluded"
+    UNEVALUABLE = "unevaluable"
+
+    def __bool__(self) -> bool:
+        return self is SpecifierVerdict.ALLOWED
+
+
+_OPERATORS = (">=", "<=", "==", "!=", "~=", ">", "<")
+
+
+def evaluate_specifier(specifier: str | None, version: tuple[int, ...]) -> SpecifierVerdict:
     """Evaluate a PEP 440 requires_python specifier against a version tuple.
 
     Deliberately hand-rolled rather than importing `packaging`: this project
     forbids relying on an undeclared dependency, and `packaging` is not one of
     ours. Handles the operators that actually appear in requires_python metadata.
-    An unparseable clause is treated as satisfied — this check exists to catch
-    clear incompatibility, not to reject metadata it does not understand.
+
+    Anything this parser does not understand — an unrecognised operator, a bound
+    that is not a dotted numeric version — returns UNEVALUABLE. The caller must
+    treat that as an audit problem. An auditor that silently passes input it
+    could not read is worse than no auditor, because it reports confidence it
+    has not earned.
     """
     if not specifier:
-        return True
+        return SpecifierVerdict.ALLOWED
     for clause in specifier.split(","):
         clause = clause.strip()
         if not clause:
             continue
-        for op in (">=", "<=", "==", "!=", "~=", ">", "<"):
-            if clause.startswith(op):
-                bound = _version_key(clause[len(op) :].strip())
-                trimmed = version[: len(bound)] if len(bound) < len(version) else version
-                if op == ">=" and not version >= bound:
-                    return False
-                if op == ">" and not version > bound:
-                    return False
-                if op == "<=" and not version <= bound:
-                    return False
-                if op == "<" and not version < bound:
-                    return False
-                if op == "==" and trimmed != bound:
-                    return False
-                if op == "!=" and trimmed == bound:
-                    return False
-                if op == "~=" and not version >= bound:
-                    return False
-                break
-    return True
+        op = next((candidate for candidate in _OPERATORS if clause.startswith(candidate)), None)
+        if op is None:
+            return SpecifierVerdict.UNEVALUABLE
+        bound = _parse_version_strict(clause[len(op) :].strip())
+        if bound is None:
+            return SpecifierVerdict.UNEVALUABLE
+        trimmed = version[: len(bound)] if len(bound) < len(version) else version
+        excluded = (
+            (op == ">=" and not version >= bound)
+            or (op == ">" and not version > bound)
+            or (op == "<=" and not version <= bound)
+            or (op == "<" and not version < bound)
+            or (op == "==" and trimmed != bound)
+            or (op == "!=" and trimmed == bound)
+            or (op == "~=" and not version >= bound)
+        )
+        if excluded:
+            return SpecifierVerdict.EXCLUDED
+    return SpecifierVerdict.ALLOWED
 
 
 def check_floor_python_compatibility(
@@ -227,13 +254,45 @@ def check_floor_python_compatibility(
         return f"floor {requirement.floor} could not be retrieved from PyPI (does it exist?)"
 
     requires_python = data.get("info", {}).get("requires_python")
-    excluded = [f"{t[0]}.{t[1]}" for t in targets if not specifier_allows(requires_python, t)]
+    verdicts = {t: evaluate_specifier(requires_python, t) for t in targets}
+
+    # Report "cannot read this" separately from "this excludes a Python we
+    # support". Collapsing them would let unparseable metadata leave the audit
+    # looking clean.
+    unevaluable = [t for t, v in verdicts.items() if v is SpecifierVerdict.UNEVALUABLE]
+    if unevaluable:
+        return (
+            f"floor {requirement.floor} declares requires_python={requires_python!r}, "
+            f"which could not be evaluated against supported Python "
+            f"{', '.join(f'{t[0]}.{t[1]}' for t in unevaluable)} — "
+            f"the audit cannot confirm this floor is usable"
+        )
+
+    excluded = [f"{t[0]}.{t[1]}" for t, v in verdicts.items() if v is SpecifierVerdict.EXCLUDED]
     if excluded:
         return (
             f"floor {requirement.floor} declares requires_python={requires_python!r}, "
             f"which excludes supported Python {', '.join(excluded)}"
         )
     return None
+
+
+def _parse_version_strict(version: str) -> tuple[int, ...] | None:
+    """Parse a dotted numeric version, or return None if it is not one.
+
+    The strict counterpart to `_version_key`. That function is a total ordering
+    key for sorting real release versions off PyPI, where coercing an odd chunk
+    to 0 is harmless. This one backs a correctness decision, so anything it
+    cannot read must surface as "unknown" rather than as a number it invented.
+    """
+    if not version:
+        return None
+    parts: list[int] = []
+    for chunk in version.split("."):
+        if not chunk.isdigit():
+            return None
+        parts.append(int(chunk))
+    return tuple(parts)
 
 
 def _version_key(version: str) -> tuple[int, ...]:

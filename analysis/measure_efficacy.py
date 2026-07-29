@@ -78,7 +78,7 @@ def _make_diff(old_text: str, new_text: str) -> str:
 
 def _load_corpus(subset_dir: str) -> list[dict]:
     """Load all JSON items from a corpus subdirectory."""
-    items = []
+    items: list[dict] = []
     path = os.path.join(CORPUS_DIR, subset_dir)
     if not os.path.exists(path):
         return items
@@ -262,6 +262,7 @@ def _print_corpus_report(label: str, items: list[dict]) -> dict:
         "fn_b": fn_b,
         "fp_rate_overall": fp_rate_overall,
         "fp_rate_hash": fp_rate_hash,
+        "fp_rate_standard": fp_rate_standard,
         "fn_rate_a": fn_rate_a,
         "fn_rate_b": fn_rate_b,
         "precision": precision,
@@ -310,10 +311,12 @@ def _print_html_report(items: list[dict]) -> dict:
     print(f"{'='*60}")
     print(f"\nCorpus: {len(malicious)} malicious, {len(benign)} benign")
     print(f"\nTP: {tp}  FP: {fp}  TN: {tn}  FN: {fn}")
-    print(f"\nFP rate: {fp}/{len(benign)} = {fp/len(benign):.1%}" if benign else "")
-    print(f"FN rate: {fn}/{len(malicious)} = {fn/len(malicious):.1%}" if malicious else "")
-    print(f"\nPrecision: {precision:.1%}")
-    print(f"Recall:    {recall:.1%}")
+    # Same interval convention as the other two corpus reports. A bare "100.0%"
+    # on n=6 reads as certainty; its lower bound is 61.0%.
+    print(f"\nFP rate:   {fmt_prop(fp, len(benign))}")
+    print(f"FN rate:   {fmt_prop(fn, len(malicious))}")
+    print(f"\nPrecision: {fmt_prop(tp, tp + fp)}")
+    print(f"Recall:    {fmt_prop(tp, tp + fn)}")
 
     if fp_by_code:
         print("\nFP breakdown by flag code:")
@@ -339,13 +342,15 @@ def _print_html_report(items: list[dict]) -> dict:
         "benign_count": len(benign),
         "tp": tp, "fp": fp, "tn": tn, "fn": fn,
         "precision": precision,
+        "precision_ci": wilson_interval(tp, tp + fp),
         "recall": recall,
+        "recall_ci": wilson_interval(tp, tp + fn),
         "fp_by_code": fp_by_code,
         "all_results": all_results,
     }
 
 
-def main():
+def main() -> None:
     benign = _load_corpus("benign")
     adv_a = _load_corpus("adversarial_a")
     adv_b = _load_corpus("adversarial_b")
