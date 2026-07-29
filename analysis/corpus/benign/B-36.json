@@ -1,0 +1,10 @@
+{
+  "id": "B-36",
+  "label": "benign",
+  "subset": "standard",
+  "source": "benign: skip-link using the text-indent sr-only idiom",
+  "old": "Integration overview.",
+  "new": "Integration overview. Skip to content",
+  "old_html": "<html><body><p>Integration overview.</p></body></html>",
+  "new_html": "<html><body><p>Integration overview.</p><a href=\"#main\" style=\"text-indent:-9999px;display:block;overflow:hidden\">Skip to content</a></body></html>"
+}

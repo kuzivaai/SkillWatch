@@ -34,7 +34,7 @@ python3 analysis/measure_efficacy.py
 | # | Condition | Status | Basis |
 |---|-----------|--------|-------|
 | 1 | Evasive recall ≥50% **or** documentation makes unmissable that the triage is decorative | **PASS via the documentation route** | Recall route fails: 11/25 (44.0%, CI [26.7%, 62.9%]). The README states plainly that the triage is decorative against *semantic* evasion (3/13) and structural evasion (0/3), while noting it catches mechanical obfuscation 7/7 and non-English 1/2. Families sum to 11/25. |
-| 2 | Benign false-positive rate ≤30% | **PASS** | 4/32 (12.5%, CI [5.0%, 28.1%]) — upper bound 28.1% clears the gate. Re-specified from "precision ≥75%" on 2026-07-29; precision is corpus-ratio-dependent and does not transfer to deployment. Reasoning below. |
+| 2 | Benign false-positive rate ≤30% | **NO LONGER DEMONSTRATED (2026-07-29)** | Was 4/32 (12.5%, CI [5.0%, 28.1%]) — upper bound cleared. Now **7/37 (18.9%, CI [9.5%, 34.2%])** — **upper bound 34.2% exceeds the gate.** The rise is the priced cost of the `hidden_content` rewrite; see below. Not a regression in behaviour, and not a reason to move the gate. |
 | 3 | Named maintenance owner and pattern update cadence | **PASS, with an overdue review** | `MAINTENANCE.md` names the owner and a quarterly cadence. The July 2026 review was outstanding and is recorded in `PATTERNS.md`. |
 | 4 | ≥1 independent, non-conflicted evidence source for the premise | **PASS** | arXiv 2605.05274 (SIGIL), abstract checked against the primary source and quoted below. A preprint, not peer-reviewed. The previously cited arXiv 2508.12538 is an offensive toolkit and is retired. |
 | 5 | Evidence of minimal user demand | **FAIL** | 0 stars, 0 forks, 0 watchers, no external users. |
@@ -143,6 +143,42 @@ transfers, so it is the number that gates.
 This is a re-specification, not a relaxation. The old gate was never met and the
 new one is met — but on a different and better-posed question. The precision
 figures are still reported in the README, with the base-rate warning attached.
+
+### 2026-07-29 — the gate stopped passing, and why that is reported rather than fixed
+
+The `hidden_content` rewrite (ledger item 7) took evasive recall from 11/32 (34.4%)
+to 19/32 (59.4%) and the structural family from 0/10 to 8/10. It also took the
+benign false-positive rate from 5/37 (13.5%) to **7/37 (18.9%, CI [9.5%, 34.2%])**.
+
+**On the interval, 34.2% exceeds the ≤30% gate. Condition 2 no longer passes.**
+
+That is a trade, and it is reported as one. The three false positives are B-33
+(collapsed accordion), B-35 (hidden form field) and B-37 (a `<style>`-collapsed
+changelog). All three genuinely do hide content; the flag is `info` and says
+"content is hidden here", which is true. They were added to the corpus in the same
+session, deliberately, so the cost of the rule would be counted rather than hidden.
+
+**What was NOT done, and why.** The gate was not moved, the corpus was not padded
+with benign items to dilute the rate, and no technique was dropped to buy the
+number back. Each would have made the figure pass without changing anything real.
+Moving a gate because your change broke it is how a gate stops meaning anything.
+
+**Options, none taken this session:**
+
+1. Accept a higher FP rate for `info`-severity flags specifically, on the grounds
+   that a flag meaning "look at this diff" costs a reader seconds. This needs the
+   gate re-specified per severity, which is a bigger change than it looks.
+2. Suppress `hidden_content` when the concealed text carries no other signal.
+   Cheap, but it re-introduces the coupling the flag-class decomposition was
+   meant to remove.
+3. Accept that n=37 is too small to demonstrate a 30% bound at all — the interval
+   is 25 points wide. More benign items narrow it honestly, unlike padding.
+
+**REASONED, not evidenced:** option 3 is most likely right, because the point
+estimate (18.9%) is well inside the gate and it is the interval width doing the
+work. What would confirm: a benign corpus large enough that the upper bound falls
+below 30% at a similar point estimate. Not attempted here — corpus and detector
+changes are not measured together, and this session already changed both once.
 
 ### What would actually reduce the false-positive rate
 

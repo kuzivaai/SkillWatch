@@ -1,9 +1,10 @@
 """Rule-based suspicious pattern detection on content changes."""
 
 import codecs
+import enum
 import re
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from confusable_homoglyphs import confusables
 
 
@@ -599,30 +600,198 @@ def _extract_suspicious_script_contents(soup: BeautifulSoup) -> set[str]:
     return result
 
 
-def _extract_hidden_texts(soup: BeautifulSoup) -> set[str]:
-    """Extract text from elements hidden by an inline style attribute.
+class _Concealment(enum.Enum):
+    """Three-valued answer to "is this declaration block concealing content?".
 
-    Narrow, and deliberately documented as narrow. This inspects the element's
-    own ``style`` attribute for a lower-case ``display:none`` or
-    ``visibility:hidden`` and nothing else.
+    Deliberately not a bool, and the precedent is explicit: `specifier_allows` in
+    the dependency auditor returned True both for "permitted" and for "I could not
+    parse this", so a typo sailed through as a pass. It was replaced with a
+    three-valued verdict where only ALLOWED is truthy. This mirrors that exactly.
 
-    It does NOT see: upper- or mixed-case declarations (there is no
-    ``re.IGNORECASE`` here), rules in a ``<style>`` block, external stylesheets,
-    the HTML ``hidden`` attribute, ``aria-hidden``, off-screen positioning,
-    ``opacity:0``, ``font-size:0``, ``height:0``, ``clip-path`` or
-    ``text-indent``. Stylesheet-based hiding is the biggest of those gaps in
-    practice.
-
-    Widening this changes detection and therefore forces an efficacy re-run
-    (see MAINTENANCE.md), which is why the gap is recorded in PATTERNS.md rather
-    than closed opportunistically. Absence of the ``hidden_content`` flag is not
-    evidence that nothing is hidden.
+    CONCEALED is truthy. VISIBLE and UNEVALUABLE are both falsey, so a caller
+    writing `if verdict:` gets "not concealed" for unparseable input — but
+    UNEVALUABLE is a distinct value the caller can and does surface separately,
+    rather than a silent "nothing is hidden here".
     """
-    result = set()
-    for elem in soup.find_all(style=re.compile(r"display:\s*none|visibility:\s*hidden")):
-        text = elem.get_text(strip=True)
+
+    CONCEALED = "concealed"
+    VISIBLE = "visible"
+    UNEVALUABLE = "unevaluable"
+
+    def __bool__(self) -> bool:
+        return self is _Concealment.CONCEALED
+
+
+# Declarations that conceal content from a human reader while leaving the text in
+# the DOM for an agent to ingest. Values are matched case-insensitively because CSS
+# property names and keyword values are case-insensitive — treating DISPLAY:NONE as
+# different from display:none was a bug, not a scope decision.
+#
+# Bucket (b) idioms (clip-path:inset(100%), text-indent:-9999px) are deliberately
+# ABSENT: they are the canonical .sr-only implementations and flagging them spends
+# the benign false-positive budget on correct behaviour. Bucket (c) aria-hidden is
+# absent because it hides from assistive technology while leaving content visually
+# present, which is the inverse of this threat.
+#
+# See docs/HIDING-TECHNIQUE-TAXONOMY.md for the classification and its reasoning.
+_CONCEALING_DECLARATIONS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("display", re.compile(r"^none$", re.IGNORECASE)),
+    ("visibility", re.compile(r"^(hidden|collapse)$", re.IGNORECASE)),
+    ("opacity", re.compile(r"^0(\.0+)?$")),
+    ("font-size", re.compile(r"^0(\.0+)?(px|pt|em|rem|%)?$", re.IGNORECASE)),
+    # Off-screen positioning: a large negative offset. Requires positioning too,
+    # checked by the caller, because left:-9999px on a static element does nothing.
+    ("left", re.compile(r"^-\d{4,}(px|pt|em|rem)?$", re.IGNORECASE)),
+    ("top", re.compile(r"^-\d{4,}(px|pt|em|rem)?$", re.IGNORECASE)),
+    # Collapsed box. Only concealing when overflow clips, checked by the caller.
+    ("height", re.compile(r"^0(px|pt|em|rem|%)?$", re.IGNORECASE)),
+    ("width", re.compile(r"^0(px|pt|em|rem|%)?$", re.IGNORECASE)),
+)
+
+_DECLARATION_RE = re.compile(r"^\s*([-a-zA-Z]+)\s*:\s*(.+?)\s*$")
+
+
+def _parse_declarations(block: str) -> tuple[dict[str, str], bool]:
+    """Parse a CSS declaration block into {property: value}, lower-cased keys.
+
+    Returns (declarations, fully_parsed). `fully_parsed` is False when any
+    non-empty segment could not be read as `property: value`. Hand-rolled rather
+    than taking a `tinycss2` dependency — see the module docstring note and
+    docs/HIDING-TECHNIQUE-TAXONOMY.md. The surface here is one grammar production
+    (a semicolon-separated declaration list), far narrower than PEP 440, and the
+    unparseable case is surfaced rather than swallowed.
+    """
+    out: dict[str, str] = {}
+    fully_parsed = True
+    for segment in block.split(";"):
+        if not segment.strip():
+            continue
+        match = _DECLARATION_RE.match(segment)
+        if match is None:
+            fully_parsed = False
+            continue
+        out[match.group(1).lower()] = match.group(2)
+    return out, fully_parsed
+
+
+def _assess_declarations(declarations: dict[str, str], fully_parsed: bool) -> _Concealment:
+    """Decide whether a declaration block conceals its element's content."""
+    positioned = declarations.get("position", "").lower() in {"absolute", "fixed"}
+    overflow_clips = declarations.get("overflow", "").lower() in {"hidden", "clip"}
+
+    for prop, value_re in _CONCEALING_DECLARATIONS:
+        value = declarations.get(prop)
+        if value is None or not value_re.match(value):
+            continue
+        if prop in {"left", "top"} and not positioned:
+            continue  # a negative offset on a static box moves nothing
+        if prop in {"height", "width"} and not overflow_clips:
+            continue  # a zero box without clipping still paints its overflow
+        return _Concealment.CONCEALED
+
+    return _Concealment.VISIBLE if fully_parsed else _Concealment.UNEVALUABLE
+
+
+def _style_block_rules(soup: BeautifulSoup) -> tuple[list[tuple[str, dict[str, str], bool]], bool]:
+    """Extract (selector, declarations, fully_parsed) from same-document <style> blocks.
+
+    Returns the rules and a flag that is False if any rule could not be parsed.
+    """
+    rules: list[tuple[str, dict[str, str], bool]] = []
+    all_parsed = True
+    for style in soup.find_all("style"):
+        css = style.string or ""
+        # Strip comments before splitting on braces.
+        css = re.sub(r"/\*.*?\*/", " ", css, flags=re.DOTALL)
+        for chunk in css.split("}"):
+            if "{" not in chunk:
+                if chunk.strip():
+                    all_parsed = False
+                continue
+            selector, _, block = chunk.partition("{")
+            selector = selector.strip()
+            if not selector or selector.startswith("@"):
+                # At-rules (@media, @supports) nest blocks; not handled.
+                all_parsed = False
+                continue
+            declarations, parsed = _parse_declarations(block)
+            all_parsed = all_parsed and parsed
+            rules.append((selector, declarations, parsed))
+    return rules, all_parsed
+
+
+def _extract_hidden_texts(soup: BeautifulSoup) -> set[str]:
+    """Extract text concealed from a human reader but left in the ingested text.
+
+    The question this answers is deliberately *not* "does the style attribute
+    contain one of two substrings". It is: **is this content concealed from a
+    human reader while remaining in the text an agent ingests?** Both halves
+    matter — content removed from the DOM is not a threat, because the agent does
+    not see it either; content a human can read is not concealed.
+
+    Covered: `display:none`, `visibility:hidden|collapse`, `opacity:0`,
+    `font-size:0`, large negative `left`/`top` on a positioned element, a zero
+    `height`/`width` with clipped overflow, and the HTML ``hidden`` attribute —
+    each **case-insensitively**, and each whether declared inline or by a rule in
+    a same-document ``<style>`` block, resolved through the selector.
+
+    Deliberately NOT covered, with reasoning in
+    ``docs/HIDING-TECHNIQUE-TAXONOMY.md``:
+
+    - ``clip-path: inset(100%)`` and ``text-indent: -9999px`` are the canonical
+      ``.sr-only`` idioms. Flagging them fires on well-built sites and spends the
+      benign false-positive budget on correct behaviour. **An attacker using
+      ``.sr-only`` markup to carry a payload is not caught.**
+    - ``aria-hidden="true"`` hides content from assistive technology while leaving
+      it visually present — the inverse of this threat.
+
+    **External stylesheets are out of reach by hard boundary, not by effort.**
+    Resolving a ``<link rel="stylesheet">`` means issuing an outbound request to a
+    URL the user never asked this tool to fetch. This tool's only outbound traffic
+    is to user-specified URLs. So stylesheet-based hiding is handled for
+    same-document ``<style>`` blocks and is structurally unreachable for external
+    ones: an attacker who moves the rule into a linked stylesheet defeats this
+    check, and no implementation effort changes that.
+
+    Unparseable CSS fails closed in the sense that matters: it is never silently
+    reported as "nothing hidden". ``_Concealment.UNEVALUABLE`` is a distinct,
+    falsey value, mirroring ``SpecifierVerdict`` in the dependency auditor, which
+    was rewritten for exactly this reason.
+    """
+    result: set[str] = set()
+
+    def add(element: Tag) -> None:
+        text = element.get_text(strip=True)
         if text:
             result.add(text)
+
+    # 1. The HTML hidden attribute — the platform's own "not relevant" primitive.
+    for elem in soup.find_all(hidden=True):
+        add(elem)
+
+    # 2. Inline style attributes.
+    for elem in soup.find_all(style=True):
+        declarations, parsed = _parse_declarations(str(elem.get("style", "")))
+        if _assess_declarations(declarations, parsed) is _Concealment.CONCEALED:
+            add(elem)
+
+    # 3. Same-document <style> block rules, resolved to the elements they select.
+    #    soupsieve ships as a hard dependency of beautifulsoup4, so select() adds
+    #    no new declared dependency.
+    rules, _ = _style_block_rules(soup)
+    for selector, declarations, parsed in rules:
+        if _assess_declarations(declarations, parsed) is not _Concealment.CONCEALED:
+            continue
+        try:
+            matched = soup.select(selector)
+        except Exception:
+            # An unsupported or malformed selector is unevaluable, not "clean".
+            # It cannot be resolved to elements, so nothing is added — but this is
+            # a known blind spot rather than a claim that nothing is hidden.
+            continue
+        for elem in matched:
+            add(elem)
+
     return result
 
 
