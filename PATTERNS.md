@@ -17,7 +17,7 @@ All patterns are regex-based heuristics. None provide guaranteed detection.
 | 8 | `unicode_homoglyph` | warning | Unicode Consortium | 2026-06-26 | Characters from non-Latin scripts (Cyrillic, Greek, Cherokee, Armenian, Coptic, Myanmar, Georgian, Ethiopic, Osage, Lisu) that visually imitate Latin letters. Uses confusable_homoglyphs library. |
 | 9 | `data_uri_payload` | warning | v0.2.0 | 2026-06-26 | data: URIs with text/html or application/javascript content type in added text. |
 | 10 | `iframe_detected` | warning | v0.2.0 | 2026-06-26 | New `<iframe>` elements in HTML. Diff-based. |
-| 11 | `hidden_content` | info | v0.2.0 | 2026-06-26, rewritten 2026-07-29 | Content concealed from a human but left in the text an agent ingests. Covers, inline **or** same-document `<style>` block, case-insensitively: `display:none`, `visibility:hidden|collapse`, `opacity:0`, `font-size:0`, large negative `left`/`top` on a positioned element, zero `height`/`width` with clipped overflow, and the HTML `hidden` attribute. **Not** covered: `clip-path`/`text-indent` `.sr-only` idioms (deliberate — flagging them fires on well-built sites), `aria-hidden` (inverse of the threat), and **external stylesheets, which are out of reach by hard boundary**: resolving one means fetching a URL the user never specified. Diff-based. Taxonomy: `docs/HIDING-TECHNIQUE-TAXONOMY.md`. |
+| 11 | `hidden_content` | info | v0.2.0 | 2026-06-26, rewritten 2026-07-29 | Content concealed from a human but left in the text an agent ingests. Covers, inline **or** same-document `<style>` block, case-insensitively: `display:none`, `visibility:hidden|collapse`, `opacity:0`, `font-size:0`, zero `height`/`width` with clipped overflow. **Not** covered: the HTML `hidden` attribute and off-screen absolute positioning (**both removed 2026-07-29** after their base rate was measured on 201 real pages — `hidden` appears on 55.2% of them, and off-screen positioning is the WebAIM-recommended `.sr-only` implementation), `clip-path`/`text-indent` `.sr-only` idioms, `aria-hidden` (inverse of the threat), and **external stylesheets, which are out of reach by hard boundary**: resolving one means fetching a URL the user never specified. Diff-based. Taxonomy: `docs/HIDING-TECHNIQUE-TAXONOMY.md`. |
 | 12 | `meta_refresh_redirect` | warning | v0.2.0 | 2026-06-26 | New `<meta http-equiv="refresh">` redirect. Diff-based. |
 | 13 | `data_uri_embed` | critical | v0.2.0 | 2026-06-26 | New iframe/embed/object with data: URI source. Diff-based. |
 
@@ -179,6 +179,12 @@ CVE-2026-33753, fixed in 0.3.1. See `CHANGELOG.md`.
 
 **3. Run the efficacy harness — DONE.**
 
+**Figures as they stood at this review. Superseded twice on 2026-07-29 — by the
+`hidden_content` rewrite and then by the base-rate reclassification. The current
+figures are in `README.md` and `SHIP-READINESS.md`; reproduce with
+`python3 analysis/measure_efficacy.py`. Kept here as the record of what this
+review saw, not as a current claim.**
+
 ```
 Original corpus (67 items: 32 benign, 10 pattern-matching, 25 evasive)
   Precision      21/25 (84.0%, 95% CI [65.3%, 93.6%])
@@ -205,7 +211,7 @@ modified this cycle. Two items are carried forward:
 | Carried forward | Detail |
 |---|---|
 | ATR refresh | Adopt upstream changes through v3.5.11, then re-measure. |
-| `hidden_content` coverage is narrow (**code gap — still open**) | `_extract_hidden_texts()` (`detector.py:602`) calls `soup.find_all(style=re.compile(r"display:\s*none|visibility:\s*hidden"))`. Measured behaviour, 2026-07-29: **detected** — inline `display:none`, `display: none`, `visibility:hidden`. **Not detected** — upper- or mixed-case declarations (`DISPLAY:NONE`, `Display:None`; the regex carries no `re.IGNORECASE`), rules in a `<style>` block, external stylesheets, the HTML `hidden` attribute, `aria-hidden`, `position:absolute;left:-9999px` (corpus item `E-24`), `opacity:0`, `font-size:0`, `height:0;overflow:hidden`, `clip-path:inset(100%)`, `text-indent:-9999px`. The documentation half of this was closed on 2026-07-29 — every surface now describes the implementation accurately. **The code gap remains open**: fixing it changes detection and forces an efficacy re-run, which must be a separate commit from any measurement change. |
+| `hidden_content` coverage (**code gap CLOSED 2026-07-29; residual gaps stated**) | The narrow implementation this row described — `soup.find_all(style=re.compile(r"display:\s*none|visibility:\s*hidden"))`, case-sensitive, inline-only — was replaced on 2026-07-29 by a parser that asks whether content is concealed from a human while remaining in the ingested text, resolving same-document `<style>` rules through `soup.select`. Residual gaps, each deliberate and each stated: **external stylesheets** (hard boundary — resolving one means fetching a URL the user never specified); **`.sr-only` idioms** `clip-path`, `text-indent`, and off-screen positioning (flagging them fires on the accessibility implementation WebAIM recommends); **the HTML `hidden` attribute** (on 55.2% of 201 real pages — a UI-state primitive, not a concealment technique); **`@media` and other nested at-rules** (the parser reports them unparsed rather than reading them, and nothing surfaces that to the flag). Taxonomy and measured base rates: `docs/HIDING-TECHNIQUE-TAXONOMY.md`. |
 
 ## Changelog
 

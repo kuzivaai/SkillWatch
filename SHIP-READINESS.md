@@ -33,8 +33,8 @@ python3 analysis/measure_efficacy.py
 
 | # | Condition | Status | Basis |
 |---|-----------|--------|-------|
-| 1 | Evasive recall ≥50% **or** documentation makes unmissable that the triage is decorative | **PASS via the documentation route** | Recall route fails: 11/25 (44.0%, CI [26.7%, 62.9%]). The README states plainly that the triage is decorative against *semantic* evasion (3/13) and structural evasion (0/3), while noting it catches mechanical obfuscation 7/7 and non-English 1/2. Families sum to 11/25. |
-| 2 | Benign false-positive rate ≤30% | **NO LONGER DEMONSTRATED (2026-07-29)** | Was 4/32 (12.5%, CI [5.0%, 28.1%]) — upper bound cleared. Now **7/37 (18.9%, CI [9.5%, 34.2%])** — **upper bound 34.2% exceeds the gate.** The rise is the priced cost of the `hidden_content` rewrite; see below. Not a regression in behaviour, and not a reason to move the gate. |
+| 1 | Evasive recall ≥50% **or** documentation makes unmissable that the triage is decorative | **PASS via the documentation route** | Recall route still fails on the interval: 17/32 (53.1%, CI [36.4%, 69.1%]) — the point estimate clears 50% but the lower bound 36.4% does not, and gates are evaluated on the bound. The README states plainly that the triage is decorative against *semantic* evasion (3/13), while noting mechanical obfuscation 7/7, structural 6/10 and non-English 1/2. Families sum to 17/32. |
+| 2 | Benign false-positive rate ≤30% | **STILL NOT DEMONSTRATED (2026-07-29)** | 4/32 (12.5%, CI [5.0%, 28.1%]) → 7/37 (18.9%, CI [9.5%, 34.2%]) after the `hidden_content` rewrite → **6/37 (16.2%, CI [7.7%, 31.1%])** after the base-rate reclassification. **The upper bound fell from 34.2% to 31.1% and still exceeds the 30% gate.** Reclassifying on measured base rates recovered most of the rise but did not restore the condition. See below. |
 | 3 | Named maintenance owner and pattern update cadence | **PASS, with an overdue review** | `MAINTENANCE.md` names the owner and a quarterly cadence. The July 2026 review was outstanding and is recorded in `PATTERNS.md`. |
 | 4 | ≥1 independent, non-conflicted evidence source for the premise | **PASS** | arXiv 2605.05274 (SIGIL), abstract checked against the primary source and quoted below. A preprint, not peer-reviewed. The previously cited arXiv 2508.12538 is an offensive toolkit and is retired. |
 | 5 | Evidence of minimal user demand | **FAIL** | 0 stars, 0 forks, 0 watchers, no external users. |
@@ -109,10 +109,16 @@ detector change and mixing the two would make the measurement circular.
 
 ## Condition 2 — false-positive rate (was: precision)
 
-**Status: PASS.** 4/32 (12.5%, CI [5.0%, 28.1%]) on the original benign corpus,
-1/6 (16.7%, CI [3.0%, 56.4%]) on the holdout. The gate is an upper bound: the
-false-positive rate must not exceed 30%. The original corpus demonstrates that;
-the holdout at n=6 does not, and cannot at that size.
+**Status: NOT DEMONSTRATED.** 6/37 (16.2%, CI [7.7%, 31.1%]) on the original
+benign corpus, 1/6 (16.7%, CI [3.0%, 56.4%]) on the holdout. The gate is an upper
+bound: the false-positive rate must not exceed 30%, evaluated on the interval. The
+upper bound is 31.1%, so it is not demonstrated — narrowly, and by less than it was.
+
+**This heading said "PASS" with the pre-rewrite figures until 2026-07-29**, while
+the condition map at the top of this same file already said the condition no longer
+passed. A scoreboard that disagrees with itself is worse than one that is merely
+out of date, because a reader who scans headings gets the opposite answer from a
+reader who reads on. Corrected in the same change that re-measured.
 
 ### Why this condition was re-specified on 2026-07-29
 
@@ -143,6 +149,45 @@ transfers, so it is the number that gates.
 This is a re-specification, not a relaxation. The old gate was never met and the
 new one is met — but on a different and better-posed question. The precision
 figures are still reported in the README, with the base-rate warning attached.
+
+### 2026-07-29 (later) — reclassification recovered most of the rise, not the gate
+
+The `hidden_content` techniques were re-derived against a **measured base rate** on
+201 real pages (`analysis/corpus/realpage/`, `docs/HIDING-TECHNIQUE-TAXONOMY.md`).
+Two techniques left the flagged set because flagging them fires on ordinary pages:
+the HTML `hidden` attribute (111/201 real pages, 55.2%) and off-screen absolute
+positioning (which WebAIM *recommends* for screen-reader-only content).
+
+| Metric | After rewrite | After reclassification | Delta |
+|---|---|---|---|
+| Benign FP rate | 7/37 (18.9%, [9.5, 34.2]) | **6/37 (16.2%, [7.7, 31.1])** | −2.7 pts, bound −3.1 |
+| Precision | 29/36 (80.6%, [65.0, 90.2]) | 27/33 (81.8%, [65.6, 91.4]) | flat |
+| Overall recall | 29/42 (69.0%, [54.0, 80.9]) | 27/42 (64.3%, [49.2, 77.0]) | −4.7 pts |
+| Evasive recall | 19/32 (59.4%, [42.3, 74.5]) | 17/32 (53.1%, [36.4, 69.1]) | −6.3 pts |
+| structural family | 8/10 | 6/10 | −2 |
+
+**The upper bound went 34.2% → 31.1%. The gate is ≤30%. It still fails.**
+
+That is the honest result and it is reported as one. The reclassification was not
+undertaken to move a number — it was undertaken because the taxonomy classified on
+concealment alone and could not tell a detection from a false-positive generator.
+That it *also* improved the false-positive rate is a consequence, not the purpose,
+and it did not improve it enough.
+
+**The cost is real and is not netted off.** Corpus items E-24 (off-screen
+positioning) and E-31 (HTML `hidden` attribute) were caught and are now missed.
+Detection went down. The claim is that those two techniques were never signal in
+the first place — measured base rates say the `hidden` attribute is on one real
+page in two — but a reader is entitled to weigh that differently.
+
+**REASONED, not evidenced:** that the remaining failure is a small-sample artefact.
+n=37 gives an interval 23 points wide; the point estimate 16.2% sits well inside the
+gate and it is the width doing the work. What would confirm: a benign corpus large
+enough that the bound falls below 30% at a similar point estimate. The real-page
+corpus now exists but cannot supply this yet — only 3 of 199 paired snapshots
+produced a text diff, so the real-page false-positive rate is `0/3`, interval
+[0.0%, 56.1%], which supports nothing. **That measurement, at a days-apart
+interval, is the single thing that would settle this condition.**
 
 ### 2026-07-29 — the gate stopped passing, and why that is reported rather than fixed
 
@@ -182,10 +227,14 @@ changes are not measured together, and this session already changed both once.
 
 ### What would actually reduce the false-positive rate
 
-All five false positives across both benign corpora came from three delta
-checks: `new_exec_command` (2/38), `new_domains` (2/38), `new_base64` (1/38).
-The content checks — `prompt_injection`, `credential_reference`,
-`unicode_homoglyph` — produced 0/38 (CI [0.0%, 9.2%]).
+All seven false positives across both benign corpora (43 items) come from four
+checks that fire on the *appearance* of something: `new_exec_command` (2/43),
+`new_domains` (2/43), `hidden_content` (2/43), `new_base64` (1/43). The content
+checks — `prompt_injection`, `credential_reference`, `unicode_homoglyph` —
+produced 0/43 (CI [0.0%, 8.2%]).
+
+(This paragraph read "all five … three delta checks" with /38 denominators until
+2026-07-29, describing the corpus as it stood two changes earlier.)
 
 Deleting the three delta checks would take the corpus false-positive count to
 zero. It would also cost five true positives (E-04, E-05, E-09, E-10, E-19),

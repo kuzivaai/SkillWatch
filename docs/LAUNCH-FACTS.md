@@ -19,22 +19,22 @@ Every figure carries a 95% Wilson confidence interval, because at these sample
 sizes the point estimate alone is close to uninformative. Reproduce all of them
 with `python3 analysis/measure_efficacy.py`.
 
-**Original corpus** — 32 benign, 10 pattern-matching malicious, 25 evasive malicious:
+**Original corpus** — 37 benign, 10 pattern-matching malicious, 32 evasive malicious:
 
 | Metric | Value |
 |---|---|
-| Overall recall | 21/35 (60.0%, CI [43.6%, 74.4%]) |
-| Evasive recall | 11/25 (44.0%, CI [26.7%, 62.9%]) |
-| Benign false-positive rate | 4/32 (12.5%, CI [5.0%, 28.1%]) |
-| Corpus precision | 21/25 (84.0%, CI [65.3%, 93.6%]) — **see §2 before quoting this** |
+| Overall recall | 27/42 (64.3%, CI [49.2%, 77.0%]) |
+| Evasive recall | 17/32 (53.1%, CI [36.4%, 69.1%]) |
+| Benign false-positive rate | 6/37 (16.2%, CI [7.7%, 31.1%]) |
+| Corpus precision | 27/33 (81.8%, CI [65.6%, 91.4%]) — **see §2 before quoting this** |
 
-**Evasive recall by attack family** (sums to 11/25):
+**Evasive recall by attack family** (sums to 17/32):
 
 | Family | Caught |
 |---|---|
 | Mechanical obfuscation (ROT13, reversal, base64, zero-width, homoglyphs, spacing) | 7/7 |
+| Structural (hidden in markup) | 6/10 |
 | Semantic framing | 3/13 |
-| Structural (hidden in markup) | 0/3 |
 | Non-English instruction | 1/2 |
 
 **Holdout corpus** — 18 items, 12 malicious (all evasive), 6 benign:
@@ -62,30 +62,57 @@ asset that quotes the figures.
 ## 2. The base-rate warning — mandatory alongside any precision figure
 
 Precision is `TP/(TP+FP)`. It depends on the benign:malicious ratio of the corpus
-it was measured on — roughly 38:47 here. A real change stream is overwhelmingly
+it was measured on — roughly 37:42 here. A real change stream is overwhelmingly
 benign: most changes to a monitored URL are legitimate edits. A precision figure
 measured near 1:1 does not transfer to a stream running at 1000:1.
 
 **At a realistic base rate, most flags a user sees will be false positives.**
 
-The transferable number is the benign false-positive rate: 4/32 (12.5%) on the
+The transferable number is the benign false-positive rate: 6/37 (16.2%) on the
 original corpus, 1/6 on the holdout. Lead with that. Never publish precision as
 though it described what a user will experience.
 
-**Which checks produce the false positives.** All five across both benign corpora
-(38 items) came from three delta checks:
+**Which checks produce the false positives.** All seven across both benign corpora
+(43 items) come from four checks that fire on the appearance of something:
 
 | Flag | FPs |
 |---|---|
-| `new_exec_command` | 2/38 |
-| `new_domains` | 2/38 |
-| `new_base64` | 1/38 |
-| `prompt_injection` | 0/38 |
-| `credential_reference` | 0/38 |
-| `unicode_homoglyph` | 0/38 |
+| `new_exec_command` | 2/43 |
+| `new_domains` | 2/43 |
+| `hidden_content` | 2/43 |
+| `new_base64` | 1/43 |
+| `prompt_injection` | 0/43 |
+| `credential_reference` | 0/43 |
+| `unicode_homoglyph` | 0/43 |
 
-Content checks produced 0/38 (CI [0.0%, 9.2%]). Deleting the three delta checks
-would zero the corpus false positives and drop recall to 16/35 (45.7%).
+Content checks produced 0/43 (CI [0.0%, 8.2%]). Deleting all four would zero the
+corpus false positives and drop recall from 27/42 (64.3%) to 16/42 (38.1%).
+
+## 2a. The real-page base rate — the first figure here that is not self-authored
+
+201 pages, each referenced by a real `SKILL.md` sampled from 157 distinct public
+repositories. None was written by this project and none carries a payload, so
+every occurrence is a legitimate use. `python3 analysis/measure_base_rate.py`.
+
+| Technique | Real pages carrying it | Flagged? |
+|---|---|---|
+| `aria-hidden` | 141/201 (70.1%) | no |
+| HTML `hidden` attribute | 111/201 (55.2%) | **no — removed 0.4.1** |
+| `display:none` | 103/201 (51.2%) | yes |
+| `visibility:hidden` | 73/201 (36.3%) | yes |
+| `opacity:0` | 11/201 (5.5%) | yes |
+| `clip-path` sr-only | 10/201 (5.0%) | no |
+| `font-size:0` | 3/201 (1.5%) | yes |
+| zero box, clipped | 2/201 (1.0%) | yes |
+| off-screen positioning | 1/201 (0.5%) | **no — removed 0.4.1** |
+| `text-indent:-9999px` | 0/201 (0.0%) | no |
+
+**This is a base rate, not a false-positive rate, and an asset must not present it
+as one.** The concealment check is a delta check; a first fetch is a baseline that
+runs no detection. The real-page false-positive rate is **not measured**: only 3 of
+199 paired snapshots produced a text diff and none flagged, and `0/3` has a 95%
+interval of [0.0%, 56.1%]. Snapshots were minutes apart; drift needs days. If an
+asset needs a real-world false-positive number, there isn't one yet.
 
 ## 3. Claim inventory — every external claim, with its source
 

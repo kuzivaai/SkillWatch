@@ -15,8 +15,12 @@ claims on its page were found to be wrong or incomplete and were corrected here.
 Nothing in the published artefact changed until this release, because the PyPI
 long description is only regenerated when a version is published.
 
-There are no code changes to the detector. Efficacy figures are unchanged and
-remain reproducible with `python3 analysis/measure_efficacy.py`.
+**Superseded during preparation.** When this entry was first written 0.4.1 was a
+claims-only release and this paragraph said there were no detector changes. Two
+subsequent changes made that false, and the entry is corrected rather than left
+standing: the concealment check was rewritten, and its technique classification was
+then re-derived against a measured base rate. Both are described below. Efficacy
+figures have moved and every published surface has been updated with them.
 
 ### Fixed — claims on the published page
 
@@ -39,14 +43,72 @@ remain reproducible with `python3 analysis/measure_efficacy.py`.
   three-item phrasing came from the compressed summary row on the project index,
   and it altered OWASP's **"continuous"** to "repeated" to fit this project's
   periodic-only constraint. SkillWatch covers one of the six and part of two more.
-- **`hidden_content` coverage disclosed.** The check reads an element's inline
-  `style` attribute for a lower-case `display:none` or `visibility:hidden` and
-  nothing else. It does not fire on upper- or mixed-case declarations, `<style>`
-  blocks, external stylesheets, the HTML `hidden` attribute, `aria-hidden`,
-  off-screen positioning, `opacity:0`, `font-size:0`, `height:0`, `clip-path` or
-  `text-indent`. Stylesheet-based hiding is the largest of these in practice.
-  **Absence of the flag is not evidence that nothing is hidden.** The code gap is
-  unchanged and remains open; only the disclosure is new.
+- **`hidden_content` coverage disclosed.** The 0.4.0 page described this check
+  without stating its limits. At 0.4.0 it read an element's inline `style`
+  attribute for a lower-case `display:none` or `visibility:hidden` and nothing
+  else — not upper- or mixed-case declarations, not `<style>` blocks, not the HTML
+  `hidden` attribute, not off-screen positioning, `opacity:0`, `font-size:0` or
+  `height:0`. **Absence of the flag is not evidence that nothing is hidden**, and
+  that remains true after the rewrite described below, for the residual gaps listed
+  there.
+
+### Changed — `hidden_content` rewritten, then reclassified on measured evidence
+
+- **The check now asks whether content is concealed**, not whether an inline
+  `style` attribute contains one of two lower-case substrings. Declarations are
+  parsed inline **and** from same-document `<style>` blocks, resolved to elements
+  through `soup.select`, and matched case-insensitively. Context-dependence is
+  evaluated rather than pattern-matched: a negative `left`/`top` only conceals on a
+  positioned element, a zero `height`/`width` only when overflow clips.
+  Unparseable CSS returns a distinct `UNEVALUABLE` verdict — falsey, so callers
+  fail closed, but never silently reported as "nothing is hidden".
+- **Two techniques were then removed from the flagged set** after their base rate
+  was measured on real pages for the first time. The taxonomy had classified every
+  technique on one criterion — does this conceal content from a human — which
+  cannot distinguish a detection from a false-positive generator:
+  - the **HTML `hidden` attribute**, which appears on 111 of 201 real pages
+    (55.2%, 1534 occurrences). It is the platform's UI-state primitive — tab
+    panels, dialogs, hidden form fields — not a concealment technique.
+  - **off-screen absolute positioning**, which WebAIM documents as *"the
+    recommended styles for visually hiding content that will be read by a screen
+    reader"*. The taxonomy had been flagging the recommended `.sr-only`
+    implementation while excluding `text-indent`, which the same source says is
+    the form for which "better techniques are available".
+
+  **This is a deliberate reduction in detection.** Corpus items E-24 and E-31 were
+  caught and are now missed.
+
+### Changed — published efficacy figures
+
+Every figure on every surface (README, `docs/llms.txt`, `docs/index.html`,
+`docs/LAUNCH-FACTS.md`, `PATTERNS.md`, `SHIP-READINESS.md`) now reports the
+current measurement. Original corpus, 79 items:
+
+| Metric | 0.4.0 | 0.4.1 |
+|---|---|---|
+| Precision | 21/25 (84.0%) | 27/33 (81.8%, CI [65.6%, 91.4%]) |
+| Overall recall | 21/35 (60.0%) | 27/42 (64.3%, CI [49.2%, 77.0%]) |
+| Evasive recall | 11/25 (44.0%) | 17/32 (53.1%, CI [36.4%, 69.1%]) |
+| Benign FP rate | 4/32 (12.5%) | 6/37 (16.2%, CI [7.7%, 31.1%]) |
+
+The benign false-positive rate rose because five benign items using concealment
+techniques legitimately were added to the corpus in the same cycle, deliberately,
+so the cost of the rule would be counted rather than hidden. **Ship-readiness
+condition 2 (benign FP ≤30% on the interval) does not pass**: the upper bound is
+31.1%. It is reported, not fixed by moving the gate or padding the corpus.
+
+### Added — a real-page corpus, and the base rate it measures
+
+- **`analysis/corpus/realpage/`** — 201 pages, each referenced by a real `SKILL.md`
+  sampled from 157 distinct public repositories. Nothing in it was written by this
+  project. It is the first evidence here that is not self-authored, and it closes
+  half of the external-validity gap.
+- **`analysis/measure_base_rate.py`** and **`analysis/build_realpage_corpus.py`**,
+  both tracked, so the corpus can be rebuilt and the figures rechecked.
+- **The real-page false-positive rate is NOT measured** and no surface claims it
+  is. Only 3 of 199 paired snapshots produced a text diff and none flagged; `0/3`
+  has a 95% interval of [0.0%, 56.1%]. The snapshots were minutes apart and
+  editorial drift needs days.
 
 ### Added — machinery so this cannot recur silently
 
@@ -80,7 +142,9 @@ fired has not been tested**; every negative rule now has a positive fixture.
   overwhelmingly benign, so a corpus precision figure does not transfer to
   deployment and should never have been published as though it did. The
   false-positive rate is measured on benign items only and is ratio-independent.
-  Condition 2 now PASSES at 4/32 (12.5%, CI [5.0%, 28.1%]).
+  Condition 2 passed at 4/32 (12.5%, CI [5.0%, 28.1%]) when re-specified.
+  **It does not pass at 0.4.1**: 6/37 (16.2%, CI [7.7%, 31.1%]), upper bound above
+  the 30% gate. See the 0.4.1 entry above and `SHIP-READINESS.md`.
 
   The remedy previously recorded against this condition — "more benign items are
   needed" — was arithmetically backwards: benign items can only add false
