@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `scripts/audit_dependency_floors.py` and a blocking `security` job in CI, so this class of defect cannot recur silently. The job runs two checks that catch different failures: `pip-audit` inspects the versions actually installed, while the floor audit inspects the versions `pyproject.toml` *permits* — which is what a downstream user resolving against an older index or a lockfile may get. A vulnerable floor is invisible to `pip-audit` alone, which is precisely how `rfc3161-client>=1.0` stayed green in CI while permitting a known-vulnerable resolution.
+- A `lowest-direct` CI job (`uv run --python 3.10 --resolution lowest-direct`) that runs the suite against the lowest version each declared floor permits, so the floors are a configuration that has actually been executed rather than numbers nobody has run. `uv run` rather than `uv sync`, because with a lockfile present `uv sync --resolution lowest-direct` resolves above the declared minimums and would test nothing.
+- `docs/DEPENDENCY-FLOORS.md`, documenting the three checks and their caveats — including that `lowest-direct` exercises the *build* path at the `setuptools` floor, and that a requirement left without a floor (currently `pytest-cov`) can resolve to a decade-old release on that leg.
+
+### Changed
+
+- Bounded `ruff` (`>=0.15.21,<0.16`) and `mypy` (`>=2.2,<2.3`) instead of leaving them floating. Their default rule sets change between minor releases, so an unpinned tool makes CI go red on an upstream release rather than on a code change — ruff 0.16.0 did exactly that, reporting 27 findings on unchanged, previously green code. Bumping these bounds is now a deliberate, reviewed change rather than something an unrelated push absorbs.
 
 ## [0.3.0] - 2026-07-11
 
