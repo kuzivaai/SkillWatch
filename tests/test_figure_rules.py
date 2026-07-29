@@ -223,11 +223,31 @@ class TestPercentageMatchesItsOwnFraction:
 class TestTheFloorIsDerivedNotPicked:
     """3c — a hand-picked constant cannot notice a partial parse of one command."""
 
-    def test_the_floor_is_computed_from_per_command_expectations(self):
+    def test_there_is_no_global_floor_against_the_deduplicated_set(self):
+        # The comparand was ambiguous: MIN_PROPORTIONS_PER_COMMAND sums to 28 (a
+        # non-deduplicated sum) and was printed beside "34 distinct" (deduplicated).
+        # Five proportions are produced by BOTH commands, so those two numbers are
+        # not comparable. The global floor is gone; per-command checks remain.
+        assert not hasattr(figure_rules, "derived_floor"), (
+            "a global floor summing per-command minimums cannot be compared against "
+            "the deduplicated set; it was removed rather than reinterpreted"
+        )
         assert hasattr(figure_rules, "MIN_PROPORTIONS_PER_COMMAND")
-        assert hasattr(figure_rules, "derived_floor")
-        assert figure_rules.derived_floor() == sum(
-            figure_rules.MIN_PROPORTIONS_PER_COMMAND.values())
+
+    def test_healthy_overlapping_output_is_not_rejected(self, allowed):
+        # The case that would fail a global check on healthy output: each command
+        # meets its own minimum, eight proportions overlap, so the deduplicated set
+        # is 20 — below a global floor of 28.
+        from pathlib import Path as _P
+        overlapping = figure_rules.AllowedFigures(
+            pairs={(i, 100) for i in range(20)}, raw=allowed.raw,
+            labels=allowed.labels,
+            per_command={
+                _P(figure_rules.HARNESS_COMMANDS[0][-1]).name: 18,
+                _P(figure_rules.HARNESS_COMMANDS[1][-1]).name: 10,
+            })
+        # Must NOT raise: 18 >= 18 and 10 >= 10, both minimums met.
+        figure_rules.find_figure_violations("no figures here", allowed=overlapping)
 
     def test_every_harness_command_has_an_expectation(self):
         from pathlib import Path as _P

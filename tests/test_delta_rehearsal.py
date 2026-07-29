@@ -63,6 +63,17 @@ EXPECTED_STAGES = {
 GUARDED_CHECKS = ("new_domains", "major_deletion")
 
 
+def emittable_codes() -> set[str]:
+    """Every flag code detector.py can emit, read from its source.
+
+    NOTE the character class includes DIGITS. A `[a-z_]*` pattern silently omits
+    `new_base64`, which is how a 13-code set gets reported as 12.
+    """
+    import re
+    source = (REPO_ROOT / "skillwatch" / "detector.py").read_text(encoding="utf-8")
+    return set(re.findall(r'code="([a-z0-9_]+)"', source))
+
+
 class TestRehearsalModeExists:
     def test_the_module_exposes_a_rehearse_entry_point(self):
         assert hasattr(delta, "rehearse"), (
@@ -163,6 +174,48 @@ class TestTheGuardedChecksAreReachable:
         v = baseline["verification"]
         assert v["content_hash_mismatched"] == 0
         assert v["content_hash_verified"] == v["pages"]
+
+
+class TestEveryEmittableCodeIsProvenReachable:
+    """The CLASS, not the instance.
+
+    Two codes were found unable to fire through this pipeline because detector.py
+    guards them behind a truthy `old_text` and the pipeline passed None. Probing only
+    those two is the weakest possible sample — they are the two already known broken.
+    Every code detector.py can emit must be proven emittable through `flags_for`, and
+    the count checked must equal the count emittable, so adding a flag without a
+    reachability assertion fails the suite.
+    """
+
+    def test_the_probe_covers_every_emittable_code(self, report):
+        emittable = emittable_codes()
+        probed = set(report["reachability"])
+        missing = emittable - probed
+        assert not missing, (
+            f"{len(missing)} code(s) detector.py can emit have no reachability "
+            f"assertion: {sorted(missing)}. A probe covering a hardcoded subset is "
+            f"the defect being closed here."
+        )
+
+    def test_the_probe_checks_nothing_that_cannot_be_emitted(self, report):
+        stray = set(report["reachability"]) - emittable_codes()
+        assert not stray, (
+            f"probe asserts codes detector.py cannot emit: {sorted(stray)}"
+        )
+
+    def test_the_counts_are_asserted_equal_inside_the_probe(self, report):
+        assert report["reachability_complete"] is True, (
+            "the probe must assert that the number of codes checked equals the "
+            "number emittable, not merely happen to match"
+        )
+
+    @pytest.mark.parametrize("code", sorted(emittable_codes()))
+    def test_every_code_is_reachable(self, code, report):
+        assert report["reachability"].get(code) is True, (
+            f"{code} cannot be emitted through flags_for. The delta pass would "
+            f"silently under-report it on 2026-08-05 — the same defect as the "
+            f"old_text=None one, in a different check."
+        )
 
 
 class TestRehearsalMakesNoNetworkRequest:
