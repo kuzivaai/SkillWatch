@@ -20,7 +20,9 @@ date is marked *(at latest)*.
 
 **Item 9 — zero users — is the only thing gating this project.** Conditions 1–4
 of `SHIP-READINESS.md` pass. No engineering change moves condition 5. It moves by
-distribution or not at all. Items 3 and 11 are the only ones that touch it.
+distribution or not at all. Items 3 and 11 are the only ones that touch it, and
+item 3 is now waiting on third parties, which leaves **item 11 as the only lever
+still in our hands.** It has been out of scope four cycles running.
 
 Read that before picking up anything else on this list. Most items below are
 engineering, and engineering is not the constraint.
@@ -31,9 +33,7 @@ engineering, and engineering is not the constraint.
 
 | # | Item | First raised | Status | Closes when |
 |---|---|---|---|---|
-| 1 | **Cut the v0.4.0 release.** Two dependency security fixes and the corrected efficacy claims reach no user until this happens. | 2026-07-29 | **Open — merged to `main`, release not yet cut.** Human action; outward-facing and irreversible. | `gh release create v0.4.0` run and PyPI shows 0.4.0. |
-| 2 | Live PyPI page publishes superseded figures (78.9% precision, 75.0% recall, 50.0% evasive, no intervals). | 2026-07-29 | **Open — fixed by item 1.** `main` already carries corrected figures; PyPI serves 0.3.0's README. | PyPI shows 0.4.0. |
-| 3 | Distribution PRs [#31](https://github.com/LLMSecurity/awesome-agent-skills-security/pull/31) and [#239](https://github.com/Puliczek/awesome-mcp-security/pull/239) unmerged. Both opened 2026-07-11, no maintainer activity as of 2026-07-29 (18 days). | 2026-07-11 | **Open.** Third-party repos; not in our control. Descriptions to be refreshed with the 0.4.0 figures and AST05 framing once the release lands. | Merged, or closed and a different channel chosen. |
+| 3 | Distribution PRs [#31](https://github.com/LLMSecurity/awesome-agent-skills-security/pull/31) and [#239](https://github.com/Puliczek/awesome-mcp-security/pull/239) unmerged. Both opened 2026-07-11, no maintainer activity in 18 days. | 2026-07-11 | **Open.** Descriptions refreshed with 0.4.0 figures and AST05 framing, and both nudged, 2026-07-29. Third-party repos; not in our control. Nothing further to do but wait. | Merged, or closed and a different channel chosen. |
 | 4 | Adopt ATR upstream through v3.5.11 (100+ commits since the 2026-06-26 derivation, incl. `#342` cutting false positives on 7 rules), then re-measure. | 2026-07-29 *(at latest)* | **Open, deferred three times.** Deliberately excluded from the 0.4.0 pre-release cycle: it changes detection, which forces a re-measure, and the release exists to correct published claims against a frozen detector. | Patterns refreshed in one commit, efficacy re-run in a separate commit, both figures published. |
 | 5 | `PATTERNS.md` does not record which ATR version the 32 patterns were derived from. Drift is observable but not measurable. | 2026-07-29 *(at latest)* | **Open.** Blocks item 4's before/after comparison — without a baseline version there is nothing to diff against. | `PATTERNS.md` records the source version and commit for each pattern set. |
 | 6 | 27 ruff 0.16 findings, held off by `ruff>=0.15.21,<0.16`. Counted, never individually assessed. | 2026-07-29 *(at latest)* | **Open.** Not release-blocking. The upper bound carries its justification in `pyproject.toml`. | Findings assessed and fixed, ceiling raised. |
@@ -55,6 +55,8 @@ engineering, and engineering is not the constraint.
 
 | # | Item | First raised | Closed | How |
 |---|---|---|---|---|
+| 1 | Cut the v0.4.0 release. | 2026-07-29 | 2026-07-29 | Released and published. PyPI serves 0.4.0; `publish.yml` run 30461711497, both jobs success. Verified on the live index that `rfc3161-client>=1.0.6` now ships — 0.3.0 declared `>=1.0`, which did not exclude the CVE-2026-33753-vulnerable versions. |
+| 2 | Live PyPI page publishes superseded figures (78.9% precision, 75.0% recall, 50.0% evasive, no intervals). | 2026-07-29 | 2026-07-29 | Closed by the 0.4.0 release. PyPI now serves the corrected README with intervals on all three corpora and the base-rate warning. |
 | 8 | Ship condition 2 (precision ≥75%) NOT DEMONSTRATED, with "needs more benign corpus items" recorded as the remedy. | 2026-07-29 | 2026-07-29 | **The recorded remedy was arithmetically backwards** — adding benign items can only add false positives, taking precision to 21/29 (72.4%, lower bound 54.3%). Condition re-specified as a benign false-positive-rate gate, which is ratio-independent. Reasoning in `SHIP-READINESS.md`. |
 | 12 | Stale `CLAUDE.md` (10 modules, v0.2.0, "Pages disabled") and `docs/skillwatch-overview.js` (v0.3.0, 323 tests, 12 modules). | 2026-07-29 | 2026-07-29 | Both corrected. `CLAUDE.md` also gained the precision and AST05 rules so future sessions inherit them. |
 | 13 | OWASP AST05/AST07 wording never verified against source; positioning blocked. | 2026-07-29 | 2026-07-29 | Verified against the OWASP project page. AST05 "Untrusted External Instructions" (High) is a direct fit; AST07 "Update Drift" (Medium) is partial. **Early-stage qualifier is mandatory** — v1.0 2026 Edition; OWASP's own pages disagree on the maturity tier, so state "early-stage, not flagship" rather than naming one. Scanner-bypass finding attributed to Trail of Bits, not OWASP. |
