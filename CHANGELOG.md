@@ -7,11 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.4.0] - unreleased
+## [0.4.0] - 2026-07-29
 
-Minor, not patch: this adds two subcommands. The 0.3.1 security fix shipped
-separately so that users who wanted only the dependency fix were not required to
-take new features with it.
+Minor, not patch: this adds two subcommands. The 0.3.1 entry below is retained as
+a separate record because the security fix was developed and merged on its own,
+without features attached; both ship in this release.
+
+### Security
+
+- **Raised `wheel` from unbounded to `>=0.46.2`.** Releases 0.40.0 through 0.46.1
+  are affected by **CVE-2026-24049** ([GHSA-8rrh-rw8j-w5fx](https://github.com/advisories/GHSA-8rrh-rw8j-w5fx), CWE-22, rated HIGH) — arbitrary
+  file permission modification via path traversal in `wheel unpack`. `wheel` is a
+  build requirement and previously declared no lower bound at all, so every
+  published release was permitted.
+- **Every remaining unbounded dependency now declares a floor**: `pytest-cov>=7.1.0`,
+  `types-PyYAML>=6.0.12.20260518`, `types-requests>=2.33.0.20260518`,
+  `types-beautifulsoup4>=4.12.0.20250516`. Each was checked to still support
+  Python 3.10.
+- **`scripts/audit_dependency_floors.py` now fails on any requirement with no
+  lower bound**, and the allowlist that previously exempted them is gone. Auditing
+  only *declared* floors was blind to the maximum-exposure case: a dependency with
+  no bound permits every release ever published. This was not theoretical —
+  `pytest-cov` had no floor and the `lowest-direct` CI leg resolved it to **0.6**, a
+  2010 release, while the audit reported success. The `wheel` CVE above was found
+  the moment that blind spot was closed.
 
 ### Added
 
