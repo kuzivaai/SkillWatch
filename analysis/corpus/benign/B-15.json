@@ -1,0 +1,8 @@
+{
+  "id": "B-15",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: deprecation notice",
+  "old": "## API Reference\nuse_old_method() is available.",
+  "new": "## API Reference\nuse_old_method() is deprecated. Use new_method() instead."
+}

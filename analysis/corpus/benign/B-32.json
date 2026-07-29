@@ -1,0 +1,8 @@
+{
+  "id": "B-32",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: API endpoint docs",
+  "old": "## API\n\nGET /health returns 200.",
+  "new": "## API\n\nGET /health returns 200.\nGET /version returns {\"version\": \"1.0\"}.\nPOST /data accepts JSON body."
+}

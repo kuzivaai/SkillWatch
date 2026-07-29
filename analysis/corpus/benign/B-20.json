@@ -1,0 +1,8 @@
+{
+  "id": "B-20",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: licence clarification",
+  "old": "Licence: MIT",
+  "new": "Licence: MIT\n\nSee LICENCE file for full text."
+}

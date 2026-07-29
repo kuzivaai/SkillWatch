@@ -74,10 +74,86 @@ Before pattern matching, added text is pre-processed to decode:
 
 Safety bounds: per-span cap 1,000 characters, total decoded cap 10,000 characters.
 
+## Quarterly review log
+
+`MAINTENANCE.md` ratifies a quarterly review in January, April, July and October.
+
+### July 2026 — conducted 2026-07-29 (overdue)
+
+Four steps are prescribed. Two were completed, one was completed with a caveat,
+and one was **not** done; each is marked so that a reader can tell what this
+review actually establishes.
+
+**1. Check ATR upstream for new patterns — DONE, and it has moved.**
+
+Upstream is `Agent-Threat-Rule/agent-threat-rules`, at tag **v3.5.11** with more
+than 100 commits since 2026-06-26, the date these 32 patterns were derived. Two
+are directly relevant:
+
+- `fix(rules): cut benign false positives on 7 rules with no recall loss (#342)`
+- `docs(rules): record why 00003 and 00502 were tightened (#344)`
+
+SkillWatch's patterns have **not** been refreshed against these. A refresh is
+warranted and is likely to improve precision, which is currently the weakest
+demonstrated gate.
+
+It is not done in this pass, deliberately: any change to `detector.py` triggers
+the mandatory efficacy re-run, and folding a pattern refresh into the same change
+that rebuilt the measurement would make the before/after comparison circular.
+Refresh first, measure second, as separate changes.
+
+**Provenance gap found:** this file records the source as "ATR-2026-00001" but
+never records *which ATR version* the 32 patterns were taken from. Drift from
+upstream therefore cannot be measured precisely — only observed to exist. Future
+derivations should record the upstream tag.
+
+**2. Check CSA, arXiv and advisory feeds for new attack techniques — NOT DONE.**
+
+Not performed. This project's own standard forbids presenting unverified research
+as verified, and a credible pass over these feeds means tracing claims to primary
+sources, which was not done here. Recording it as complete would be worse than
+recording it as outstanding. **This step remains outstanding for July 2026.**
+
+One adjacent finding did come from advisory data this cycle, though it concerns a
+dependency rather than a detection pattern: `rfc3161-client` floors permitted
+CVE-2026-33753, fixed in 0.3.1. See `CHANGELOG.md`.
+
+**3. Run the efficacy harness — DONE.**
+
+```
+Original corpus (67 items: 32 benign, 10 pattern-matching, 25 evasive)
+  Precision      21/25 (84.0%, 95% CI [65.3%, 93.6%])
+  Overall recall 21/35 (60.0%, 95% CI [43.6%, 74.4%])
+  Evasive recall 11/25 (44.0%, 95% CI [26.7%, 62.9%])
+  Benign FP       4/32 (12.5%, 95% CI [5.0%, 28.1%])
+
+Holdout v2 (18 items; all 12 malicious items are evasive)
+  Precision       9/10 (90.0%, 95% CI [59.6%, 98.2%])
+  Overall recall  9/12 (75.0%, 95% CI [46.8%, 91.1%])
+
+HTML corpus (12 items)  TP 6  FP 0  TN 6  FN 0
+```
+
+No detector change was made this cycle, so the `MAINTENANCE.md` regression gate
+(precision ≥75%, recall ≥70% on any commit touching `detector.py`) was **not
+triggered**. The measured figures fell because the evasive corpus was expanded
+from 10 items to 25; behaviour on the original ten is unchanged. Reporting these
+as a regression would be wrong.
+
+**4. Record pattern changes — DONE.** No patterns were added, removed or
+modified this cycle. Two items are carried forward:
+
+| Carried forward | Detail |
+|---|---|
+| ATR refresh | Adopt upstream changes through v3.5.11, then re-measure. |
+| `hidden_content` is narrower than documented | `_extract_hidden_texts()` (`detector.py:605`) matches only `display:none` and `visibility:hidden`. Corpus item `E-24` hides text with `position:absolute;left:-9999px` and is missed. Off-screen positioning, `clip-path`, `opacity:0`, `font-size:0` and `height:0` are all unhandled. This is a narrow implementation gap, not the semantic ceiling, and is fixable. |
+
 ## Changelog
 
 | Date | Change | Impact |
 |------|--------|--------|
+| 2026-07-29 | Expanded the evasive corpus from 10 items to 25, preserving the original family proportions | Evasive recall re-measured at 11/25 (44.0%, CI [26.7%, 62.9%]); the n=10 figure of 50.0% had a CI of [23.7%, 76.3%] and demonstrated nothing. No detector change. |
+| 2026-07-29 | Added Wilson score intervals to the efficacy harness; gates now evaluated on the CI lower bound | Three gates reclassified as not demonstrated. See `SHIP-READINESS.md`. |
 | 2026-06-26 | Initial 13 flag codes, 32 injection patterns | v0.1.0 release |
 | 2026-07-03 | Added canonicalisation layer (HTML comments, reversed text, ROT13) | Improved evasive recall from 30% to 50% on original corpus |
 | 2026-07-03 | Added Osage, Lisu to homoglyph suspicious scripts | Extended Unicode coverage |

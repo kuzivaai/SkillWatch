@@ -1,0 +1,8 @@
+{
+  "id": "B-18",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: requirements updated",
+  "old": "Requirements:\n- Python >= 3.8\n- requests >= 2.25",
+  "new": "Requirements:\n- Python >= 3.10\n- requests >= 2.32\n- pyyaml >= 6.0"
+}

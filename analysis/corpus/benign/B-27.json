@@ -1,0 +1,8 @@
+{
+  "id": "B-27",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: test instructions",
+  "old": "# Dev\n\nRun tests with pytest.",
+  "new": "# Dev\n\nRun tests with pytest.\n\n```bash\npip install -e '.[dev]'\npytest --cov\n```"
+}

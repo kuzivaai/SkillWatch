@@ -1,0 +1,8 @@
+{
+  "id": "B-19",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: badge added",
+  "old": "# MyProject",
+  "new": "# MyProject\n[![CI](https://github.com/example/myproject/actions/workflows/ci.yml/badge.svg)](https://github.com/example/myproject)"
+}

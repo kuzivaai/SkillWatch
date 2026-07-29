@@ -1,0 +1,8 @@
+{
+  "id": "B-23",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: migration guide",
+  "old": "# v2 Migration\n\nBreaking changes listed below.",
+  "new": "# v2 Migration\n\nBreaking changes listed below.\n\n1. Config format changed from INI to YAML\n2. Python 3.8 no longer supported"
+}
