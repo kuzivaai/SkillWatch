@@ -116,6 +116,22 @@ CORPUS = _HERE / "corpus" / "realpage"
 MANIFEST = CORPUS / "MANIFEST.json"
 BASELINE = CORPUS / "DELTA-BASELINE.json"
 
+
+def _load_sibling_early(name: str) -> ModuleType:
+    """Load a sibling module in `analysis/` by path (see measure_base_rate.py).
+
+    Defined up here, above the constants, because _CAPTURE_CANDIDATES is derived
+    from verify_capture.recorded_copies() at import time. `_load_sibling` below is
+    an alias kept for the existing call sites.
+    """
+    spec = importlib.util.spec_from_file_location(name, _HERE / f"{name}.py")
+    if spec is None or spec.loader is None:
+        raise SystemExit(f"FAIL: cannot load analysis/{name}.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
 # Rehearsal output goes here and nowhere else. A zero-change delta is not a
 # measurement and must never reach README.md, SHIP-READINESS.md, PATTERNS.md,
 # CHANGELOG.md or docs/, where a reader would take it for one.
@@ -149,17 +165,27 @@ REHEARSAL_SOURCES = ("capture", "corpus")
 # corpus runs only the five HTML checks, which is exactly why a corpus-only rehearsal
 # could not see the old_text=None defect.
 #
-# Integrity manifest: analysis/corpus/realpage/CAPTURE-INTEGRITY.json (per-page
-# hashes, so a copy can be verified without the original).
+# Integrity manifest: analysis/corpus/realpage/CAPTURE-INTEGRITY.json. It records
+# per-page hashes AND, since 2026-07-30, every copy's location — it is the single
+# registry of where the capture lives. `analysis/verify_capture.py` verifies them.
 #
-# 56.2 MB of third-party HTML, deliberately NOT committed.
+# 56.2 MB of third-party HTML (the containing JSON is 60.0 MB), deliberately NOT
+# committed.
 CAPTURE_ARCHIVE = "/home/mkuziva/.skillwatch-archive/realpage-2026-07-29/fetched_pages.json"
 
-# Searched in order: the durable archive, then any surviving scratchpad. NOTE the
-# scratchpad path is FOUR levels deep (/tmp/claude-*/<project>/<session>/scratchpad);
-# a three-level glob finds nothing and would suggest the capture is gone when it is not.
+_verify_capture = _load_sibling_early("verify_capture")
+
+# Searched in order: every copy the MANIFEST records, then any surviving scratchpad.
+# The copy list is not duplicated here — a second hand-maintained list is free to
+# drift from the first, and the stale one still looks authoritative. That is the
+# figure-drift defect in another costume.
+#
+# NOTE the scratchpad path is FOUR levels deep
+# (/tmp/claude-*/<project>/<session>/scratchpad); a three-level glob finds nothing
+# and would make a present file look permanently lost. That near-miss is ledger
+# item 51 and a test asserts the depth stays at four.
 _CAPTURE_CANDIDATES = (
-    CAPTURE_ARCHIVE,
+    *(_verify_capture.recorded_copies() or (CAPTURE_ARCHIVE,)),
     "/tmp/claude-1000/-home-mkuziva-skillwatch/*/scratchpad/fetched_pages.json",
 )
 
@@ -177,15 +203,7 @@ HTML_CHECKS = (
 )
 
 
-def _load_sibling(name: str) -> ModuleType:
-    """Load a sibling module in `analysis/` by path (see measure_base_rate.py)."""
-    spec = importlib.util.spec_from_file_location(name, _HERE / f"{name}.py")
-    if spec is None or spec.loader is None:
-        raise SystemExit(f"FAIL: cannot load analysis/{name}.py")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[name] = module
-    spec.loader.exec_module(module)
-    return module
+_load_sibling = _load_sibling_early
 
 
 def short_hash(text: str) -> str:
@@ -287,6 +305,23 @@ def _load_rehearsal_pages(source: str) -> list[dict[str, Any]]:
 
     if source not in REHEARSAL_SOURCES:
         # An explicit path — used to verify a preserved copy of the capture.
+        #
+        # If the caller names a RECORDED copy, verify it: naming a path explicitly
+        # must not be a way round the hash check, or a corrupt copy gets promoted
+        # into a regenerated DELTA-BASELINE.json.
+        #
+        # If it is some other file it may legitimately be a different capture, so it
+        # loads — but it is announced as unverified. Silence would read as a clean
+        # bill of health, and this repository has shipped that mistake four times.
+        if str(Path(source).resolve()) in {
+            str(Path(p).resolve()) for p in _verify_capture.recorded_copies()
+        } or source in _verify_capture.recorded_copies():
+            _verify_capture.assert_capture_trustworthy(source)
+        else:
+            print(f"UNVERIFIED source: {source} is not a copy recorded in "
+                  f"CAPTURE-INTEGRITY.json, so its bytes have been checked against "
+                  f"nothing. Results from it say nothing about the 2026-07-29 "
+                  f"capture.", file=sys.stderr)
         with open(source) as handle:
             records = json.load(handle)
         return [{"url": r["url"], "raw_html": r["raw_html"],
@@ -299,13 +334,22 @@ def _load_rehearsal_pages(source: str) -> list[dict[str, Any]]:
             matches.extend(sorted(glob.glob(candidate)))
         if not matches:
             raise SystemExit(
-                "FAIL: the 2026-07-29 HTML capture is no longer on disk.\n"
+                "FAIL: the 2026-07-29 HTML capture is no longer on disk — "
+                f"{_verify_capture.MISSING_PHRASE} at any recorded location.\n"
                 f"  looked for: {_CAPTURE_CANDIDATES}\n"
+                "  NOTE the scratchpad glob is four levels deep. An empty locating "
+                "result is a FAILED command, not an absence: widen the search "
+                "(different glob depths, different roots, search by filename) before "
+                "concluding anything is gone.\n"
                 "This is a FINDING about the baseline's reproducibility, not a "
                 "reason to fetch: DELTA-BASELINE.json was derived from bytes that "
                 "no longer exist anywhere, so its derivation cannot be re-checked. "
                 "Rehearse with --source corpus instead, which uses committed HTML."
             )
+        # Verify BEFORE loading. A rotted copy that still parses would otherwise be
+        # fed through the pipeline and reported as a rehearsal result — which is the
+        # defect one level up from the one the archive copies fix.
+        _verify_capture.assert_capture_trustworthy(matches[0])
         with open(matches[0]) as handle:
             records = json.load(handle)
         pages: list[dict[str, Any]] = []

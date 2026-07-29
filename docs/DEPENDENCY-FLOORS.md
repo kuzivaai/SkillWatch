@@ -22,9 +22,60 @@ environment does not get the newest version. They get whatever the floor allows.
 
 | Check | Question it answers | Where |
 |---|---|---|
-| `pip-audit --skip-editable` | Do the versions we installed have advisories? | `security` job |
+| `pip-audit --strict -r <resolved set>` | Do the versions we installed have advisories? | `security` job |
 | `scripts/audit_dependency_floors.py` | Do the versions we *permit* have advisories? | `security` job |
 | `uv run --resolution lowest-direct` | Do the versions we permit actually work? | `lowest-direct` job |
+
+## `pip-audit --strict`: settled 2026-07-30
+
+For five sessions the ledger carried this as open, with two claims: that `--strict`
+cannot pass **in the invocation shape CI used**, and — untested — that it can
+**never** pass. The untested claim was tested on 2026-07-30. **It is false.**
+
+The shape that works exports a resolved requirements file that excludes the project
+itself, and audits that file:
+
+```bash
+pip install -e ".[dev]"
+pip freeze --exclude-editable > requirements-audit.txt   # drops the editable project
+python -m venv /tmp/auditenv && /tmp/auditenv/bin/pip install pip-audit
+/tmp/auditenv/bin/pip-audit --strict --desc -r requirements-audit.txt
+```
+
+Measured, on pip-audit 2.10.1, 47 packages:
+
+| Shape | Project version | Result |
+|---|---|---|
+| env scan, `pip-audit --strict` | 0.4.1 (published) | **exit 0** |
+| env scan, `pip-audit --strict` | 0.9.9 (unreleased) | **exit 1** — `skillwatch: Dependency not found on PyPI and could not be audited: skillwatch (0.9.9)` |
+| `--strict -r <resolved>` | 0.4.1 | **exit 0** |
+| `--strict -r <resolved>` | 0.9.9 | **exit 0** |
+
+So the original reasoning was **right about the mechanism and wrong about today**.
+The env-scan shape passes at the moment only because `main`'s version happens to
+equal what PyPI serves; it would fail at the next pre-release version bump, exactly
+as the old comment predicted. The `-r` shape is robust because the project is
+excluded from the audited set outright, so whether its version is published stops
+mattering.
+
+**Adopted.** `--skip-editable` is gone — it was the skip that `--strict` rejects.
+
+Why pip-audit is installed in a **separate** virtualenv: if it were installed
+alongside the project, `pip freeze` would also capture *its* dependency tree
+(cyclonedx, CacheControl, boolean.py, license-expression, …) and an advisory in the
+auditing tool would fail this project's CI for something this project does not ship.
+
+**Two honest limits, so a later session does not over-read this.**
+
+1. On the `-r` shape an unresolvable entry already fails **without** `--strict` —
+   measured exit 1 either way, because pip-audit resolves the file by a dry-run
+   install. No case was constructed in which `--strict` changed the outcome of the
+   `-r` shape. It is kept as an explicit statement that silent skips are unacceptable,
+   **not** because it was observed firing here. A rule that has never fired has not
+   been tested; this one is recorded as such rather than presented as proven.
+2. This audits the versions CI **installed**, which are the newest a resolver picks.
+   It still says nothing about what the declared ranges *permit* — that remains the
+   floor audit's job, and the reason the two checks are separate has not changed.
 
 The floor audit queries OSV for every `>=` floor declared in any table of
 `pyproject.toml` — runtime dependencies, every optional-dependency group, and
