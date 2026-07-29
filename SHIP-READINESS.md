@@ -1,159 +1,136 @@
-# Ship Readiness Checklist
+# Ship Readiness
 
-Items removed or deferred during remediation. Restore these before publishing to PyPI.
+Scoreboard for the five conditions in `DECISION.md` (which is the superseded
+pre-remediation record; this file is current).
 
-## DECISION.md Condition Map
+**Last evaluated:** 2026-07-29, against the corpora in `analysis/corpus/`.
 
-All 5 conditions must PASS before the HOLD can be lifted.
+## How gates are evaluated (changed 2026-07-29)
 
-| # | Condition | Status | Evidence |
-|---|-----------|--------|----------|
-| 1 | Evasive recall >= 50% OR documentation makes unmissable that triage is decorative | **PASS** | Evasive recall is 50% on original corpus, 75% on holdout. README states figures in multiple places with honest ceiling statement. |
-| 2 | Precision >= 75% | **PASS** | 78.9% on original corpus, 90.0% on holdout. SRI hash FP fixed. |
-| 3 | Named maintenance owner and pattern update cadence | **PASS** | MAINTENANCE.md names sole contributor as owner. Quarterly review cadence ratified 2026-07-08. |
-| 4 | Minimum one independent, non-conflicted evidence source for premise | **PASS** | Both sources VERIFIED INDEPENDENT of AIR (see analysis/source_independence_memo.md, updated 2026-07-08). arxiv 2508.12538 authors at Tsinghua, Ant Group, Swinburne, Adelaide, UNSW (affiliations confirmed from PDF title page). CSA note authored by CSA AI Safety Initiative; AIR not cited or credited. |
-| 5 | Evidence of at least minimal user demand | **FAIL** | Zero stars, zero forks, zero external users. Repository is private. |
+Gates are evaluated on the **lower bound of the 95% Wilson score interval**, not
+on the point estimate.
 
-**Current verdict: HOLD.**
+The reason is that these corpora are small, and a point estimate from a small
+sample carries almost no information about the underlying rate. The clearest
+example is the one this project shipped for months: evasive recall of 5/10 was
+recorded as "50.0%, gate met", when its 95% interval runs from 23.7% to 76.3%.
+That result is consistent with a true rate of one in four and with a true rate of
+three in four. It does not demonstrate anything.
 
-Honest condition tally: 4 PASS (conditions 1, 2, 3, and 4), 1 FAIL (condition 5). The HOLD cannot be lifted until condition 5 (user demand) is resolved.
+So the question a gate now asks is not *"did the measured value clear the
+threshold?"* but *"does the evidence demonstrate the threshold is met?"* Wilson
+is used rather than the normal approximation because it stays well-behaved at
+small n and near 0 or 1; Clopper–Pearson is needlessly conservative here.
 
-## Removed (must restore before PyPI publish)
-
-| Item | Location | Original Content | Reason Removed |
-|------|----------|------------------|----------------|
-| PyPI version badge | README.md line 6 | `[![PyPI](https://img.shields.io/pypi/v/skillwatch)](https://pypi.org/project/skillwatch/)` | Links to unpublished package; badge renders as "not found" |
-| PyPI Python versions badge | README.md line 7 | `[![Python](https://img.shields.io/pypi/pyversions/skillwatch)](https://pypi.org/project/skillwatch/)` | Links to unpublished package; badge renders as "not found" |
-| `pip install skillwatch` instruction | README.md Install section | `pip install skillwatch` as primary install method | Package not on PyPI; command would fail |
-| `pip install skillwatch` in action.yml | action.yml line 32 | `run: pip install skillwatch` | Changed to `pip install git+https://...` until PyPI publish |
-
-## Deferred (not yet ready)
-
-| Item | Blocker | Notes |
-|------|---------|-------|
-| PyPI publish | DECISION.md HOLD -- conditions 4 and 5 fail | publish.yml workflow exists but requires manual dispatch |
-| GitHub Marketplace listing | Repository is private | action.yml is functional but not listed |
-| GitHub Pages deployment | DECISION.md HOLD | docs/index.html exists but Pages not enabled |
-
-## Marketplace — post-HOLD (O-03)
-
-The action.yml already has marketplace branding configured:
-- `icon: shield`
-- `color: blue`
-
-Once the HOLD is lifted and the repository is made public:
-1. Go to https://github.com/marketplace
-2. Select the SkillWatch repository
-3. Choose "Create a new listing" for GitHub Actions
-4. Fill in the listing description from the README "Why this exists" section
-5. Set pricing to "Free"
-6. Submit for review
-
-Do NOT list until: repository is public, HOLD is lifted, and all 5
-DECISION.md conditions are met.
-
-## Publish-day checklist
-
-Exact commands to run on the day the HOLD is lifted. Execute in order.
+Intervals are computed by `wilson_interval()` in `analysis/measure_efficacy.py`
+and printed by the harness, so every figure below is reproducible with:
 
 ```bash
-# 1. Verify all tests pass
-source .venv/bin/activate
-python3 -m pytest --cov=skillwatch --cov-report=term-missing -q
-
-# 2. Verify lint is clean
-ruff check skillwatch/ tests/
-
-# 3. Verify build is clean
-rm -rf dist/ build/ skillwatch.egg-info
-python3 -m build
-
-# 4. Run efficacy harness and confirm no regressions
 python3 analysis/measure_efficacy.py
-
-# 5. Verify mypy passes
-mypy skillwatch/
-
-# 6. Run pip-audit on the venv
-pip-audit
-
-# 7. Restore PyPI badges to README.md
-# (see "Removed" table above for exact badge markdown)
-
-# 8. Restore pip install instruction to README.md
-# Change Install section from "git clone" to "pip install skillwatch"
-
-# 9. Restore pip install in action.yml
-# Change line 32 from "pip install git+https://..." to "pip install skillwatch"
-
-# 10. Bump version in pyproject.toml if needed
-# Update skillwatch/__init__.py version to match
-
-# 11. Tag the release
-git tag -a v0.X.0 -m "Release v0.X.0"
-git push origin main --tags
-
-# 12. Publish to PyPI (manual dispatch)
-# Go to Actions > publish.yml > Run workflow
-
-# 13. Verify PyPI listing
-pip install skillwatch  # from a clean venv
-
-# 14. Enable GitHub Pages if desired
-# Settings > Pages > Source: Deploy from branch > main > /docs
-
-# 15. List on GitHub Marketplace (see section above)
 ```
 
-## Action dry-run procedure (Q-05)
+## Condition map
 
-The GitHub Action cannot be tested end-to-end from within this repository.
-To verify it works in a consuming repository:
+| # | Condition | Status | Basis |
+|---|-----------|--------|-------|
+| 1 | Evasive recall ≥50% **or** documentation makes unmissable that the triage is decorative | **PASS via the documentation route** | Recall route fails: 11/25 (44.0%, CI [26.7%, 62.9%]). The README now states plainly that the triage is decorative against a competent adversary. |
+| 2 | Precision ≥75% | **NOT DEMONSTRATED** | 21/25 (84.0%, CI [65.3%, 93.6%]). Point clears 75%; lower bound does not. |
+| 3 | Named maintenance owner and pattern update cadence | **PASS, with an overdue review** | `MAINTENANCE.md` names the owner and a quarterly cadence. The July 2026 review was outstanding and is recorded in `PATTERNS.md`. |
+| 4 | ≥1 independent, non-conflicted evidence source for the premise | **UNDER REVIEW** | One of the two cited sources does not support the claim made of it — see below. Not re-established in this pass. |
+| 5 | Evidence of minimal user demand | **FAIL** | 0 stars, 0 forks, 0 watchers, no external users. |
+
+**Verdict: HOLD.** Conditions 2, 4 and 5 are unmet or unverified.
+
+## Condition 1 — the honest outcome
+
+The evasive corpus was expanded from 10 items to 25 on 2026-07-29, because at
+n=10 the interval was too wide to support any claim. The result:
+
+| | Before (n=10) | After (n=25) |
+|---|---|---|
+| Evasive recall | 5/10 (50.0%, CI [23.7%, 76.3%]) | 11/25 (44.0%, CI [26.7%, 62.9%]) |
+
+**The detector did not get worse.** Its behaviour on the original ten items is
+unchanged — the same five are caught. The measured rate fell because the sample
+grew, which is what a wider sample of the same population does to an optimistic
+small-sample estimate.
+
+The point estimate is now **below** the 50% threshold, not merely its lower
+bound. The threshold has not been moved to accommodate this. Condition 1 offers
+two routes, and the recall route has failed on the evidence, so the condition is
+met by the second route: the README states that the triage is decorative against
+an adversary who is trying to evade it.
+
+Corpus composition, since a recall figure is a property of the corpus as much as
+of the detector — 25 evasive items, expanded while preserving the family
+proportions of the original ten so that sample size changed and the population
+definition did not:
+
+| Family | n | Caught |
+|---|---|---|
+| Semantic / framing (no obfuscation, no trigger words) | 13 | 2 |
+| Encoding / obfuscation (ROT13, reversal, base64, zero-width, homoglyph, spacing) | 7 | 7 |
+| Structural (HTML comment, hidden element) | 3 | 1 |
+| Non-English instruction | 2 | 1 |
+
+The pattern is not noise. Every obfuscation-family item is caught, because
+obfuscation leaves mechanical traces the canonicalisation layer is built to find.
+Almost no semantic-framing item is caught, because those contain nothing to match
+— they are ordinary English sentences whose meaning is hostile. That is the
+documented ceiling, and it is a property of regex triage, not a defect to fix.
+
+One miss is **not** the ceiling and is worth separating out: `E-24` hides text
+with `position:absolute;left:-9999px`, and `_extract_hidden_texts()`
+(`skillwatch/detector.py:605`) matches only `display:none` and
+`visibility:hidden`. That is a narrow implementation gap rather than a semantic
+evasion. It is recorded here and in `PATTERNS.md` rather than fixed in the same
+change that measures it, because `MAINTENANCE.md` requires an efficacy re-run on
+any detector change and mixing the two would make the measurement circular.
+
+## Condition 2 — precision
+
+21/25 (84.0%, CI [65.3%, 93.6%]) on the original corpus; 9/10 (90.0%, CI
+[59.6%, 98.2%]) on the holdout. Both point estimates clear 75%; neither lower
+bound does. More benign items are needed to demonstrate this, not a lower gate.
+
+## Condition 3 — maintenance
+
+Owner and quarterly cadence are ratified in `MAINTENANCE.md`. The July 2026
+review was overdue at the start of this pass; see `PATTERNS.md` for what was
+done and what remains.
+
+## Condition 4 — premise evidence
+
+Previously recorded as PASS on two sources. One of them, **arXiv 2508.12538**, is
+*MCPXkit: The Unified Toolkit for Analyzing Model Context Protocol Security* — an
+offensive toolkit cataloguing attack methods. It is not independent evidence that
+the bait-and-switch premise occurs; citing it as such overstates what it says.
+The second source (a CSA AI Safety Initiative note) has not been re-verified in
+this pass.
+
+The premise may well be supportable — stronger sources appear to exist — but this
+condition is marked UNDER REVIEW rather than PASS until a citation has actually
+been checked against its primary source. Re-establishing it is separate work.
+
+## Condition 5 — demand
+
+0 stars, 0 forks, 0 watchers, 0 external users. This remains the binding
+constraint, and no amount of engineering moves it.
+
+Note for anyone reading an older copy of this file: it previously recorded this
+condition's basis as "Repository is private", and listed the PyPI publish, Pages
+deployment and Marketplace listing as blocked. Those statements were stale. The
+repository is public, `0.2.0` and `0.3.0` are on PyPI, and Pages is serving. The
+condition genuinely fails, but for the plain reason that nobody is using the
+tool.
+
+## Reproducing these figures
 
 ```bash
-# 1. Create a test repository
-mkdir skillwatch-action-test && cd skillwatch-action-test
-git init && git remote add origin https://github.com/<user>/skillwatch-action-test.git
-
-# 2. Create a test SKILL.md with a known URL
-cat > SKILL.md <<'SKILL_EOF'
-# Test Skill
-
-Documentation: https://example.com
-Setup: https://httpbin.org/html
-SKILL_EOF
-
-# 3. Create a GitHub Actions workflow using the SkillWatch action
-mkdir -p .github/workflows
-cat > .github/workflows/test-skillwatch.yml <<'WF_EOF'
-name: Test SkillWatch Action
-on: [push]
-jobs:
-  scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: kuzivaai/SkillWatch@main
-        with:
-          files: SKILL.md
-WF_EOF
-
-# 4. Push and check the workflow run
-git add -A && git commit -m "test: verify SkillWatch action"
-git push -u origin main
-
-# 5. Go to Actions tab and verify:
-#    - Python is installed
-#    - SkillWatch is installed from git
-#    - URLs are added from SKILL.md
-#    - Scan runs without error
-#    - Results artifact is uploaded
-
-# 6. On second push (with SKILL.md unchanged), verify:
-#    - Database is restored from cache
-#    - Scan reports "unchanged" for previously seen URLs
+python3 analysis/measure_efficacy.py
 ```
 
-This procedure cannot be automated from within SkillWatch itself because
-the Action is a composite step that requires a GitHub Actions runner
-environment with access to `actions/setup-python`, `actions/cache`, etc.
+The corpora are in `analysis/corpus/`. Until 2026-07-29 only `holdout_v2` and
+`html_v1` were tracked in git; the 67 items behind the headline figures were
+covered by a `.gitignore` rule, so the published numbers could not be checked
+from a clean clone. That is fixed — the corpora and the harness are now tracked.

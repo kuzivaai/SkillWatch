@@ -1,0 +1,8 @@
+{
+  "id": "B-09",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: version bump",
+  "old": "# MyLib v1.0\n\nA library for data processing.",
+  "new": "# MyLib v1.1\n\nA library for data processing.\n\n## What's new\n- Added CSV export"
+}

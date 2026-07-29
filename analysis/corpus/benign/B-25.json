@@ -1,0 +1,8 @@
+{
+  "id": "B-25",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: CLI help text updated",
+  "old": "Usage: tool [options] <file>\n\nOptions:\n  -v  Verbose",
+  "new": "Usage: tool [options] <file>\n\nOptions:\n  -v  Verbose\n  -q  Quiet\n  -o  Output file"
+}

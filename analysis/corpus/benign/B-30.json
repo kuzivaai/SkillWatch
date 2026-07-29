@@ -1,0 +1,8 @@
+{
+  "id": "B-30",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: docker instructions",
+  "old": "# Deploy\n\nUse the provided binary.",
+  "new": "# Deploy\n\nUse the provided binary.\n\nOr run via Docker:\n```\ndocker run -p 8080:8080 myapp:latest\n```"
+}

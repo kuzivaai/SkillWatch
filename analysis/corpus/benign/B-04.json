@@ -1,0 +1,8 @@
+{
+  "id": "B-04",
+  "label": "benign",
+  "subset": "hash",
+  "source": "synthetic: Docker image digest page",
+  "old": "Image: myapp:latest\nDigest: sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+  "new": "Image: myapp:latest\nDigest: sha256:1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef\nUpdated: 2026-07-01"
+}

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SkillWatch — Watch the URLs Your AI Tools Rely On</title>
-<meta name="description" content="Free, open-source CLI tool that watches the web pages AI tools point to and alerts you when they change. Runs 13 pattern checks to flag suspicious changes. Catches 75% of attacks in testing, but not all. Complements Snyk Agent Scan and Cisco skill-scanner.">
+<meta name="description" content="Free, open-source CLI tool that watches the web pages AI tools point to and alerts you when they change. Runs 13 pattern checks to flag suspicious changes. Catches 21/35 of attacks in testing (60%), and under half of evasive ones. Complements Snyk Agent Scan and Cisco skill-scanner.">
 <meta name="keywords" content="MCP security, AI agent security, skill security, URL monitoring, bait-and-switch, content triage, supply chain security, Claude Code, Cursor, Windsurf, open source, ATR, Agent Threat Rules, ClawHavoc, unicode homoglyph, DNS pinning, SSRF protection">
 <meta name="author" content="Kuziva Muzondo">
 <meta name="robots" content="index, follow">
@@ -12,7 +12,7 @@
 
 <!-- Open Graph -->
 <meta property="og:title" content="SkillWatch — Watch the URLs Your AI Tools Rely On">
-<meta property="og:description" content="Free CLI tool that watches the web pages your AI tools point to. 13 pattern checks flag suspicious changes. 75% recall in testing. Complements Snyk Agent Scan.">
+<meta property="og:description" content="Free CLI tool that watches the web pages your AI tools point to. 13 pattern checks flag suspicious changes. 60% recall in testing, 44% against evasive attacks. Complements Snyk Agent Scan.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://kuzivaai.github.io/SkillWatch/">
 <meta property="og:site_name" content="SkillWatch">
@@ -20,7 +20,7 @@
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="SkillWatch — Watch the URLs Your AI Tools Rely On">
-<meta name="twitter:description" content="Free CLI tool that watches the web pages your AI tools point to. 13 pattern checks flag suspicious changes. 75% recall in testing.">
+<meta name="twitter:description" content="Free CLI tool that watches the web pages your AI tools point to. 13 pattern checks flag suspicious changes. 60% recall in testing, 44% against evasive attacks.">
 
 <!-- Structured Data: SoftwareApplication -->
 <script type="application/ld+json">
@@ -34,7 +34,7 @@
   "programmingLanguage": "Python",
   "softwareVersion": "0.3.0",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-  "description": "Watches the web pages AI tools point to and alerts when they change. 13 pattern checks flag suspicious changes. 75% recall, 78.9% precision in testing. The checks can be evaded and do not replace human review.",
+  "description": "Watches the web pages AI tools point to and alerts when they change. 13 pattern checks flag suspicious changes. 60% recall, 84% precision in testing, falling to 44% against evasive attacks. The triage is decorative against an adversary trying to evade it; the value is the change alert.",
   "url": "https://github.com/kuzivaai/SkillWatch",
   "downloadUrl": "https://github.com/kuzivaai/SkillWatch",
   "license": "https://www.apache.org/licenses/LICENSE-2.0",
@@ -47,7 +47,7 @@
     "Protection against server-side request forgery (SSRF) with DNS pinning",
     "JSON output for CI/CD and webhook integration",
     "Built-in ignore presets to reduce false positives",
-    "75% recall, 78.9% precision in synthetic testing",
+    "60% recall, 84% precision in synthetic testing; 44% against evasive attacks",
     "Tamper-evident, append-only content ledger with independent re-verification (skillwatch verify)",
     "Zero infrastructure cost"
   ]
@@ -65,7 +65,7 @@
       "name": "What is SkillWatch?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "SkillWatch is a free, open-source Python CLI that watches the web pages AI tools point to and tells you when something changes. It runs 13 pattern checks on changed content to flag suspicious additions, and decodes common obfuscation tricks (ROT13, reversed text, hidden HTML comments) before checking. In testing, it caught 75% of attacks overall, dropping to 50% against attacks designed to avoid detection. Cleverly worded attacks (polite requests, stories, academic language) will not be caught because they look identical to normal text. It runs locally via cron or CI, costs nothing, and stores everything in a local SQLite database."
+        "text": "SkillWatch is a free, open-source Python CLI that watches the web pages AI tools point to and tells you when something changes. It runs 13 pattern checks on changed content to flag suspicious additions, and decodes common obfuscation tricks (ROT13, reversed text, hidden HTML comments) before checking. In testing, it caught 21/35 of attacks overall (60%), dropping to 11/25 (44%) against attacks designed to avoid detection. Cleverly worded attacks (polite requests, stories, academic language) will not be caught because they look identical to normal text. It runs locally via cron or CI, costs nothing, and stores everything in a local SQLite database."
       }
     },
     {
@@ -81,7 +81,7 @@
       "name": "What does SkillWatch detect?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "SkillWatch runs 13 pattern checks on changed content. It looks for: shell commands (curl, pip install, eval), prompt injection phrases in 7 languages (32 patterns from the Agent Threat Rules project) with ROT13 and reversed-text decoding, suspicious HTML (scripts, iframes, data URI embeds, hidden comments), Unicode lookalike characters, credential keywords, new domain references, large content deletions, meta refresh redirects, base64 payloads, and hidden elements. All HTML checks only flag newly added content, not things already on the page. In testing, recall is 75% overall, dropping to 50% against attacks designed to avoid detection. Precision is 78.9%. Attacks phrased as polite requests, stories, or academic writing bypass detection because they look like normal text. Review all alerts manually."
+        "text": "SkillWatch runs 13 pattern checks on changed content. It looks for: shell commands (curl, pip install, eval), prompt injection phrases in 7 languages (32 patterns from the Agent Threat Rules project) with ROT13 and reversed-text decoding, suspicious HTML (scripts, iframes, data URI embeds, hidden comments), Unicode lookalike characters, credential keywords, new domain references, large content deletions, meta refresh redirects, base64 payloads, and hidden elements. All HTML checks only flag newly added content, not things already on the page. In testing, recall is 21/35 overall (60%), dropping to 11/25 (44%) against attacks designed to avoid detection. Precision is 21/25 (84%). Attacks phrased as polite requests, stories, or academic writing bypass detection because they look like normal text. Review all alerts manually."
       }
     },
     {
@@ -352,7 +352,7 @@ footer a { color: var(--muted); }
         <td>Prompt injection detection</td>
         <td class="yes">Yes (backend)</td>
         <td class="yes">Yes (YARA+LLM)</td>
-        <td class="partial">Pattern-based (32 regex patterns; 75% recall, 50% vs evasive)</td>
+        <td class="partial">Pattern-based (32 regex patterns; 60% recall, 44% vs evasive)</td>
       </tr>
       <tr>
         <td>Free for individuals</td>

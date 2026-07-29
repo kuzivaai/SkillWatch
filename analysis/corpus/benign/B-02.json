@@ -1,0 +1,8 @@
+{
+  "id": "B-02",
+  "label": "benign",
+  "subset": "hash",
+  "source": "synthetic: GitHub release page with commit hash",
+  "old": "## v2.0.0\nCommit: 4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b\nAssets: binary-linux-amd64.tar.gz",
+  "new": "## v2.0.1\nCommit: 9f8e7d6c5b4a3210fedcba9876543210abcdef01\nAssets: binary-linux-amd64.tar.gz\n\nBugfix release."
+}

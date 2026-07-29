@@ -1,0 +1,8 @@
+{
+  "id": "B-03",
+  "label": "benign",
+  "subset": "hash",
+  "source": "synthetic: security advisory with checksums",
+  "old": "Advisory: CVE-2026-1234\nAffected: lib-crypto v3.1\nPatch hash: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "new": "Advisory: CVE-2026-1234\nAffected: lib-crypto v3.1 (UPDATED: also v3.2)\nPatch hash: fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210\nStatus: Patched in v3.3"
+}

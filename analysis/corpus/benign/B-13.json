@@ -1,0 +1,8 @@
+{
+  "id": "B-13",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: date updated",
+  "old": "Last updated: 2026-06-01",
+  "new": "Last updated: 2026-07-01"
+}

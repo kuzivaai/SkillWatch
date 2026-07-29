@@ -1,0 +1,8 @@
+{
+  "id": "B-21",
+  "label": "benign",
+  "subset": "standard",
+  "source": "synthetic: FAQ section",
+  "old": "# Docs\n\nSetup instructions.",
+  "new": "# Docs\n\nSetup instructions.\n\n## FAQ\n\nQ: Does it work on Windows?\nA: Yes, via WSL."
+}
