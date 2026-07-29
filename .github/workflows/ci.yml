@@ -48,8 +48,31 @@ jobs:
       - name: Install dependencies
         run: pip install -e ".[dev]" pip-audit
       - name: Audit installed dependencies
-        # --skip-editable omits SkillWatch itself, which has no index entry to audit.
-        # --strict is deliberately not set: it would treat that skip as a failure.
+        # --strict is omitted because SkillWatch itself is never auditable in its own
+        # CI: as an editable install pip-audit reports "distribution marked as
+        # editable", and as a regular install it reports "not found on PyPI" (the
+        # version under test is unreleased by definition). Both fail --strict, so it
+        # would block on the project rather than on any dependency. --skip-editable
+        # does not satisfy --strict; it is the skip that --strict rejects.
         run: pip-audit --skip-editable --desc
       - name: Audit declared dependency floors
         run: python3 scripts/audit_dependency_floors.py
+
+  # Resolve every direct dependency to its declared minimum and run the suite there.
+  # This is what proves the floors in pyproject.toml are a configuration that actually
+  # works, rather than numbers nobody has executed. uv run (not uv sync) because with
+  # a lockfile present `uv sync --resolution lowest-direct` resolves above the declared
+  # minimums and would test nothing. See docs/DEPENDENCY-FLOORS.md.
+  lowest-direct:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
+        with:
+          python-version: "3.12"
+      - name: Install uv
+        run: pip install uv
+      - name: Test against the lowest declared dependency versions
+        # --python 3.10 is the project's own floor; uv fetches it. --isolated keeps
+        # this out of any cached environment.
+        run: uv run --python 3.10 --resolution lowest-direct --isolated --extra dev pytest -q
