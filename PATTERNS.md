@@ -102,10 +102,69 @@ the mandatory efficacy re-run, and folding a pattern refresh into the same chang
 that rebuilt the measurement would make the before/after comparison circular.
 Refresh first, measure second, as separate changes.
 
-**Provenance gap found:** this file records the source as "ATR-2026-00001" but
-never records *which ATR version* the 32 patterns were taken from. Drift from
-upstream therefore cannot be measured precisely — only observed to exist. Future
-derivations should record the upstream tag.
+**Provenance gap: CLOSED 2026-07-29.** See "Pattern provenance" below.
+
+## Pattern provenance
+
+Recorded 2026-07-29, closing ledger item 5. Until this section existed, drift from
+upstream was observable but not measurable: this file named the source but never
+the version.
+
+| Pattern set | n | Upstream source | Version | Upstream commit | Derived |
+|---|---|---|---|---|---|
+| `prompt_injection` regexes | 32 | [Agent-Threat-Rule/agent-threat-rules](https://github.com/Agent-Threat-Rule/agent-threat-rules) (MIT), catalogued locally as ATR-2026-00001 | **v3.5.1 — inferred, see below** | `22463fc82033a427708e655f0549cf15aa8c75e6` | 2026-06-26 |
+| All other flag codes (12) | — | Written for this project; no upstream | n/a | n/a | 2026-06-26 to 2026-07-03 |
+
+### How the version was established, and what is inferred
+
+**Evidenced.** The derivation date is `2026-06-26`, the date `skillwatch/detector.py`
+first entered version control:
+
+```
+$ git log --date=short --reverse --pretty="%ad %h %s" -- skillwatch/detector.py | head -1
+2026-06-26 45c2739 feat: SkillWatch v0.1.0 — continuous URL content monitoring for AI skills
+```
+
+**Evidenced.** On that date the newest upstream release was **v3.5.1**, published
+2026-06-21. The next release, v3.5.3, did not appear until 2026-06-30 — four days
+after derivation:
+
+```
+$ gh api repos/Agent-Threat-Rule/agent-threat-rules/releases --jq '.[] | "\(.tag_name)  \(.published_at)"'
+v3.5.11  2026-07-14T13:31:13Z
+...
+v3.5.3   2026-06-30T05:33:59Z
+v3.5.1   2026-06-21T10:25:38Z
+v3.5.0   2026-06-15T18:19:29Z
+```
+
+**REASONED, not evidenced.** That v3.5.1 was the version *actually consulted* is an
+inference from availability, not a record of the act. Nobody wrote it down at the
+time, and no artefact in this repository names a version. The inference assumes the
+derivation used a tagged release rather than an untagged `main`, and that it used
+the newest available rather than an older one.
+
+What would overturn it: any contemporaneous note, or a diff showing the 32 patterns
+match an ATR revision other than v3.5.1. **A future session comparing against
+upstream should treat v3.5.1 as a starting hypothesis to be checked, not a fact.**
+
+Recording the honest alternative: "provenance unknown, established as of 2026-07-29"
+would also have been usable. It is not used because the availability window is
+narrow enough (one release, five days before derivation, next one four days after)
+that naming it is more useful than declining to — provided the inference is labelled,
+which it is.
+
+### Rule going forward
+
+Any future derivation records the upstream tag **and** commit SHA **in the same
+commit that introduces the patterns**. This section exists because that was not done
+once, and reconstructing it afterwards produced an inference where a fact was
+available for free at the time.
+
+Upstream is now at **v3.5.11** (`30b946b2218cce2e55445f5d6c841193192194d4`,
+2026-07-14). The gap from v3.5.1 to v3.5.11 is what ledger item 4 proposes to adopt;
+this section is what makes that diff computable, which is why item 5 blocked item 4.
+
 
 **2. Check CSA, arXiv and advisory feeds for new attack techniques — NOT DONE.**
 
