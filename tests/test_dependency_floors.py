@@ -101,23 +101,74 @@ class TestPythonSupportTargets:
         assert audit_mod.python_support_targets({}) == []
 
 
-class TestSpecifierAllows:
+class TestEvaluateSpecifier:
     @pytest.mark.parametrize(
         ("specifier", "version", "expected"),
         [
-            (">=3.9", (3, 10), True),
-            (">=3.11", (3, 10), False),
-            ("!=3.9.0,!=3.9.1,>=3.9", (3, 10), True),
-            (">=3.9,<3.13", (3, 13), False),  # the case this check exists to catch
-            (">=3.9,<3.13", (3, 12), True),
-            (None, (3, 13), True),  # no declared bound permits everything
-            ("", (3, 13), True),
+            (">=3.9", (3, 10), "allowed"),
+            (">=3.11", (3, 10), "excluded"),
+            ("!=3.9.0,!=3.9.1,>=3.9", (3, 10), "allowed"),
+            (">=3.9,<3.13", (3, 13), "excluded"),  # the case this check exists to catch
+            (">=3.9,<3.13", (3, 12), "allowed"),
+            (None, (3, 13), "allowed"),  # no declared bound permits everything
+            ("", (3, 13), "allowed"),
         ],
     )
     def test_evaluates_requires_python(
-        self, specifier: str | None, version: tuple[int, ...], expected: bool
+        self, specifier: str | None, version: tuple[int, ...], expected: str
     ) -> None:
-        assert audit_mod.specifier_allows(specifier, version) is expected
+        assert audit_mod.evaluate_specifier(specifier, version).value == expected
+
+
+class TestSpecifierFailsClosed:
+    """Input the parser cannot understand must never be reported as satisfied.
+
+    This is an auditor that gates a release. Silently passing a clause it did not
+    parse is the maximum-exposure case, not a tolerable one: the whole point of
+    the check is to be the thing that notices. "Unevaluable" and "allowed" are
+    different answers and the type system now forces callers to tell them apart.
+    """
+
+    @pytest.mark.parametrize(
+        "specifier",
+        [
+            "=>3.10",          # transposed operator — a real typo, silently ignored before
+            "garbage",         # no operator at all
+            ">=abc",           # operator present, bound unparseable
+            ">= 3.10, ~~4.0",  # one good clause, one unrecognisable
+            "≥3.10",           # non-ASCII lookalike operator
+            "3.10",            # bare version, no operator
+        ],
+    )
+    def test_unparseable_clause_is_unevaluable_not_allowed(self, specifier: str) -> None:
+        verdict = audit_mod.evaluate_specifier(specifier, (3, 13))
+        assert verdict is audit_mod.SpecifierVerdict.UNEVALUABLE, (
+            f"{specifier!r} was not understood but was not reported as unevaluable"
+        )
+
+    def test_unevaluable_is_not_truthy_by_accident(self) -> None:
+        """Guards against a caller writing `if verdict:` and getting fail-open back."""
+        assert not bool(audit_mod.SpecifierVerdict.UNEVALUABLE)
+        assert not bool(audit_mod.SpecifierVerdict.EXCLUDED)
+        assert bool(audit_mod.SpecifierVerdict.ALLOWED)
+
+    def test_floor_compatibility_reports_unevaluable_metadata(self, monkeypatch) -> None:
+        """An unevaluable requires_python is an audit problem, not a silent pass."""
+        monkeypatch.setattr(
+            audit_mod,
+            "_http_json",
+            lambda request: {"info": {"requires_python": "=>3.10"}},
+        )
+        requirement = audit_mod.Requirement(name="example", floor="1.0.0", origin="test")
+        problem = audit_mod.check_floor_python_compatibility(requirement, [(3, 13)])
+        assert problem is not None
+        assert "could not be evaluated" in problem
+
+    def test_strict_version_parse_rejects_non_numeric(self) -> None:
+        assert audit_mod._parse_version_strict("3.10") == (3, 10)
+        assert audit_mod._parse_version_strict("abc") is None
+        assert audit_mod._parse_version_strict("3.x") is None
+        assert audit_mod._parse_version_strict("") is None
 
 
 class TestCollectRequirements:

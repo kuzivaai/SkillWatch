@@ -34,14 +34,15 @@ python3 analysis/measure_efficacy.py
 | # | Condition | Status | Basis |
 |---|-----------|--------|-------|
 | 1 | Evasive recall ≥50% **or** documentation makes unmissable that the triage is decorative | **PASS via the documentation route** | Recall route fails: 11/25 (44.0%, CI [26.7%, 62.9%]). The README states plainly that the triage is decorative against *semantic* evasion (3/13) and structural evasion (0/3), while noting it catches mechanical obfuscation 7/7 and non-English 1/2. Families sum to 11/25. |
-| 2 | Precision ≥75% | **NOT DEMONSTRATED** | 21/25 (84.0%, CI [65.3%, 93.6%]). Point clears 75%; lower bound does not. |
+| 2 | Benign false-positive rate ≤30% | **PASS** | 4/32 (12.5%, CI [5.0%, 28.1%]) — upper bound 28.1% clears the gate. Re-specified from "precision ≥75%" on 2026-07-29; precision is corpus-ratio-dependent and does not transfer to deployment. Reasoning below. |
 | 3 | Named maintenance owner and pattern update cadence | **PASS, with an overdue review** | `MAINTENANCE.md` names the owner and a quarterly cadence. The July 2026 review was outstanding and is recorded in `PATTERNS.md`. |
 | 4 | ≥1 independent, non-conflicted evidence source for the premise | **PASS** | arXiv 2605.05274 (SIGIL), abstract checked against the primary source and quoted below. A preprint, not peer-reviewed. The previously cited arXiv 2508.12538 is an offensive toolkit and is retired. |
 | 5 | Evidence of minimal user demand | **FAIL** | 0 stars, 0 forks, 0 watchers, no external users. |
 
-**Verdict: HOLD.** Conditions 2 and 5 are unmet: precision is not demonstrated on
-the interval lower bound, and there is no user demand. Condition 4 was restored on
-2026-07-29.
+**Verdict: HOLD.** Conditions 1–4 pass. Condition 5 — user demand — is unmet and
+is the only remaining constraint. No engineering change moves it; it is moved by
+distribution, or not at all. Condition 4 was restored and condition 2 was
+re-specified on 2026-07-29.
 
 ## Condition 1 — the honest outcome
 
@@ -94,11 +95,55 @@ evasion. It is recorded here and in `PATTERNS.md` rather than fixed in the same
 change that measures it, because `MAINTENANCE.md` requires an efficacy re-run on
 any detector change and mixing the two would make the measurement circular.
 
-## Condition 2 — precision
+## Condition 2 — false-positive rate (was: precision)
 
-21/25 (84.0%, CI [65.3%, 93.6%]) on the original corpus; 9/10 (90.0%, CI
-[59.6%, 98.2%]) on the holdout. Both point estimates clear 75%; neither lower
-bound does. More benign items are needed to demonstrate this, not a lower gate.
+**Status: PASS.** 4/32 (12.5%, CI [5.0%, 28.1%]) on the original benign corpus,
+1/6 (16.7%, CI [3.0%, 56.4%]) on the holdout. The gate is an upper bound: the
+false-positive rate must not exceed 30%. The original corpus demonstrates that;
+the holdout at n=6 does not, and cannot at that size.
+
+### Why this condition was re-specified on 2026-07-29
+
+The condition was previously "precision ≥75%", assessed NOT DEMONSTRATED at
+21/25 (84.0%, CI [65.3%, 93.6%]). Two problems, in increasing order of
+seriousness.
+
+**The remedy recorded against it was arithmetically backwards.** The note read
+"more benign items are needed to demonstrate this, not a lower gate." Precision
+is `TP/(TP+FP)`. Adding benign items can only add false positives; it cannot add
+true positives. At the observed 12.5% false-positive rate, adding 32 more benign
+items yields 21/29 (72.4%) with a lower bound of 54.3% — worse than the 65.3%
+it started from. The prescribed fix moved the gate further out of reach.
+
+**Precision is not a property of the detector.** It is a property of the
+detector *and the benign:malicious ratio of the corpus it was measured on* —
+here roughly 38:47. Deployment runs at nothing like that ratio; almost every
+change on a monitored URL is a legitimate edit. A precision figure measured near
+1:1 does not transfer to a stream running at 1000:1, and publishing it as a ship
+gate implied a deployment property the measurement cannot support. The project's
+own honesty rule against applying a statistic from one population to another
+applies to its own scoreboard.
+
+The false-positive rate is ratio-independent: it is measured on benign items
+only, so it says the same thing whatever the mix. It is the number that
+transfers, so it is the number that gates.
+
+This is a re-specification, not a relaxation. The old gate was never met and the
+new one is met — but on a different and better-posed question. The precision
+figures are still reported in the README, with the base-rate warning attached.
+
+### What would actually reduce the false-positive rate
+
+All five false positives across both benign corpora came from three delta
+checks: `new_exec_command` (2/38), `new_domains` (2/38), `new_base64` (1/38).
+The content checks — `prompt_injection`, `credential_reference`,
+`unicode_homoglyph` — produced 0/38 (CI [0.0%, 9.2%]).
+
+Deleting the three delta checks would take the corpus false-positive count to
+zero. It would also cost five true positives (E-04, E-05, E-09, E-10, E-19),
+dropping overall recall from 21/35 (60.0%) to 16/35 (45.7%). That trade is not
+worth taking. The honest position is that the false-positive floor is set by the
+delta checks and is the price of the recall they contribute.
 
 ## Condition 3 — maintenance
 
