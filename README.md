@@ -22,24 +22,32 @@ Tools like [Snyk Agent Scan](https://github.com/snyk/agent-scan) check tool desc
 SkillWatch addresses **AST05 — Untrusted External Instructions** in the [OWASP
 Agentic Skills Top 10](https://owasp.org/www-project-agentic-skills-top-10/)
 (v1.0, 2026 Edition), the category covering skills that retrieve instructions
-from external sources. That OWASP project is an **Incubator** initiative, not a
-flagship standard; it lists Q4 2026 as its target for flagship submission. Cite
-it with that qualifier.
+from external sources. The mitigations that document lists against AST05 —
+source inventory, content pinning, repeated rescanning — describe what this tool
+does.
 
-The same document reports that when payload logic is held externally, every
-public skill scanner its authors tested is bypassed within an hour. That is the
-category SkillWatch operates in, and it is why this README does not claim the
-triage catches determined attackers — see [measured detection
-rates](#measured-detection-rates). The dependable mechanism is change detection
-and the tamper-evident ledger, which do not depend on recognising the payload.
+**Read that with the right weight.** The Agentic Skills Top 10 is an
+early-stage OWASP project in active development, not a flagship standard. At the
+time of writing its own pages describe its status inconsistently (one as an
+incubator initiative, one as a new project proposal), so check the current status
+before repeating any maturity claim. An OWASP category describes a risk; it is
+not an endorsement. Nothing here is OWASP-certified, OWASP-recommended, or
+OWASP-reviewed.
+
+That document's incident timeline cites **Trail of Bits** ("The Sorry State of
+Skill Distribution") for the finding that every public skill scanner tested —
+ClawHub's VirusTotal and LLM guard model, Cisco's `skill-scanner`, the skills.sh
+scanners — was bypassed in under an hour. That finding is Trail of Bits', not
+OWASP's, and this project has not independently reproduced it. It is quoted here
+because it describes the category SkillWatch operates in, and it is why this
+README does not claim the triage catches determined attackers — see [measured
+detection rates](#measured-detection-rates). The dependable mechanism is change
+detection and the tamper-evident ledger, neither of which depends on recognising
+the payload.
 
 **AST07 — Update Drift** is adjacent: it concerns version-pinning failure, where
 SkillWatch watches content changing at a stable URL. Related, not the same
 thing, and only claimed here as a partial fit.
-
-A note on what this does *not* mean: an OWASP category is a description of a
-risk, not an endorsement of any tool. Nothing here is OWASP-certified,
-OWASP-recommended, or OWASP-reviewed.
 
 ## Who this is for
 

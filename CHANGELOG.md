@@ -30,10 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Why the published figures moved between 0.3.0 and 0.4.0**, decomposed in the
   README. Overall recall 15/20 (75.0%) → 21/35 (60.0%) is entirely a corpus-mix
-  effect: `skillwatch/detector.py` is byte-identical across the two releases, the
-  non-evasive subset scores 10/10 in both, the false-positive set is the same four
-  items, and the original ten evasive items give the same five catches. Fifteen
-  evasive items were added and six are caught. Nothing regressed.
+  effect: `skillwatch/detector.py` is byte-identical across the two releases, and
+  the malicious corpus went from 50% evasive to 71% evasive. Fifteen evasive items
+  were added and six are caught. Nothing regressed. See the retraction below for
+  what in that comparison is checkable and what is inference.
 - **HTML corpus results published** (6/6 precision and recall, both 95% CI
   [61.0%, 100.0%]), and holdout results kept alongside the original corpus. All
   three corpora now appear in the README.
@@ -46,9 +46,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   taking.
 - **OWASP AST05 positioning.** SkillWatch addresses AST05 "Untrusted External
   Instructions" in the OWASP Agentic Skills Top 10 (v1.0, 2026 Edition). That
-  project is an **Incubator** initiative, not a flagship standard, and the
-  qualifier is mandatory in every claim. AST07 "Update Drift" is a partial fit
-  only.
+  project is **early-stage, not a flagship standard** (its own pages disagree on
+  the tier), and that qualifier is mandatory in every claim. The scanner-bypass
+  finding cited there is Trail of Bits', not OWASP's. AST07 "Update Drift" is a
+  partial fit only.
 - **`OPEN-ITEMS.md`** — a tracked continuity ledger with first-raised dates,
   replacing per-session handover tables that lost items between sessions.
 - **`tests/test_efficacy_harness.py`** (14 tests). The harness producing every

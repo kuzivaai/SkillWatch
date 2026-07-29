@@ -31,7 +31,9 @@ engineering, and engineering is not the constraint.
 
 | # | Item | First raised | Status | Closes when |
 |---|---|---|---|---|
-| 3 | Distribution PRs [#31](https://github.com/LLMSecurity/awesome-agent-skills-security/pull/31) and [#239](https://github.com/Puliczek/awesome-mcp-security/pull/239) unmerged. Both opened 2026-07-11, no maintainer activity as of 2026-07-29 (18 days). | 2026-07-11 | **Open.** Descriptions updated and nudged 2026-07-29. Third-party repos; not in our control. | Merged, or closed and a different channel chosen. |
+| 1 | **Cut the v0.4.0 release.** Two dependency security fixes and the corrected efficacy claims reach no user until this happens. | 2026-07-29 | **Open — merged to `main`, release not yet cut.** Human action; outward-facing and irreversible. | `gh release create v0.4.0` run and PyPI shows 0.4.0. |
+| 2 | Live PyPI page publishes superseded figures (78.9% precision, 75.0% recall, 50.0% evasive, no intervals). | 2026-07-29 | **Open — fixed by item 1.** `main` already carries corrected figures; PyPI serves 0.3.0's README. | PyPI shows 0.4.0. |
+| 3 | Distribution PRs [#31](https://github.com/LLMSecurity/awesome-agent-skills-security/pull/31) and [#239](https://github.com/Puliczek/awesome-mcp-security/pull/239) unmerged. Both opened 2026-07-11, no maintainer activity as of 2026-07-29 (18 days). | 2026-07-11 | **Open.** Third-party repos; not in our control. Descriptions to be refreshed with the 0.4.0 figures and AST05 framing once the release lands. | Merged, or closed and a different channel chosen. |
 | 4 | Adopt ATR upstream through v3.5.11 (100+ commits since the 2026-06-26 derivation, incl. `#342` cutting false positives on 7 rules), then re-measure. | 2026-07-29 *(at latest)* | **Open, deferred three times.** Deliberately excluded from the 0.4.0 pre-release cycle: it changes detection, which forces a re-measure, and the release exists to correct published claims against a frozen detector. | Patterns refreshed in one commit, efficacy re-run in a separate commit, both figures published. |
 | 5 | `PATTERNS.md` does not record which ATR version the 32 patterns were derived from. Drift is observable but not measurable. | 2026-07-29 *(at latest)* | **Open.** Blocks item 4's before/after comparison — without a baseline version there is nothing to diff against. | `PATTERNS.md` records the source version and commit for each pattern set. |
 | 6 | 27 ruff 0.16 findings, held off by `ruff>=0.15.21,<0.16`. Counted, never individually assessed. | 2026-07-29 *(at latest)* | **Open.** Not release-blocking. The upper bound carries its justification in `pyproject.toml`. | Findings assessed and fixed, ceiling raised. |
@@ -53,11 +55,9 @@ engineering, and engineering is not the constraint.
 
 | # | Item | First raised | Closed | How |
 |---|---|---|---|---|
-| 1 | Cut the v0.4.0 release. | 2026-07-29 | 2026-07-29 | Released. Carries both dependency security fixes and the corrected efficacy claims. |
-| 2 | Live PyPI page publishes superseded figures (78.9% precision, 75.0% recall, 50.0% evasive, no intervals). | 2026-07-29 | 2026-07-29 | Fixed by the 0.4.0 release. `main`'s README already carried corrected figures; PyPI served 0.3.0's. |
 | 8 | Ship condition 2 (precision ≥75%) NOT DEMONSTRATED, with "needs more benign corpus items" recorded as the remedy. | 2026-07-29 | 2026-07-29 | **The recorded remedy was arithmetically backwards** — adding benign items can only add false positives, taking precision to 21/29 (72.4%, lower bound 54.3%). Condition re-specified as a benign false-positive-rate gate, which is ratio-independent. Reasoning in `SHIP-READINESS.md`. |
 | 12 | Stale `CLAUDE.md` (10 modules, v0.2.0, "Pages disabled") and `docs/skillwatch-overview.js` (v0.3.0, 323 tests, 12 modules). | 2026-07-29 | 2026-07-29 | Both corrected. `CLAUDE.md` also gained the precision and AST05 rules so future sessions inherit them. |
-| 13 | OWASP AST05/AST07 wording never verified against source; positioning blocked. | 2026-07-29 | 2026-07-29 | Verified against the OWASP project page. AST05 "Untrusted External Instructions" (High) is a direct fit; AST07 "Update Drift" (Medium) is partial. **Incubator qualifier is mandatory** — v1.0 2026 Edition, flagship submission targeted Q4 2026. |
+| 13 | OWASP AST05/AST07 wording never verified against source; positioning blocked. | 2026-07-29 | 2026-07-29 | Verified against the OWASP project page. AST05 "Untrusted External Instructions" (High) is a direct fit; AST07 "Update Drift" (Medium) is partial. **Early-stage qualifier is mandatory** — v1.0 2026 Edition; OWASP's own pages disagree on the maturity tier, so state "early-stage, not flagship" rather than naming one. Scanner-bypass finding attributed to Trail of Bits, not OWASP. |
 | 17 | `specifier_allows` failed open — an unparseable specifier passed silently in the auditor that gates the release. Recorded as "open by design". | 2026-07-29 | 2026-07-29 | Not a design decision, debt. Replaced with a three-valued `SpecifierVerdict` (ALLOWED/EXCLUDED/UNEVALUABLE) where only ALLOWED is truthy, so `if verdict:` fails closed. `_parse_version_strict` added for the correctness path, separate from `_version_key`'s ordering path. Unevaluable metadata is now an audit failure. 16 tests, fail-before/pass-after shown. |
 | 18 | Holdout and html_v1 corpus results measured but unpublished. | 2026-07-29 | 2026-07-29 | Both now in the README with intervals. The harness already reported them; the summary tables did not. |
 | 19 | Recall decomposition undisclosed — 75.0% → 60.0% reads as a regression. | 2026-07-29 | 2026-07-29 | Published in the README with the subset table. `detector.py` is byte-identical between v0.3.0 and v0.4.0; the corpus went from 50% evasive to 71% evasive. Nothing regressed. |
@@ -91,8 +91,11 @@ Recorded so they are not silently redone. Fuller reasoning in
   toolkit, and its abstract does not cover URL content swapping. The premise
   citation is arXiv 2605.05274 (SIGIL), recorded as a preprint proposing a
   *competing* cooperation model.
-- **OWASP AST is Incubator, not flagship.** The qualifier is mandatory. An OWASP
-  category describes a risk; it is not an endorsement of any tool.
+- **OWASP AST is early-stage, not flagship.** Its own pages disagree on the tier
+  (incubator vs new project proposal), so do not assert one without rechecking. An
+  OWASP category describes a risk; it is not an endorsement of any tool. The
+  scanner-bypass finding quoted from that document is Trail of Bits', cited by
+  OWASP — attribute it to Trail of Bits.
 - **Pattern refresh and efficacy measurement are separate commits.** Refresh
   first, measure second. Doing both at once makes the comparison circular.
 - **The floor auditor has no allowlist.** A requirement with no lower bound is the
