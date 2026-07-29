@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-07-29
+
+### Security
+
+- **Raised the `rfc3161-client` floor from `>=1.0` to `>=1.0.6`** in both the `[anchor]` and `[dev]` extras. Every release below 1.0.6 is affected by **CVE-2026-33753** ([GHSA-3xxc-pwj6-jgrj](https://github.com/trailofbits/rfc3161-client/security/advisories/GHSA-3xxc-pwj6-jgrj), CWE-295, published 8 April 2026), an authorisation bypass in timestamp-response verification: because the library picked the leaf certificate out of the unordered PKCS#7 bag by a naive heuristic rather than the RFC 3161 `ESSCertID` binding, an attacker holding any genuine timestamp from a trusted authority could append a forged certificate and defeat the client's authority pinning. The advisory's worked example impersonates **freeTSA — SkillWatch's default anchoring backend** — so this bore directly on the guarantee `skillwatch anchor` and `skillwatch verify` are meant to provide. Anchors already recorded are unaffected in themselves; re-verify them once upgraded.
+
+  The same range also covers **CVE-2025-52556** ([GHSA-6qhv-4h7r-2g9m](https://github.com/trailofbits/rfc3161-client/security/advisories/GHSA-6qhv-4h7r-2g9m), CWE-347, rated Critical), an insufficient signature check fixed in 1.0.3. In practice that one was not reachable here: every affected release (1.0.0–1.0.2) is yanked from PyPI, so a resolver would not have selected it for `>=1.0`. The reachable exposure was 1.0.3–1.0.5, via CVE-2026-33753.
+
+- **Raised every other dependency floor that permitted a published advisory**, which is the same defect rather than a separate one: `requests>=2.32.4` → `>=2.33.0`, `cryptography>=42` → `>=48.0.1`, `pytest>=8.0` → `>=9.0.3`, and the build requirement `setuptools>=68.0` → `>=83.0.0`. Floors are now held at the lowest release free of known advisories, not the lowest release that happens to work. The full test suite passes against an environment pinned to exactly these floors, so they are a tested configuration rather than an assumed one.
+
+### Added
+
+- `scripts/audit_dependency_floors.py` and a blocking `security` job in CI, so this class of defect cannot recur silently. The job runs two checks that catch different failures: `pip-audit` inspects the versions actually installed, while the floor audit inspects the versions `pyproject.toml` *permits* — which is what a downstream user resolving against an older index or a lockfile may get. A vulnerable floor is invisible to `pip-audit` alone, which is precisely how `rfc3161-client>=1.0` stayed green in CI while permitting a known-vulnerable resolution.
+- A `lowest-direct` CI job (`uv run --python 3.10 --resolution lowest-direct`) that runs the suite against the lowest version each declared floor permits, so the floors are a configuration that has actually been executed rather than numbers nobody has run. `uv run` rather than `uv sync`, because with a lockfile present `uv sync --resolution lowest-direct` resolves above the declared minimums and would test nothing.
+- `docs/DEPENDENCY-FLOORS.md`, documenting the three checks and their caveats — including that `lowest-direct` exercises the *build* path at the `setuptools` floor, and that a requirement left without a floor (currently `pytest-cov`) can resolve to a decade-old release on that leg.
+
+### Changed
+
+- Bounded `ruff` (`>=0.15.21,<0.16`) and `mypy` (`>=2.2,<2.3`) instead of leaving them floating. Their default rule sets change between minor releases, so an unpinned tool makes CI go red on an upstream release rather than on a code change — ruff 0.16.0 did exactly that, reporting 27 findings on unchanged, previously green code. Bumping these bounds is now a deliberate, reviewed change rather than something an unrelated push absorbs.
+
 ## [0.3.0] - 2026-07-11
 
 ### Added
