@@ -42,8 +42,8 @@ from types import ModuleType
 from typing import Any
 
 
-def _load_claim_rules() -> ModuleType:
-    """Load the shared rules by path.
+def _load_sibling(name: str) -> ModuleType:
+    """Load a sibling rules module by path.
 
     Deliberately importlib rather than `sys.path.insert` + a plain import: the
     latter is a module-level import after code, which needs a `# noqa: E402` to
@@ -51,17 +51,18 @@ def _load_claim_rules() -> ModuleType:
     repository already uses this pattern in tests/test_dependency_floors.py.
     """
     spec = importlib.util.spec_from_file_location(
-        "claim_rules", Path(__file__).resolve().parent / "claim_rules.py"
+        name, Path(__file__).resolve().parent / f"{name}.py"
     )
     if spec is None or spec.loader is None:  # pragma: no cover - defensive
-        raise RuntimeError("could not load scripts/claim_rules.py")
+        raise RuntimeError(f"could not load scripts/{name}.py")
     module = importlib.util.module_from_spec(spec)
-    sys.modules["claim_rules"] = module
+    sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
 
 
-claim_rules = _load_claim_rules()
+claim_rules = _load_sibling("claim_rules")
+figure_rules = _load_sibling("figure_rules")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -144,8 +145,20 @@ def main() -> int:
 
     print()
     print(claim_rules.format_violations(violations))
-    if violations:
-        print("\nDo not release. Correct the claims first.", file=sys.stderr)
+
+    # Figures, not just citations. Until 2026-07-29 this gate would have passed a
+    # release whose README advertised a benign false-positive rate of 4/32 (12.5%)
+    # while the harness produced 6/37 (16.2%), because claim_rules has no numeric
+    # awareness. See scripts/figure_rules.py and ledger item 42.
+    print()
+    figure_failures = figure_rules.main()
+    if figure_failures:
+        print("\nDo not release. Published figures disagree with the harness.",
+              file=sys.stderr)
+
+    if violations or figure_failures:
+        if violations:
+            print("\nDo not release. Correct the claims first.", file=sys.stderr)
         return 1
     return 0
 

@@ -19,7 +19,11 @@ pytest --cov=skillwatch --cov-report=term-missing -q
 ruff check skillwatch/ tests/ scripts/ analysis/
 
 # Type check  (same scope as CI)
-mypy skillwatch/ scripts/ analysis/measure_efficacy.py
+mypy skillwatch/ scripts/ analysis/measure_efficacy.py \
+     analysis/measure_base_rate.py analysis/build_realpage_corpus.py
+
+# Published figures must match the harness (CI step + pre-release gate)
+python3 scripts/figure_rules.py
 
 # Dependency floor audit (security gate — must exit 0)
 python3 scripts/audit_dependency_floors.py
@@ -112,6 +116,39 @@ two distortions, one public surface.
 
 `tests/test_published_claims.py` enforces the mechanical half of this: a cited
 finding on a public surface must be accompanied by a source URL.
+
+### Figures are claims too
+
+`scripts/claim_rules.py` checks **citations**. `scripts/figure_rules.py` checks
+**figures**: every `k/n (p%)` on a published surface must be a proportion the
+harness currently produces, and its percentage must match its own fraction.
+
+The allowed set is **the harness's own stdout**, parsed — not a table of expected
+values maintained beside it. A second copy of the figures is free to drift from
+the first, which is the defect one level up. If the harness output format changes,
+the parsed set collapses and the check fails closed rather than passing vacuously.
+
+Historical and hypothetical figures are legitimate — release-to-release tables,
+counterfactuals, dated review records. They are marked explicitly:
+
+```
+<!-- figures:exempt reason="0.3.0 to 0.4.1 release comparison" -->
+| Overall recall | 15/20 (75.0%) | 21/35 (60.0%) | 27/42 (64.3%) |
+<!-- figures:end -->
+```
+
+A `reason=` is required so a reviewer can audit the exemption; an unclosed region
+is a violation rather than a silent exemption of the rest of the file. Find every
+one with `git log -S "figures:exempt"`.
+
+**Why this exists.** On 2026-07-29 the detector was rewritten and re-measured, and
+six surfaces went on publishing the pre-rewrite numbers — a benign false-positive
+rate of 4/32 (12.5%) where the harness produced 7/37 (18.9%). `SHIP-READINESS.md`
+contradicted itself inside one file. **This is the fourth recurrence of one shape:
+a check that reports green because what it should examine is out of its scope** —
+after an unparseable specifier treated as satisfied, a guard that could not see the
+published artefact, and a regex that could never match. When you add a check, ask
+what it cannot see.
 
 ### The claims checks: one gate, one report, and why they cannot be merged
 

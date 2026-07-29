@@ -85,8 +85,10 @@ though it described what a user will experience.
 | `credential_reference` | 0/43 |
 | `unicode_homoglyph` | 0/43 |
 
+<!-- figures:exempt reason="counterfactual — figures a hypothetical deletion would produce, not measured output" -->
 Content checks produced 0/43 (CI [0.0%, 8.2%]). Deleting all four would zero the
 corpus false positives and drop recall from 27/42 (64.3%) to 16/42 (38.1%).
+<!-- figures:end -->
 
 ## 2a. The real-page base rate — the first figure here that is not self-authored
 

@@ -186,6 +186,7 @@ figures are in `README.md` and `SHIP-READINESS.md`; reproduce with
 review saw, not as a current claim.**
 
 ```
+<!-- figures:exempt reason="dated quarterly-review record: what that review saw, explicitly superseded above" -->
 Original corpus (67 items: 32 benign, 10 pattern-matching, 25 evasive)
   Precision      21/25 (84.0%, 95% CI [65.3%, 93.6%])
   Overall recall 21/35 (60.0%, 95% CI [43.6%, 74.4%])
@@ -198,6 +199,7 @@ Holdout v2 (18 items; all 12 malicious items are evasive)
 
 HTML corpus (12 items)  TP 6  FP 0  TN 6  FN 0
 ```
+<!-- figures:end -->
 
 No detector change was made this cycle, so the `MAINTENANCE.md` regression gate
 (precision ≥75%, recall ≥70% on any commit touching `detector.py`) was **not
@@ -217,7 +219,9 @@ modified this cycle. Two items are carried forward:
 
 | Date | Change | Impact |
 |------|--------|--------|
+<!-- figures:exempt reason="changelog row: the figure measured at that change, superseded twice since" -->
 | 2026-07-29 | Expanded the evasive corpus from 10 items to 25, preserving the original family proportions | Evasive recall re-measured at 11/25 (44.0%, CI [26.7%, 62.9%]); the n=10 figure of 50.0% had a CI of [23.7%, 76.3%] and demonstrated nothing. No detector change. |
+<!-- figures:end -->
 | 2026-07-29 | Added Wilson score intervals to the efficacy harness; gates now evaluated on the CI lower bound | Three gates reclassified as not demonstrated. See `SHIP-READINESS.md`. |
 | 2026-06-26 | Initial 13 flag codes, 32 injection patterns | v0.1.0 release |
 | 2026-07-03 | Added canonicalisation layer (HTML comments, reversed text, ROT13) | Improved evasive recall from 30% to 50% on original corpus |

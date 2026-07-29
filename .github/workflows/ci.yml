@@ -49,9 +49,23 @@ jobs:
         run: ruff check skillwatch/ tests/ scripts/ analysis/
       - name: Type check
         # scripts/ is included because the floor audit is now a security gate.
-        run: mypy skillwatch/ scripts/ analysis/measure_efficacy.py
+        # measure_base_rate.py and build_realpage_corpus.py were added 2026-07-29
+        # and were outside this scope until 2026-07-30 — a narrower gate than the
+        # one CLAUDE.md documented, and the same out-of-scope shape as ledger
+        # items 17, 35, 36 and 42. Widened rather than left implicit.
+        run: >-
+          mypy skillwatch/ scripts/
+          analysis/measure_efficacy.py
+          analysis/measure_base_rate.py
+          analysis/build_realpage_corpus.py
       - name: Test
         run: pytest --cov=skillwatch --cov-report=term-missing --cov-fail-under=90 -q
+      - name: Published figures match the harness
+        # Runs the harness and fails if any published surface carries a
+        # proportion it does not currently produce. tests/test_figure_rules.py
+        # covers the same ground inside pytest; this step exists so the failure
+        # is named rather than buried in a test summary.
+        run: python3 scripts/figure_rules.py
 
   # Blocking. SkillWatch is a security tool; it must not ship, or permit a user to
   # resolve, a dependency with a published advisory. Two distinct checks, because
