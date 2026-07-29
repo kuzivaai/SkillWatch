@@ -21,7 +21,7 @@ ruff check skillwatch/ tests/ scripts/ analysis/
 # Type check  (same scope as CI)
 mypy skillwatch/ scripts/ analysis/measure_efficacy.py \
      analysis/measure_base_rate.py analysis/build_realpage_corpus.py \
-     analysis/run_delta_pass.py
+     analysis/run_delta_pass.py analysis/make_baseline.py
 
 # Published figures must match the harness (CI step + pre-release gate)
 python3 scripts/figure_rules.py
@@ -128,6 +128,27 @@ The allowed set is **the harness's own stdout**, parsed — not a table of expec
 values maintained beside it. A second copy of the figures is free to drift from
 the first, which is the defect one level up. If the harness output format changes,
 the parsed set collapses and the check fails closed rather than passing vacuously.
+
+**Correspondence, not membership.** A published figure must match the metric it is
+LABELLED with, not merely appear somewhere in the harness output. Set membership
+cannot see a substitution: `evasive recall 27/42 (64.3%)` is a real, current,
+arithmetically correct proportion — it is *overall* recall — so a membership check
+passes it while the surface tells the reader something false. Both sides are
+classified into metric families by the same keyword function and the families must
+agree. Text *before* a figure wins over text after it, because a label almost always
+precedes its number.
+
+A figure naming no metric cannot be correspondence-checked. `scripts/figure_rules.py`
+counts those and prints the coverage, so what the rule does not cover is stated
+rather than implied.
+
+**The fail-closed floor is derived, not picked.** `MIN_PROPORTIONS_PER_COMMAND` gives
+each harness command its own minimum and the floor is their sum, so a partial parse
+of either command fails. A single global threshold could not: `measure_efficacy`
+alone clears 20, so a total failure of `measure_base_rate` would have passed. A count
+floor still cannot detect a parse returning the WRONG proportions — scraping
+confidence-interval bounds as fractions would keep the count high. Detecting that
+needs the parsed values compared against an independently computed expectation.
 
 Historical and hypothetical figures are legitimate — release-to-release tables,
 counterfactuals, dated review records. They are marked explicitly:

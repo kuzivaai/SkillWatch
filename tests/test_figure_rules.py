@@ -151,6 +151,105 @@ class TestCurrency:
         assert len(violations) == 3
 
 
+class TestCorrespondenceNotMembership:
+    """A figure must match the metric it is LABELLED with, not merely exist.
+
+    Set membership cannot catch a substitution. `evasive recall 27/42 (64.3%)` is a
+    real, current, arithmetically correct proportion — it is overall recall — so a
+    membership check passes it while the surface tells the reader something false.
+    That is the fifth recurrence of "a check that validates a value without
+    validating what the value is claimed to be".
+    """
+
+    def test_a_current_figure_under_the_wrong_label_is_caught(self, allowed):
+        # THE fixture. 27/42 is overall recall; publishing it as evasive recall is
+        # a substitution a membership check cannot see.
+        text = "Against deliberately evasive payloads the tool catches 27/42 (64.3%)."
+        violations = figure_rules.find_figure_violations(
+            text, source="README.md", allowed=allowed)
+        assert any(v.rule == "figure-mislabelled" for v in violations), (
+            "evasive recall 27/42 must be flagged: 27/42 is OVERALL recall. "
+            f"got: {[v.rule for v in violations]}"
+        )
+
+    def test_the_same_figure_under_its_right_label_passes(self, allowed):
+        text = "Overall recall is 27/42 (64.3%) on the original corpus."
+        assert not [v for v in figure_rules.find_figure_violations(text, allowed=allowed)
+                    if v.rule == "figure-mislabelled"]
+
+    def test_precision_published_as_recall_is_caught(self, allowed):
+        text = "Overall recall | 27/33 (81.8%)"
+        violations = figure_rules.find_figure_violations(text, allowed=allowed)
+        assert any(v.rule == "figure-mislabelled" for v in violations)
+
+    def test_evasive_recall_under_its_own_label_passes(self, allowed):
+        text = "| Recall against evasive attacks | 17/32 (53.1%, 95% CI [36.4%, 69.1%]) |"
+        assert not [v for v in figure_rules.find_figure_violations(text, allowed=allowed)
+                    if v.rule == "figure-mislabelled"]
+
+    def test_a_figure_with_two_valid_labels_passes_under_either(self, allowed):
+        # 6/6 is both precision and recall on the html_v1 corpus.
+        for text in ["| Precision | 6/6 (100.0%) |", "| Recall | 6/6 (100.0%) |"]:
+            assert not [v for v in figure_rules.find_figure_violations(text, allowed=allowed)
+                        if v.rule == "figure-mislabelled"], text
+
+    def test_prose_naming_no_metric_is_not_flagged(self, allowed):
+        # Honest limit: an unlabelled figure cannot be checked for correspondence.
+        text = "The figure moved to 27/42 (64.3%) after the change."
+        assert not [v for v in figure_rules.find_figure_violations(text, allowed=allowed)
+                    if v.rule == "figure-mislabelled"]
+
+    def test_unlabelled_figures_are_counted_so_coverage_is_honest(self, allowed):
+        text = "The figure moved to 27/42 (64.3%) after the change."
+        assert figure_rules.count_unlabelled(text) == 1
+
+
+class TestPercentageMatchesItsOwnFraction:
+    """3b — independent of the harness: a stated percentage must equal k/n."""
+
+    def test_a_wrong_percentage_is_caught(self, allowed):
+        violations = figure_rules.find_figure_violations(
+            "Overall recall is 27/42 (95.0%).", allowed=allowed)
+        assert any(v.rule == "figure-arithmetic" for v in violations), (
+            f"27/42 is 64.3%, not 95.0%. got: {[v.rule for v in violations]}"
+        )
+
+    def test_the_right_percentage_passes(self, allowed):
+        assert not [v for v in figure_rules.find_figure_violations(
+            "Overall recall is 27/42 (64.3%).", allowed=allowed)
+            if v.rule == "figure-arithmetic"]
+
+
+class TestTheFloorIsDerivedNotPicked:
+    """3c — a hand-picked constant cannot notice a partial parse of one command."""
+
+    def test_the_floor_is_computed_from_per_command_expectations(self):
+        assert hasattr(figure_rules, "MIN_PROPORTIONS_PER_COMMAND")
+        assert hasattr(figure_rules, "derived_floor")
+        assert figure_rules.derived_floor() == sum(
+            figure_rules.MIN_PROPORTIONS_PER_COMMAND.values())
+
+    def test_every_harness_command_has_an_expectation(self):
+        from pathlib import Path as _P
+        assert set(figure_rules.MIN_PROPORTIONS_PER_COMMAND) == {
+            _P(c[-1]).name for c in figure_rules.HARNESS_COMMANDS
+        }
+
+    def test_a_partial_parse_of_one_command_fails_rather_than_passing(self, allowed):
+        # The defect a single global floor cannot see: one command returning
+        # nothing while the other's output alone clears the threshold.
+        from pathlib import Path as _P
+        one_command_only = figure_rules.AllowedFigures(
+            pairs=allowed.pairs, raw=allowed.raw, labels=allowed.labels,
+            per_command={
+                _P(figure_rules.HARNESS_COMMANDS[0][-1]).name: 30,
+                _P(figure_rules.HARNESS_COMMANDS[1][-1]).name: 0,
+            })
+        with pytest.raises(SystemExit) as excinfo:
+            figure_rules.find_figure_violations("6/37 (16.2%)", allowed=one_command_only)
+        assert "measure_base_rate" in str(excinfo.value)
+
+
 class TestHistoricalExemption:
     """Release-to-release tables legitimately carry superseded figures.
 
