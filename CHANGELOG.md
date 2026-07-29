@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - unreleased
+
+Minor, not patch: this adds two subcommands. The 0.3.1 security fix shipped
+separately so that users who wanted only the dependency fix were not required to
+take new features with it.
+
+### Added
+
+- `skillwatch cloak <url>` — fetches a URL under three User-Agent personas
+  (browser, agent, bot) through the existing SSRF-protected fetcher and reports
+  whether the server returns different content to different clients. Exit 0
+  clean, 1 varies, 2 insufficient data. **Honestly scoped:** User-Agent only. It
+  uses no proxies, so it cannot see geo- or IP-conditional cloaking, and it adds
+  no new trust cost — it contacts only the URL you pass it. One-shot, in keeping
+  with periodic-not-continuous.
+- Local false-positive adaptation. `skillwatch alert <id> --dismiss` / `--confirm`
+  records one decision per flag in a new `flag_feedback` table. A flag is demoted
+  for a URL once dismissed twice with no confirmation, aggregated by
+  `(url_id, flag_code)`. Demoted flags are annotated "(previously dismissed)" —
+  **shown, not hidden**; the alert is never suppressed or deleted. `skillwatch
+  feedback` lists the decisions, `--reset` clears them, and removing a URL clears
+  its feedback. Counts only: no model, no network, nothing leaves the machine.
+- `docs/adr/0001-two-plane-architecture.md` and the Plane-1 / Plane-2 specs.
+  Plane-1 §A (the signed pattern feed) and all of Plane 2 are specification only
+  and are not implemented.
+
 ## [0.3.1] - 2026-07-29
 
 ### Security
