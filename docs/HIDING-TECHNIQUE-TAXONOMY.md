@@ -148,3 +148,31 @@ The `hidden_content` false positive at 1/37 is **B-33**, the collapsed accordion
 it uses inline lower-case `display:none`, which the old check already caught. It
 is a true statement about the page (content is hidden there) at `info` severity,
 and it is in the corpus deliberately so the cost of the rule is counted.
+
+## Measurement: after the fix
+
+Same corpus, detector rewritten. Delta is against the "before the fix" block above.
+
+| Metric | Before | After | Delta |
+|---|---|---|---|
+| Precision | 21/26 (80.8%, CI [62.1%, 91.5%]) | 29/36 (80.6%, CI [65.0%, 90.2%]) | flat |
+| Overall recall | 21/42 (50.0%, CI [35.5%, 64.5%]) | 29/42 (69.0%, CI [54.0%, 80.9%]) | **+19.0 pts** |
+| Evasive recall | 11/32 (34.4%, CI [20.4%, 51.7%]) | 19/32 (59.4%, CI [42.3%, 74.5%]) | **+25.0 pts** |
+| Benign FP rate | 5/37 (13.5%, CI [5.9%, 28.0%]) | **7/37 (18.9%, CI [9.5%, 34.2%])** | **+5.4 pts** |
+| structural family | 0/10 | 8/10 | +8 |
+
+All eight bucket-(a) items are caught (E-24, E-26..E-32). Both bucket-(b) benign
+items (B-34 clip-path, B-36 text-indent) are correctly **not** flagged. The two
+remaining structural misses are E-23 and E-25, pre-existing items using techniques
+outside this taxonomy.
+
+**The false-positive rise is a trade, not a win.** Its upper bound, 34.2%, exceeds
+the ≤30% gate, so ship-readiness condition 2 **no longer passes**. The three false
+positives are B-33, B-35 and B-37 — the benign counterparts added deliberately in
+the same session so this cost would be counted. See `SHIP-READINESS.md` for the
+options considered and why none was taken.
+
+**External validity is unaddressed.** Every figure here is measured against a
+corpus written by this project, including the items the fix was built to catch. It
+demonstrates that the implementation does what the taxonomy says, and nothing about
+how either performs on pages this project did not write. Ledger item 37.

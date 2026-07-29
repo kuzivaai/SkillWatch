@@ -53,7 +53,7 @@ Each alert has a **severity**:
 
 | Flag | What it means | What to do |
 |---|---|---|
-| `hidden_content` | The page added text hidden with an inline `style="display:none"` or `style="visibility:hidden"`. | Read the hidden text in the diff; hiding it is itself a signal. **Absence of this flag does not mean nothing is hidden** — the check only reads inline lower-case styles, so text hidden via a stylesheet, an upper-case declaration, off-screen positioning, `opacity:0` or the HTML `hidden` attribute will not raise it. |
+| `hidden_content` | The page added text a human cannot see but an agent still reads — hidden by CSS (inline or in a `<style>` block) or the HTML `hidden` attribute. | Read the hidden text in the diff; hiding it is itself a signal. Note that ordinary pages hide content legitimately (collapsed accordions, hidden form fields), so this is `info`, not an accusation. **Absence of this flag does not mean nothing is hidden** — screen-reader-only idioms (`clip-path`, `text-indent`) are deliberately not flagged, and content hidden by an **external** stylesheet cannot be seen at all, because fetching one would mean requesting a URL you never asked us to fetch. |
 
 ## If you are still unsure
 
