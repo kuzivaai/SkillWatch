@@ -155,36 +155,43 @@ SkillWatch checks for 13 suspicious patterns across three severity levels. Each 
 | Meta refresh | Warning | New `<meta http-equiv="refresh">` redirects |
 | Major deletion | Warning | More than 50% of original content removed |
 | Iframes | Warning | New `<iframe>` elements |
-| Hidden content | Info | New elements with an **inline** `style` attribute containing lower-case `display:none` or `visibility:hidden`. Narrow by design of the current implementation — see [what this check does not catch](#what-hidden_content-does-not-catch) |
+| Hidden content | Info | New elements concealed from a human but left in the ingested text — inline **or** same-document `<style>` block, case-insensitively: `display:none`, `visibility:hidden|collapse`, `opacity:0`, `font-size:0`, large negative `left`/`top` on a positioned element, zero `height`/`width` with clipped overflow, and the HTML `hidden` attribute. See [what this check does not catch](#what-hidden_content-does-not-catch) |
 
 ### What `hidden_content` does not catch
 
-This check is narrower than its name suggests, and the gap is worth stating
-because **absence of the flag is not evidence that nothing is hidden**.
-
-`_extract_hidden_texts()` inspects an element's own inline `style` attribute for
-a lower-case `display:none` or `visibility:hidden`. Measured on 2026-07-29:
+Rewritten 2026-07-29. The check now asks whether content is **concealed from a
+human reader while remaining in the text an agent ingests**, rather than whether an
+inline `style` attribute contains one of two lower-case substrings.
 
 | Hiding technique | Flagged |
 |---|---|
-| `style="display:none"` / `display: none` | yes |
-| `style="visibility:hidden"` | yes |
-| `style="DISPLAY:NONE"` or `Display:None` | **no** — the pattern is case-sensitive |
-| A rule in a `<style>` block, e.g. `.x{display:none}` | **no** |
-| An external stylesheet | **no** |
-| `hidden` attribute, `aria-hidden` | **no** |
-| `position:absolute;left:-9999px` | **no** |
-| `opacity:0`, `font-size:0`, `height:0;overflow:hidden` | **no** |
-| `clip-path:inset(100%)`, `text-indent:-9999px` | **no** |
+| `display:none`, `visibility:hidden` — **any case** | yes |
+| `opacity:0`, `font-size:0` | yes |
+| `position:absolute;left:-9999px` | yes |
+| `height:0`/`width:0` with `overflow:hidden` | yes |
+| HTML `hidden` attribute | yes |
+| A rule in a same-document `<style>` block | yes |
+| `clip-path:inset(100%)`, `text-indent:-9999px` | **no — deliberate** |
+| `aria-hidden="true"` | **no — deliberate** |
+| An **external** stylesheet | **no — out of reach** |
 
-Stylesheet-based hiding is the largest of these in practice: real pages hide
-content with a CSS class far more often than with an inline style.
+**Two of those "no" rows are choices, and one is a boundary.**
 
-This is an implementation gap, not the semantic ceiling described above, and it
-is fixable. It is not fixed yet because widening the check changes detection and
-forces a full efficacy re-measure, which has to be a separate change from any
-measurement work to keep the comparison honest. Tracked in `PATTERNS.md` and
-`OPEN-ITEMS.md`.
+`clip-path` and `text-indent` are the canonical `.sr-only` screen-reader idioms. A
+rule firing on them fires on well-built accessible sites, and the cost lands on the
+benign false-positive rate. An attacker who uses `.sr-only` markup to carry a
+payload is not caught. That is a stated gap.
+
+`aria-hidden` hides content from assistive technology while leaving it visually
+present — the inverse of this threat.
+
+**External stylesheets are structurally out of reach, not merely unimplemented.**
+Resolving a `<link rel="stylesheet">` means issuing an outbound request to a URL you
+never asked this tool to fetch, and this tool's only outbound traffic is to URLs you
+specify. An attacker who moves the rule into a linked stylesheet defeats this check,
+and no amount of implementation effort changes that without breaking that guarantee.
+
+Reasoning and classification: `docs/HIDING-TECHNIQUE-TAXONOMY.md`.
 
 ### Measured detection rates
 
