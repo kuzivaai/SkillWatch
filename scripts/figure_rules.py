@@ -131,24 +131,175 @@ class Proportion(NamedTuple):
     pct: float
     line: int
     excerpt: str
+    context: str = ""
 
 
 class AllowedFigures(NamedTuple):
-    """What the harness currently produces."""
+    """What the harness currently produces.
+
+    `labels` carries the metric each proportion was printed under, which is what
+    makes correspondence checking possible. Discarding it — as the first version of
+    this module did — reduces the check to set membership, and set membership cannot
+    see a substitution: `evasive recall 27/42` passes, because 27/42 is a real
+    current proportion. It is overall recall.
+    """
 
     pairs: set[tuple[int, int]]
     raw: str
+    labels: dict[tuple[int, int], set[str]] = {}
+    per_command: dict[str, int] = {}
+
+
+# --- 3c. The fail-closed floor, derived rather than picked -------------------
+#
+# The floor was `< 20`, a hand-picked constant against an actual count of 34. A
+# single global threshold cannot notice one command returning nothing while the
+# other's output alone clears it: measure_efficacy alone yields ~24 proportions, so
+# a total failure of measure_base_rate would still pass a global floor of 20.
+#
+# The floor is now the SUM of a per-command minimum, and each command is checked
+# against its own minimum, so a partial parse of either fails.
+#
+# Each minimum is the count of proportions that command must print for its report
+# to be structurally complete, derived by counting them in the current output and
+# subtracting a small margin for figures that legitimately come and go (a family
+# with zero members prints no interval, an empty FP breakdown prints no rows).
+MIN_PROPORTIONS_PER_COMMAND = {
+    "measure_efficacy.py": 18,   # 3 corpora x (fp, fn, precision, recall) + families
+    "measure_base_rate.py": 10,  # 10 techniques, plus exposure and delta rows
+}
+
+
+def derived_floor() -> int:
+    """Total minimum proportions across all harness commands."""
+    return sum(MIN_PROPORTIONS_PER_COMMAND.values())
+
+
+# --- 3a. Metric families, for correspondence --------------------------------
+#
+# HOW A LABEL IS RECOGNISED, and the alternatives rejected.
+#
+# Chosen: classify both sides — the harness's printed label and the surface's
+# surrounding text — into a small set of METRIC FAMILIES by keyword, then require
+# the families to agree. Keyword classification is crude but symmetric: the same
+# function runs on both sides, so a surface phrased like the harness always matches,
+# and the failure mode is an unclassified figure that is skipped and counted rather
+# than a wrong verdict.
+#
+# Rejected: EXACT LABEL STRING MATCHING. The harness prints "False-positive rate
+# (overall)"; the README says "Benign false positives". Both are correct English for
+# the same quantity and no exact match survives ordinary editing, so the rule would
+# fire constantly on correct text and be disabled within a week — the same failure
+# the figures:exempt mechanism exists to avoid.
+#
+# Rejected: REQUIRING AN EXPLICIT ANNOTATION on every published figure, e.g.
+# `27/42 <!--metric:recall-overall-->`. It would be exact and machine-checkable, and
+# it would put markup beside every number a reader sees, on six surfaces, for a rule
+# that catches one class of error. Rejected on cost, and because an annotation a
+# human writes by hand can itself be wrong in exactly the way being guarded against.
+#
+# Rejected: POSITIONAL TABLE PARSING — read the row header, resolve the column. It
+# handles tables well and prose not at all, and prose carries most of the figures on
+# these surfaces.
+#
+# REASONED, not evidenced: that keyword families are specific enough to catch real
+# substitutions and loose enough not to fire on correct prose. The assumption is
+# that a surface naming a metric uses at least one of its discriminating words.
+# What would overturn it: a mislabelled figure this rule misses, or a correct figure
+# it flags. Cheapest to reverse: the keyword table below is data, not logic.
+FAMILY_PRECISION = "precision"
+FAMILY_RECALL_OVERALL = "recall-overall"
+FAMILY_RECALL_EVASIVE = "recall-evasive"
+FAMILY_FP = "false-positive-rate"
+FAMILY_FN = "false-negative-rate"
+
+_EVASIVE_RE = re.compile(r"\bevasive\b", re.IGNORECASE)
+_RECALL_RE = re.compile(r"\brecall\b|\bcatch(?:es)?\b", re.IGNORECASE)
+_PRECISION_RE = re.compile(r"\bprecision\b", re.IGNORECASE)
+_FP_RE = re.compile(r"false[\s-]?positive|\bfp\b", re.IGNORECASE)
+_FN_RE = re.compile(r"false[\s-]?negative|\bfn\b", re.IGNORECASE)
+
+
+# The context is stored as "before\x00after" so classify_metric can prefer the text
+# that PRECEDES a figure. A label almost always precedes its number — "Overall
+# recall is 27/42", "| Precision | 27/33 |" — and preferring the trailing window
+# misread both figures in one README sentence.
+_CONTEXT_SEP = "\x00"
+
+
+def _join_context(before: str, after: str) -> str:
+    return f"{before}{_CONTEXT_SEP}{after}"
+
+
+def classify_metric(context: str) -> str | None:
+    """Which metric family does this text name? None if it names none.
+
+    Run on the harness's own label and on a surface's surrounding text, so both
+    sides are classified by identical rules. Text before the figure wins; the text
+    after is consulted only when nothing before it names a metric.
+    """
+    if _CONTEXT_SEP in context:
+        before, after = context.split(_CONTEXT_SEP, 1)
+        return _classify_one(before) or _classify_one(after)
+    return _classify_one(context)
+
+
+def _classify_one(context: str) -> str | None:
+    if _FP_RE.search(context):
+        return FAMILY_FP
+    if _FN_RE.search(context):
+        return FAMILY_FN
+    if _PRECISION_RE.search(context):
+        return FAMILY_PRECISION
+    if _RECALL_RE.search(context):
+        return (FAMILY_RECALL_EVASIVE if _EVASIVE_RE.search(context)
+                else FAMILY_RECALL_OVERALL)
+    return None
+
+
+# How much text after a proportion may still carry its label. "catches 27/42
+# (64.3%) against evasive payloads" puts the discriminating word after the figure.
+# Truncated at the first clause boundary: on a long line, an untruncated window
+# bleeds into the NEXT figure's clause and misreads the label. That produced two
+# false positives on README.md before the boundary was added.
+_CONTEXT_AFTER = 80
+_CLAUSE_END_RE = re.compile(r"[;.,]")
 
 
 def extract_proportions(text: str) -> list[Proportion]:
-    """Every `k/n (p%` in `text`, with its 1-indexed line number."""
+    """Every `k/n (p%` in `text`, with its line number and label context.
+
+    The context is the text on the same line between the previous proportion (or the
+    line start) and this one, plus a short window after it. That covers a table row
+    (`| Precision | 27/33 (81.8%) |`) and prose in either direction.
+    """
     out: list[Proportion] = []
     for line_no, line in enumerate(text.splitlines(), start=1):
+        previous_end = 0
         for match in PROPORTION_RE.finditer(line):
             k, n, pct = int(match.group(1)), int(match.group(2)), float(match.group(3))
-            out.append(Proportion(k=k, n=n, pct=pct, line=line_no,
-                                  excerpt=match.group(0).strip()))
+            before = line[previous_end:match.start()]
+            after = line[match.end():match.end() + _CONTEXT_AFTER]
+            # Drop the closing ")%" fragment, then stop at the first clause end.
+            after = after.lstrip(")% ")
+            boundary = _CLAUSE_END_RE.search(after)
+            if boundary is not None:
+                after = after[:boundary.start()]
+            out.append(Proportion(
+                k=k, n=n, pct=pct, line=line_no,
+                excerpt=match.group(0).strip(),
+                context=_join_context(before, after)))
+            previous_end = match.end()
     return out
+
+
+def count_unlabelled(text: str) -> int:
+    """How many proportions name no metric, so correspondence cannot be checked.
+
+    Reported rather than hidden: this is the honest measure of what the rule does
+    not cover.
+    """
+    return sum(1 for p in extract_proportions(text) if classify_metric(p.context) is None)
 
 
 def harness_proportions() -> AllowedFigures:
@@ -158,7 +309,11 @@ def harness_proportions() -> AllowedFigures:
     figures is free to drift from the first, which is the defect one level up.
     """
     chunks: list[str] = []
+    per_command: dict[str, int] = {}
+    labels: dict[tuple[int, int], set[str]] = {}
+
     for command in HARNESS_COMMANDS:
+        name = str(Path(command[-1]).name)
         result = subprocess.run(command, capture_output=True, text=True,
                                 cwd=str(REPO_ROOT), check=False)
         if result.returncode != 0:
@@ -169,9 +324,19 @@ def harness_proportions() -> AllowedFigures:
                 "current figures are."
             )
         chunks.append(result.stdout)
+        found = extract_proportions(result.stdout)
+        per_command[name] = len(found)
+        for prop in found:
+            labels.setdefault((prop.k, prop.n), set()).add(prop.context.strip())
+
     raw = "\n".join(chunks)
     pairs = {(p.k, p.n) for p in extract_proportions(raw)}
-    return AllowedFigures(pairs=pairs, raw=raw)
+    return AllowedFigures(pairs=pairs, raw=raw, labels=labels, per_command=per_command)
+
+
+def families_for(allowed: AllowedFigures, pair: tuple[int, int]) -> set[str | None]:
+    """Every metric family the harness printed this proportion under."""
+    return {classify_metric(label) for label in allowed.labels.get(pair, set())}
 
 
 def _exempt_lines(text: str, source: str) -> tuple[set[int], list[Violation]]:
@@ -242,14 +407,25 @@ def find_figure_violations(
     if allowed is None:
         allowed = harness_proportions()
 
-    if len(allowed.pairs) < 20:
-        # Guarding the guard. An empty or near-empty allowed-set would make every
-        # surface pass — the vacuous-rule failure of ledger item 36.
-        raise SystemExit(
-            f"FAIL: only {len(allowed.pairs)} proportions parsed from harness "
-            f"output. This check has NOT passed; it cannot verify anything "
-            f"against an empty reference set."
-        )
+    # Guarding the guard, per command. An empty or near-empty allowed-set would make
+    # every surface pass — the vacuous-rule failure of ledger item 36. Checked per
+    # command because a global floor cannot see one command returning nothing while
+    # the other's output alone clears the threshold.
+    for name, minimum in MIN_PROPORTIONS_PER_COMMAND.items():
+        actual = allowed.per_command.get(name)
+        if actual is None:
+            raise SystemExit(
+                f"FAIL: {name} produced no parsed output at all. This check has NOT "
+                f"passed; it cannot verify anything against a missing reference set."
+            )
+        if actual < minimum:
+            raise SystemExit(
+                f"FAIL: {name} yielded only {actual} proportions, below its minimum "
+                f"of {minimum}. A partial parse would silently shrink the reference "
+                f"set and let stale figures through. This check has NOT passed."
+            )
+    if len(allowed.pairs) < 1:
+        raise SystemExit("FAIL: the reference set is empty. This check has NOT passed.")
 
     exempt, out = _exempt_lines(text, source)
 
@@ -275,33 +451,73 @@ def find_figure_violations(
                          f"the region <!-- figures:exempt reason=\"...\" --> if "
                          f"it is deliberately historical."),
                 excerpt=prop.excerpt, source=source))
+            continue
+
+        # Correspondence, not membership. A real current proportion under the wrong
+        # metric label is the defect set membership cannot see.
+        claimed = classify_metric(prop.context)
+        if claimed is None:
+            continue  # names no metric — see count_unlabelled(), reported not hidden
+        harness_families = families_for(allowed, (prop.k, prop.n))
+        if claimed not in harness_families:
+            named = sorted(f for f in harness_families if f) or ["no metric family"]
+            out.append(Violation(
+                rule="figure-mislabelled",
+                message=(f"{source}:{prop.line}: {prop.k}/{prop.n} is published as "
+                         f"{claimed} but the harness prints it as {', '.join(named)}. "
+                         f"The value is real and current; the label is wrong."),
+                excerpt=prop.excerpt.strip(), source=source))
     return out
 
 
 def main() -> int:
     """Check every declared surface. Used by CI and by the pre-release gate."""
     allowed = harness_proportions()
-    print(f"Harness currently produces {len(allowed.pairs)} distinct proportions.")
+    print(f"Harness currently produces {len(allowed.pairs)} distinct proportions "
+          f"(floor {derived_floor()}, derived per command).")
+    for name, count in sorted(allowed.per_command.items()):
+        minimum = MIN_PROPORTIONS_PER_COMMAND.get(name, 0)
+        print(f"  {name:<24} {count:>3} parsed, minimum {minimum}")
 
     total = 0
+    labelled_total = 0
+    unlabelled_total = 0
+    print()
     for rel in FIGURE_SURFACES:
         path = REPO_ROOT / rel
         if not path.exists():
             print(f"FAIL: declared surface {rel} does not exist.")
             total += 1
             continue
-        violations = find_figure_violations(
-            path.read_text(encoding="utf-8"), source=rel, allowed=allowed)
+        text = path.read_text(encoding="utf-8")
+        violations = find_figure_violations(text, source=rel, allowed=allowed)
         for violation in violations:
             print(f"  [{violation.rule}] {violation.message}")
             print(f"      excerpt: {violation.excerpt}")
         total += len(violations)
 
+        # Correspondence coverage, reported rather than assumed. A figure naming no
+        # metric cannot be label-checked; saying how many is the honest measure of
+        # what this rule does NOT cover.
+        exempt, _ = _exempt_lines(text, rel)
+        checkable = [p for p in extract_proportions(text) if p.line not in exempt]
+        unlabelled = [p for p in checkable if classify_metric(p.context) is None]
+        labelled_total += len(checkable) - len(unlabelled)
+        unlabelled_total += len(unlabelled)
+        print(f"  {rel:<24} {len(checkable) - len(unlabelled):>3} label-checked, "
+              f"{len(unlabelled):>3} name no metric")
+
+    print(f"\ncorrespondence coverage: {labelled_total} of "
+          f"{labelled_total + unlabelled_total} non-exempt proportions carry a "
+          f"recognisable metric label.")
+    print(f"the remaining {unlabelled_total} are NOT correspondence-checked — they "
+          f"are still checked for currency and arithmetic. See ledger item 42.")
+
     if total:
         print(f"\n{total} figure violation(s).")
         return 1
     print("\nNo figure violations: every published proportion is one the harness "
-          "currently produces.")
+          "currently produces, under a label consistent with the harness's own.")
     return 0
 
 
