@@ -88,8 +88,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   byte-identical across the two releases) and marks the rest as consistent-with
   rather than proven.
 - **Stale documentation corrected.** `CLAUDE.md` said ten modules (there are 13)
-  and v0.2.0 (PyPI serves 0.3.0, `main` is 0.4.0);
-  `docs/skillwatch-overview.js` said v0.3.0, 323 tests, 12 modules.
+  and v0.2.0 (PyPI serves 0.3.0, `main` is 0.4.0). It also gained the precision
+  and OWASP AST05 rules so future sessions inherit them.
+  `docs/skillwatch-overview.js` (v0.3.0, 323 tests, 12 modules) was edited too,
+  but that file is gitignored and untracked, so the edit is **not** part of this
+  release and does not persist outside one working copy. Tracked as open item 31.
 
 ## [0.4.0] - 2026-07-29
 
