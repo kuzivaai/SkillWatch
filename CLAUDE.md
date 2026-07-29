@@ -20,7 +20,8 @@ ruff check skillwatch/ tests/ scripts/ analysis/
 
 # Type check  (same scope as CI)
 mypy skillwatch/ scripts/ analysis/measure_efficacy.py \
-     analysis/measure_base_rate.py analysis/build_realpage_corpus.py
+     analysis/measure_base_rate.py analysis/build_realpage_corpus.py \
+     analysis/run_delta_pass.py
 
 # Published figures must match the harness (CI step + pre-release gate)
 python3 scripts/figure_rules.py

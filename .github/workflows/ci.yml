@@ -58,6 +58,7 @@ jobs:
           analysis/measure_efficacy.py
           analysis/measure_base_rate.py
           analysis/build_realpage_corpus.py
+          analysis/run_delta_pass.py
       - name: Test
         run: pytest --cov=skillwatch --cov-report=term-missing --cov-fail-under=90 -q
       - name: Published figures match the harness

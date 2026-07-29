@@ -38,6 +38,10 @@ analysis/*
 # corpus, and ledger item 24 records for an untracked generator.
 !analysis/measure_base_rate.py
 !analysis/build_realpage_corpus.py
+# The scheduled delta pass, added 2026-07-29. Tracked because it is the
+# command OPEN-ITEMS.md tells a later session to run, and a scheduled
+# measurement whose runner lives on one machine is not scheduled at all.
+!analysis/run_delta_pass.py
 DOSSIER_*.md
 SECURITY_APPENDIX_*.md
 DECISION.md
