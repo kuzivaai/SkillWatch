@@ -78,6 +78,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   That paper is MCPXKIT, an offensive MCP toolkit, and its abstract does not
   document URL content swapping. Replaced with arXiv 2605.05274 (SIGIL), which
   addresses the audit-runtime gap directly.
+- **Retracted an inference presented as a check.** The README stated that on the
+  original ten evasive items "the same five are caught". The 0.3.0-era corpus was
+  never committed — `benign/`, `adversarial_a/` and `adversarial_b/` all entered
+  version control in a single commit at the time of the expansion — so there is no
+  earlier tracked state to diff against and the claim could not have been
+  verified. The README now states what is checkable (`detector.py` is
+  byte-identical across the two releases) and marks the rest as consistent-with
+  rather than proven.
 - **Stale documentation corrected.** `CLAUDE.md` said ten modules (there are 13)
   and v0.2.0 (PyPI serves 0.3.0, `main` is 0.4.0);
   `docs/skillwatch-overview.js` said v0.3.0, 323 tests, 12 modules.

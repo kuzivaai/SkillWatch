@@ -183,12 +183,23 @@ empty). Decomposed:
 | Overall recall | 15/20 (75.0%) | 21/35 (60.0%) |
 | Benign false positives | 4/32 | 4/32 |
 
-Fifteen evasive items were added and six of them are caught. The non-evasive
-subset is unchanged, the false-positive set is the same four items, and the
-original ten evasive items give the same five catches. The headline recall fell
-because the malicious corpus went from 50% evasive to 71% evasive — a harder and
-more honest test, not a worse detector. Precision moved the other way over the
-same period, 15/19 (78.9%) to 21/25 (84.0%), for the same structural reason.
+Fifteen evasive items were added and six of them are caught. The headline recall
+fell because the malicious corpus went from 50% evasive to 71% evasive — a
+harder and more honest test, not a worse detector. Precision moved the other way
+over the same period, 15/19 (78.9%) to 21/25 (84.0%), for the same structural
+reason.
+
+**What is and is not verifiable here.** The load-bearing fact is checkable:
+`skillwatch/detector.py` is byte-identical between the two releases, so no
+detection behaviour changed. The 0.3.0-era corpus, however, was never committed —
+the benign and adversarial sets entered version control in a single commit
+(`309d359`) at the time of the expansion, so there is no earlier tracked state to
+diff against. The first ten evasive items in the current corpus score 5/10,
+matching what 0.3.0 published, and the benign false-positive count is the same
+four items; both are consistent with the original set having been carried forward
+unchanged, but neither proves it. An earlier version of this README stated flatly
+that "the same five are caught" on the original ten. That was an inference
+presented as a check, and this note replaces it.
 
 Detection is almost perfectly split by attack family: **7 of 7** obfuscation
 payloads are caught (ROT13, reversal, base64, zero-width characters, homoglyphs,
