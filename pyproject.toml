@@ -75,8 +75,14 @@ dev = [
     "pytest>=9.0.3",
     "pytest-cov",
     "responses>=0.25",
-    "ruff",
-    "mypy>=1.10",
+    # Linter and type checker are bounded, not floating. Their *default rule sets*
+    # change between minors, so an unpinned tool turns CI into a non-reproducible
+    # check that goes red on an upstream release rather than on a code change.
+    # ruff 0.16.0 did exactly that: it reports 27 findings on code that was green,
+    # none of them regressions. Bumping these bounds is a deliberate, reviewed
+    # change (Dependabot will propose it), not a side effect of an unrelated push.
+    "ruff>=0.15.21,<0.16",
+    "mypy>=2.2,<2.3",
     "types-PyYAML",
     "types-requests",
     "types-beautifulsoup4",
