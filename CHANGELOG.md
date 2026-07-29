@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+<!-- figures:exempt reason="every entry below is a dated release record: the figures are those measured at that release and are frozen by definition. The [Unreleased] section above this marker is NOT exempt, so figures written for an upcoming release are checked against the harness." -->
+
 ## [0.4.1] - 2026-07-29
 
 **This release exists to publish corrections that were made in the repository and
@@ -373,3 +375,5 @@ without features attached; both ship in this release.
 - SSRF protection (private IP, loopback, link-local, cloud metadata blocking)
 - Escape sequence stripping at fetch and display time
 - CLI commands: add, add-url, remove, scan, list, history, alerts, alert
+
+<!-- figures:end -->

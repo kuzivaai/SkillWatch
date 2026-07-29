@@ -262,11 +262,70 @@ a reader can disagree with them:
 3. The flag is `info` severity and says "content is hidden here", which is true.
 
 **Point 2 is REASONED, not evidenced, and it is the load-bearing one.** The delta
-measurement that would confirm or refute it returned `0/3` — no information. If a
-days-apart measurement shows `display:none` churning as much as its prevalence
-suggests, this assignment should be revisited and this paragraph is the record that
-it was made on an assumption. What would overturn it: a delta false-positive rate
-attributable to `display:none` above roughly 10%.
+measurement that would confirm or refute it returned `0/3` — no information. It is
+also contradicted by the source this document cites: WebAIM says the `hidden`
+attribute "functions the same as CSS display:none". See *The split between
+`html-hidden-attr` and `display:none`* above, which states the argument in full,
+records that base rate does not separate the two, and fixes in advance what the
+scheduled delta pass would have to show to move `display:none` as well.
+
+### The split between `html-hidden-attr` and `display:none` — the weakest link, named
+
+`html-hidden-attr` was moved out of the flagged bucket and `display:none` was kept
+in it. **That split rests on one argument, and the source this document cites
+argues against it.**
+
+The two base rates are not distinguishable:
+
+| Technique | Base rate | 95% CI | Bucket |
+|---|---|---|---|
+| `html-hidden-attr` | 111/201 (55.2%) | [48.3%, 61.9%] | b — not flagged |
+| `display:none` | 103/201 (51.2%) | [44.4%, 58.1%] | a — flagged |
+
+The intervals overlap across almost their whole width. **Base rate does not
+separate these two techniques and cannot be cited as the reason they are in
+different buckets.**
+
+WebAIM, quoted verbatim above and the source this taxonomy relies on elsewhere,
+says of the `hidden` attribute:
+
+> When supported, it functions the same as CSS display:none—elements with this
+> attribute will not be presented to any user.
+
+**The primary source says they are the same mechanism.** So the split does not rest
+on concealment behaviour either.
+
+What it rests on is a **churn argument**, stated here so it can be attacked: that
+the `hidden` attribute's prevalence is *dynamic* — it is the primitive script
+toggles at runtime for tab panels, dialogs and dropdowns, so its hidden set changes
+during ordinary use — while `display:none` prevalence is largely *static*, present
+in both snapshots and therefore producing no delta. `hidden_content` is a delta
+check, so only churning concealment costs a false positive.
+
+**REASONED, not evidenced. This is the least supported decision in this document.**
+
+- **Assumption:** that hidden-set churn, not hidden-set size, drives the delta
+  false-positive rate, and that the two techniques differ in churn as much as this
+  argument needs.
+- **Evidence for it:** none measured. The delta pass that would test it returned
+  `0/3` — no information.
+- **Evidence against it:** the cited primary source calls the two mechanisms the
+  same, and the base rates are statistically indistinguishable.
+- **Cheapest to reverse:** one character in `TECHNIQUE_BUCKETS`.
+
+**The test, and what each outcome means.** `analysis/run_delta_pass.py`, scheduled
+for 2026-08-05 or later (ledger items 37, 38, 43):
+
+| Delta pass result | What it means |
+|---|---|
+| `display:none` contributes **≥10%** of the delta false-positive rate | The churn argument fails. `display:none` should move to bucket (b) on the same reasoning that moved `html-hidden-attr`, and this section is the record that the outcome was predicted and accepted in advance. |
+| `display:none` contributes **<10%**, and the rate is low overall | The churn argument survives its first real test. Record it as evidenced rather than reasoned. |
+| Too few pages produce a text diff to measure at all | Neither. Say so, and do not treat a second uninformative result as support for the status quo. |
+
+**A second outcome would also move it:** if `visibility:hidden` and `display:none`
+churn together at a rate comparable to what `html-hidden-attr` would have
+contributed, the eviction of `html-hidden-attr` was the arbitrary half of the
+split, not the principled one.
 
 ### `zero-box-clipped` — RETAINED in (a)
 

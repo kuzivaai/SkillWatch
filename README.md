@@ -289,6 +289,7 @@ were minutes apart; editorial drift needs days. **That measurement is pending.**
 **Why the published figures have moved.** Two separate causes, kept apart
 because conflating them would hide a real reduction in detection.
 
+<!-- figures:exempt reason="release-to-release comparison: 0.3.0 and 0.4.0 columns are superseded by design" -->
 *0.3.0 to 0.4.0 — the corpus changed, the detector did not.* 0.3.0 reported
 overall recall 15/20 (75.0%) and evasive recall 5/10 (50.0%); 0.4.0 reported
 21/35 (60.0%) and 11/25 (44.0%). `skillwatch/detector.py` was byte-identical
@@ -308,6 +309,7 @@ measured on real pages for the first time, which lowered it to 17/32:
 | Evasive malicious | 5/10 | 11/25 | 17/32 |
 | Overall recall | 15/20 (75.0%) | 21/35 (60.0%) | 27/42 (64.3%) |
 | Benign false positives | 4/32 (12.5%) | 4/32 (12.5%) | 6/37 (16.2%) |
+<!-- figures:end -->
 
 The two techniques removed are the HTML `hidden` attribute and off-screen
 absolute positioning. Both conceal content, and both were dropped because
@@ -387,6 +389,7 @@ positive comes from a check that fires on the *appearance* of something: a shell
 command, a domain, a base64-like string, or newly concealed markup — all things
 benign pages legitimately add.
 
+<!-- figures:exempt reason="counterfactual — figures a hypothetical deletion would produce, not measured output" -->
 This is a trade, not a bug to be fixed. Those same four checks are the *only*
 thing catching eleven evasive payloads in the corpus (E-04, E-05, E-09, E-10 via
 `new_exec_command`/`new_domains`; E-19 via `new_base64`; E-26 to E-30 and E-32
@@ -394,6 +397,7 @@ via `hidden_content`). Deleting all four would take the corpus false-positive
 count to zero and precision to 16/16 (100.0%, 95% CI [80.6%, 100.0%]), and drop
 overall recall from 27/42 (64.3%) to 16/42 (38.1%, 95% CI [25.0%, 53.2%]). They
 earn their place; weight them accordingly when triaging.
+<!-- figures:end -->
 
 ## Automate with cron
 

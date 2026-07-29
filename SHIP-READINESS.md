@@ -34,7 +34,9 @@ python3 analysis/measure_efficacy.py
 | # | Condition | Status | Basis |
 |---|-----------|--------|-------|
 | 1 | Evasive recall ≥50% **or** documentation makes unmissable that the triage is decorative | **PASS via the documentation route** | Recall route still fails on the interval: 17/32 (53.1%, CI [36.4%, 69.1%]) — the point estimate clears 50% but the lower bound 36.4% does not, and gates are evaluated on the bound. The README states plainly that the triage is decorative against *semantic* evasion (3/13), while noting mechanical obfuscation 7/7, structural 6/10 and non-English 1/2. Families sum to 17/32. |
+<!-- figures:exempt reason="trajectory row: 4/32 and 7/37 are prior measurements, only 6/37 is current" -->
 | 2 | Benign false-positive rate ≤30% | **STILL NOT DEMONSTRATED (2026-07-29)** | 4/32 (12.5%, CI [5.0%, 28.1%]) → 7/37 (18.9%, CI [9.5%, 34.2%]) after the `hidden_content` rewrite → **6/37 (16.2%, CI [7.7%, 31.1%])** after the base-rate reclassification. **The upper bound fell from 34.2% to 31.1% and still exceeds the 30% gate.** Reclassifying on measured base rates recovered most of the rise but did not restore the condition. See below. |
+<!-- figures:end -->
 | 3 | Named maintenance owner and pattern update cadence | **PASS, with an overdue review** | `MAINTENANCE.md` names the owner and a quarterly cadence. The July 2026 review was outstanding and is recorded in `PATTERNS.md`. |
 | 4 | ≥1 independent, non-conflicted evidence source for the premise | **PASS** | arXiv 2605.05274 (SIGIL), abstract checked against the primary source and quoted below. A preprint, not peer-reviewed. The previously cited arXiv 2508.12538 is an offensive toolkit and is retired. |
 | 5 | Evidence of minimal user demand | **FAIL** | 0 stars, 0 forks, 0 watchers, no external users. |
@@ -49,9 +51,11 @@ re-specified on 2026-07-29.
 The evasive corpus was expanded from 10 items to 25 on 2026-07-29, because at
 n=10 the interval was too wide to support any claim. The result:
 
+<!-- figures:exempt reason="corpus-expansion comparison: both columns predate two detector changes" -->
 | | Before (n=10) | After (n=25) |
 |---|---|---|
 | Evasive recall | 5/10 (50.0%, CI [23.7%, 76.3%]) | 11/25 (44.0%, CI [26.7%, 62.9%]) |
+<!-- figures:end -->
 
 **The detector did not get worse.** Its behaviour on the original ten items is
 unchanged — the same five are caught. The measured rate fell because the sample
@@ -122,6 +126,7 @@ reader who reads on. Corrected in the same change that re-measured.
 
 ### Why this condition was re-specified on 2026-07-29
 
+<!-- figures:exempt reason="records the superseded condition and the arithmetic that retired it" -->
 The condition was previously "precision ≥75%", assessed NOT DEMONSTRATED at
 21/25 (84.0%, CI [65.3%, 93.6%]). Two problems, in increasing order of
 seriousness.
@@ -132,6 +137,7 @@ is `TP/(TP+FP)`. Adding benign items can only add false positives; it cannot add
 true positives. At the observed 12.5% false-positive rate, adding 32 more benign
 items yields 21/29 (72.4%) with a lower bound of 54.3% — worse than the 65.3%
 it started from. The prescribed fix moved the gate further out of reach.
+<!-- figures:end -->
 
 **Precision is not a property of the detector.** It is a property of the
 detector *and the benign:malicious ratio of the corpus it was measured on* —
@@ -158,6 +164,7 @@ Two techniques left the flagged set because flagging them fires on ordinary page
 the HTML `hidden` attribute (111/201 real pages, 55.2%) and off-screen absolute
 positioning (which WebAIM *recommends* for screen-reader-only content).
 
+<!-- figures:exempt reason="before/after comparison: the After-rewrite column is superseded by design" -->
 | Metric | After rewrite | After reclassification | Delta |
 |---|---|---|---|
 | Benign FP rate | 7/37 (18.9%, [9.5, 34.2]) | **6/37 (16.2%, [7.7, 31.1])** | −2.7 pts, bound −3.1 |
@@ -165,6 +172,7 @@ positioning (which WebAIM *recommends* for screen-reader-only content).
 | Overall recall | 29/42 (69.0%, [54.0, 80.9]) | 27/42 (64.3%, [49.2, 77.0]) | −4.7 pts |
 | Evasive recall | 19/32 (59.4%, [42.3, 74.5]) | 17/32 (53.1%, [36.4, 69.1]) | −6.3 pts |
 | structural family | 8/10 | 6/10 | −2 |
+<!-- figures:end -->
 
 **The upper bound went 34.2% → 31.1%. The gate is ≤30%. It still fails.**
 
@@ -191,11 +199,13 @@ interval, is the single thing that would settle this condition.**
 
 ### 2026-07-29 — the gate stopped passing, and why that is reported rather than fixed
 
+<!-- figures:exempt reason="dated record of the intermediate state between the rewrite and the reclassification" -->
 The `hidden_content` rewrite (ledger item 7) took evasive recall from 11/32 (34.4%)
 to 19/32 (59.4%) and the structural family from 0/10 to 8/10. It also took the
 benign false-positive rate from 5/37 (13.5%) to **7/37 (18.9%, CI [9.5%, 34.2%])**.
 
 **On the interval, 34.2% exceeds the ≤30% gate. Condition 2 no longer passes.**
+<!-- figures:end -->
 
 That is a trade, and it is reported as one. The three false positives are B-33
 (collapsed accordion), B-35 (hidden form field) and B-37 (a `<style>`-collapsed
@@ -236,10 +246,13 @@ produced 0/43 (CI [0.0%, 8.2%]).
 (This paragraph read "all five … three delta checks" with /38 denominators until
 2026-07-29, describing the corpus as it stood two changes earlier.)
 
-Deleting the three delta checks would take the corpus false-positive count to
-zero. It would also cost five true positives (E-04, E-05, E-09, E-10, E-19),
-dropping overall recall from 21/35 (60.0%) to 16/35 (45.7%). That trade is not
-worth taking. The honest position is that the false-positive floor is set by the
+<!-- figures:exempt reason="counterfactual — the figures a hypothetical deletion would produce, not measured output" -->
+Deleting all four would take the corpus false-positive count to zero. It would
+also cost eleven true positives (E-04, E-05, E-09, E-10 via the exec/domain
+checks, E-19 via base64, and E-26 to E-30 and E-32 via `hidden_content`),
+dropping overall recall from 27/42 (64.3%) to 16/42 (38.1%). That trade is not
+worth taking.
+<!-- figures:end --> The honest position is that the false-positive floor is set by the
 delta checks and is the price of the recall they contribute.
 
 ## Condition 3 — maintenance
