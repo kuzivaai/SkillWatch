@@ -31,6 +31,13 @@ analysis/*
 # unreproducible from a clean clone.
 !analysis/corpus/
 !analysis/measure_efficacy.py
+# The real-page base-rate measurement, added 2026-07-29. `measure_base_rate.py`
+# produces published figures, so it is tracked for the same reason as the harness
+# above. `build_realpage_corpus.py` is tracked because a corpus nobody can rebuild
+# is evidence nobody can check — the defect ledger item 30 records for the 0.3.0
+# corpus, and ledger item 24 records for an untracked generator.
+!analysis/measure_base_rate.py
+!analysis/build_realpage_corpus.py
 DOSSIER_*.md
 SECURITY_APPENDIX_*.md
 DECISION.md
