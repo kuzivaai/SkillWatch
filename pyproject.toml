@@ -54,7 +54,7 @@ dependencies = [
     # cp313 wheel and fails to build on both; 6.0.1 installs on 3.13 only by
     # compiling from sdist, which needs a toolchain a user may not have. 6.0.2 is
     # the first release shipping wheels across the whole 3.10-3.13 matrix.
-    "pyyaml>=6.0.2",
+    "pyyaml>=6.0",
     "confusable_homoglyphs>=3.3",
 ]
 
