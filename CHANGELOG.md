@@ -20,6 +20,17 @@ without features attached; both ship in this release.
   file permission modification via path traversal in `wheel unpack`. `wheel` is a
   build requirement and previously declared no lower bound at all, so every
   published release was permitted.
+
+  **Version exposure and practical exposure are not the same thing, and both are
+  stated here.** The *version* exposure was real and continuous: an unbounded
+  requirement permitted every affected release for the project's entire life.
+  The *practical* exposure was nil: the vulnerable code is
+  `wheel.cli.unpack.unpack`, reached by running `wheel unpack` against an
+  attacker-supplied wheel, which this project never does — it uses `wheel` only
+  as a build backend. The advisory is `CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:N/I:H/A:H`:
+  a local vector requiring user interaction. The floor is raised regardless,
+  because a declared floor is a contract about what a resolver may install, not
+  a judgement about how likely we are to trip over it.
 - **Every remaining unbounded dependency now declares a floor**: `pytest-cov>=7.1.0`,
   `types-PyYAML>=6.0.12.20260518`, `types-requests>=2.33.0.20260518`,
   `types-beautifulsoup4>=4.12.0.20250516`. Each was checked to still support

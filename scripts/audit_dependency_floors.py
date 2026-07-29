@@ -150,6 +150,92 @@ def pypi_versions(name: str) -> list[str]:
     return versions
 
 
+def python_support_targets(pyproject: dict[str, Any]) -> list[tuple[int, int]]:
+    """Python versions the project claims to support, from its own classifiers.
+
+    Read from `Programming Language :: Python :: X.Y` rather than hardcoded, so
+    the check follows the project's declared support instead of drifting from it.
+    """
+    targets = []
+    for classifier in pyproject.get("project", {}).get("classifiers", []):
+        parts = [p.strip() for p in classifier.split("::")]
+        # "Programming Language :: Python :: 3.10" -> three parts, version last.
+        # The bare "Programming Language :: Python :: 3" entry has no minor and is
+        # skipped by the two-component check below.
+        if len(parts) == 3 and parts[0] == "Programming Language" and parts[1] == "Python":
+            bits = parts[2].split(".")
+            if len(bits) == 2 and all(b.isdigit() for b in bits):
+                targets.append((int(bits[0]), int(bits[1])))
+    return sorted(set(targets))
+
+
+def specifier_allows(specifier: str | None, version: tuple[int, ...]) -> bool:
+    """Evaluate a PEP 440 requires_python specifier against a version tuple.
+
+    Deliberately hand-rolled rather than importing `packaging`: this project
+    forbids relying on an undeclared dependency, and `packaging` is not one of
+    ours. Handles the operators that actually appear in requires_python metadata.
+    An unparseable clause is treated as satisfied — this check exists to catch
+    clear incompatibility, not to reject metadata it does not understand.
+    """
+    if not specifier:
+        return True
+    for clause in specifier.split(","):
+        clause = clause.strip()
+        if not clause:
+            continue
+        for op in (">=", "<=", "==", "!=", "~=", ">", "<"):
+            if clause.startswith(op):
+                bound = _version_key(clause[len(op) :].strip())
+                trimmed = version[: len(bound)] if len(bound) < len(version) else version
+                if op == ">=" and not version >= bound:
+                    return False
+                if op == ">" and not version > bound:
+                    return False
+                if op == "<=" and not version <= bound:
+                    return False
+                if op == "<" and not version < bound:
+                    return False
+                if op == "==" and trimmed != bound:
+                    return False
+                if op == "!=" and trimmed == bound:
+                    return False
+                if op == "~=" and not version >= bound:
+                    return False
+                break
+    return True
+
+
+def check_floor_python_compatibility(
+    requirement: Requirement, targets: list[tuple[int, int]]
+) -> str | None:
+    """Return a problem description if the floor version is missing or unusable.
+
+    Catches a floor that names a version which does not exist, or one whose
+    `requires_python` excludes a Python the project claims to support.
+
+    This does NOT prove installability. A release can satisfy requires_python and
+    still have no wheel for a given interpreter, and then either build from sdist
+    or fail outright. Only the lowest-direct CI matrix proves the floor actually
+    resolves and runs. See docs/DEPENDENCY-FLOORS.md.
+    """
+    assert requirement.floor is not None
+    url = f"https://pypi.org/pypi/{requirement.name}/{requirement.floor}/json"
+    try:
+        data = _http_json(urllib.request.Request(url))
+    except RuntimeError:
+        return f"floor {requirement.floor} could not be retrieved from PyPI (does it exist?)"
+
+    requires_python = data.get("info", {}).get("requires_python")
+    excluded = [f"{t[0]}.{t[1]}" for t in targets if not specifier_allows(requires_python, t)]
+    if excluded:
+        return (
+            f"floor {requirement.floor} declares requires_python={requires_python!r}, "
+            f"which excludes supported Python {', '.join(excluded)}"
+        )
+    return None
+
+
 def _version_key(version: str) -> tuple[int, ...]:
     """Crude numeric ordering, adequate for picking a floor among release versions."""
     parts: list[int] = []
@@ -238,6 +324,15 @@ def main() -> int:
         print(f"error: advisory lookup failed: {exc}", file=sys.stderr)
         return 2
 
+    targets = python_support_targets(pyproject)
+    compat: list[tuple[Requirement, str]] = []
+    for requirement in requirements:
+        if not requirement.floor:
+            continue
+        problem = check_floor_python_compatibility(requirement, targets)
+        if problem:
+            compat.append((requirement, problem))
+
     if args.json:
         print(
             json.dumps(
@@ -255,13 +350,18 @@ def main() -> int:
                     "floorless": [
                         {"package": r.name, "origin": r.origin} for r in without_floor
                     ],
+                    "python_incompatible": [
+                        {"package": r.name, "origin": r.origin, "problem": p} for r, p in compat
+                    ],
                 },
                 indent=2,
             )
         )
     else:
         audited = len([r for r in requirements if r.floor])
+        supported = ", ".join(f"{t[0]}.{t[1]}" for t in targets)
         print(f"Audited {audited} declared dependency floors.")
+        print(f"Declared Python support: {supported or '(none found in classifiers)'}")
         for finding in findings:
             req = finding.requirement
             print(f"\n  {req.name}>={req.floor}  ({req.origin})")
@@ -271,11 +371,16 @@ def main() -> int:
             print(f"\n  {req.name}  ({req.origin}) declares NO lower bound")
             print("    every published release is permitted, including any older than")
             print("    the advisory database's coverage. Give it a floor.")
-        if not findings and not without_floor:
+        for req, problem in compat:
+            print(f"\n  {req.name}>={req.floor}  ({req.origin})")
+            print(f"    {problem}")
+        if not findings and not without_floor and not compat:
             print("All declared floors are clear of known advisories.")
             print("Every declared requirement has a lower bound.")
+            print("Every floor version exists and permits every supported Python.")
+            print("(Installability is proven by the lowest-direct CI matrix, not here.)")
 
-    return 1 if (findings or without_floor) else 0
+    return 1 if (findings or without_floor or compat) else 0
 
 
 if __name__ == "__main__":
