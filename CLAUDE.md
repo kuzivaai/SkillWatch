@@ -8,14 +8,21 @@ Periodic URL content monitoring for AI agent skills and MCP tools.
 # Setup
 python3 -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]"
 
+# Export this for the session. See "Bytecode caching" below — it is not optional
+# when you are about to trust a before/after result.
+export PYTHONDONTWRITEBYTECODE=1
+
 # Test
 pytest --cov=skillwatch --cov-report=term-missing -q
 
-# Lint
-ruff check skillwatch/ tests/
+# Lint  (same scope as CI — analysis/ is evidence for published figures)
+ruff check skillwatch/ tests/ scripts/ analysis/
 
-# Type check
-mypy skillwatch/
+# Type check  (same scope as CI)
+mypy skillwatch/ scripts/ analysis/measure_efficacy.py
+
+# Dependency floor audit (security gate — must exit 0)
+python3 scripts/audit_dependency_floors.py
 
 # Build (no publish)
 python3 -m build
@@ -23,6 +30,26 @@ python3 -m build
 # Efficacy measurement
 python3 analysis/measure_efficacy.py
 ```
+
+### Bytecode caching
+
+**Set `PYTHONDONTWRITEBYTECODE=1` before any run whose result you intend to
+believe.** CI sets it at workflow level in `.github/workflows/ci.yml`; locally it
+is on you.
+
+CPython decides a cached `.pyc` is still valid by comparing the source file's
+**mtime and size** against the header stored in the cache. mtime has whole-second
+granularity. So two edits within the same second that leave the file the same
+size — changing `3` to `4`, flipping a comparison operator — are indistinguishable
+from no edit, and Python silently runs the old bytecode.
+
+This has produced a false result in this repository: a test was edited, re-run
+inside the same second, and reported passing from pre-change bytecode. The
+conclusion drawn — that the change was unnecessary — was wrong.
+
+`find . -name __pycache__ -type d -exec rm -rf {} +` also works but protects only
+the machine and the moment where someone remembers to run it. The environment
+variable removes the failure mode rather than sweeping up after it.
 
 ## Architecture
 
@@ -57,7 +84,34 @@ These are closed findings from the five-prompt forensic audit. Do not re-litigat
 - **No ML or LLM detection.** The detector is regex/keyword/DOM-based. Proposals to add semantic detection are out of scope.
 - **Published; demand condition still unmet.** PyPI serves 0.3.0 (2026-07-11); `main` is 0.4.0. GitHub Pages is live. Of the five readiness conditions, only user demand (condition 5) is unmet — and no engineering change moves it. Current scoreboard: SHIP-READINESS.md (DECISION.md is the superseded pre-remediation record). Open work is tracked in OPEN-ITEMS.md, which is the continuity ledger across sessions.
 - **Precision is not a ship gate and must not be published as a deployment property.** It depends on the corpus benign:malicious ratio, which deployment does not share. The transferable figure is the benign false-positive rate. See SHIP-READINESS.md condition 2 for the arithmetic.
-- **Positioning is OWASP AST05.** SkillWatch maps to AST05 "Untrusted External Instructions" in the OWASP Agentic Skills Top 10 (v1.0, 2026 Edition). That project is **early-stage, not a flagship standard**, and its own pages describe its status inconsistently (incubator vs new project proposal) — check the current status before repeating any maturity claim, and never imply endorsement. AST07 "Update Drift" is adjacent (version pinning) and may be cited only as a partial fit. The scanner-bypass finding in that document is **Trail of Bits'**, cited by OWASP, not OWASP's own — attribute it correctly.
+- **Positioning is OWASP AST05, partially.** SkillWatch addresses AST05 "Untrusted External Instructions" in the OWASP Agentic Skills Top 10 (v1.0, 2026 Edition). Of the six preventive mitigations the AST05 page lists, SkillWatch covers one ("Maintain fleet-wide visibility of referenced sources") and part of two ("Pin and verify referenced content" — alerts on drift, does not refuse it; "Rescan continuously" — this tool is periodic by design and does **not** satisfy that mitigation as OWASP words it). It does not address the other three. Never write that the AST05 mitigations "describe what this tool does." That project is **early-stage, not a flagship standard**, and its own pages describe its status inconsistently (incubator vs new project proposal) — check the current status before repeating any maturity claim, and never imply endorsement. AST07 "Update Drift" is adjacent (version pinning) and may be cited only as a partial fit.
+
+### Citing external findings on a public surface
+
+An external finding quoted on any public surface — README, `docs/`, PyPI, a
+pull-request body, launch copy — must carry **the source's own scope and
+quantifier**. Not a downstream paraphrase of them, including OWASP's paraphrase
+of someone else's work.
+
+- Go to the primary source. If you found the claim in a secondary source that is
+  itself citing a third party, fetch the third party. Secondary sources compress,
+  and compression is where scope and quantifiers get lost.
+- **Paste the source sentence verbatim into the commit message** so a later
+  session can compare the surface text against the source without refetching.
+- Attribute to whoever did the work, not to whoever you read it in.
+- Never silently alter a quoted word to fit this project's constraints. If OWASP
+  says "continuously" and this tool is periodic, say both.
+
+Worked example of the failure this rule exists to prevent. Trail of Bits wrote
+that it "took us less than an hour to conceive and implement three of the four
+malicious skills". OWASP's incident timeline compressed that to "every public
+skill scanner tested … is bypassed in under an hour" — moving the hour from
+*building three of four attacks* to *bypassing scanners*, and dropping the fourth
+attack that took a few hours. This README repeated OWASP's compression. Two hops,
+two distortions, one public surface.
+
+`tests/test_published_claims.py` enforces the mechanical half of this: a cited
+finding on a public surface must be accompanied by a source URL.
 
 ## Conventions
 

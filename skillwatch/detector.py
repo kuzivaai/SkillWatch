@@ -600,7 +600,24 @@ def _extract_suspicious_script_contents(soup: BeautifulSoup) -> set[str]:
 
 
 def _extract_hidden_texts(soup: BeautifulSoup) -> set[str]:
-    """Extract text from hidden elements as a set for comparison."""
+    """Extract text from elements hidden by an inline style attribute.
+
+    Narrow, and deliberately documented as narrow. This inspects the element's
+    own ``style`` attribute for a lower-case ``display:none`` or
+    ``visibility:hidden`` and nothing else.
+
+    It does NOT see: upper- or mixed-case declarations (there is no
+    ``re.IGNORECASE`` here), rules in a ``<style>`` block, external stylesheets,
+    the HTML ``hidden`` attribute, ``aria-hidden``, off-screen positioning,
+    ``opacity:0``, ``font-size:0``, ``height:0``, ``clip-path`` or
+    ``text-indent``. Stylesheet-based hiding is the biggest of those gaps in
+    practice.
+
+    Widening this changes detection and therefore forces an efficacy re-run
+    (see MAINTENANCE.md), which is why the gap is recorded in PATTERNS.md rather
+    than closed opportunistically. Absence of the ``hidden_content`` flag is not
+    evidence that nothing is hidden.
+    """
     result = set()
     for elem in soup.find_all(style=re.compile(r"display:\s*none|visibility:\s*hidden")):
         text = elem.get_text(strip=True)

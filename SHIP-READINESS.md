@@ -89,11 +89,23 @@ documented ceiling, and it is a property of regex triage, not a defect to fix.
 
 One miss is **not** the ceiling and is worth separating out: `E-24` hides text
 with `position:absolute;left:-9999px`, and `_extract_hidden_texts()`
-(`skillwatch/detector.py:605`) matches only `display:none` and
-`visibility:hidden`. That is a narrow implementation gap rather than a semantic
-evasion. It is recorded here and in `PATTERNS.md` rather than fixed in the same
-change that measures it, because `MAINTENANCE.md` requires an efficacy re-run on
-any detector change and mixing the two would make the measurement circular.
+(`skillwatch/detector.py:602`) only inspects an element's **inline `style`
+attribute** for a lower-case `display:\s*none` or `visibility:\s*hidden`.
+
+Measured on 2026-07-29, the check does **not** fire on: upper- or mixed-case
+declarations (the regex carries no `re.IGNORECASE`), rules in a `<style>` block,
+external stylesheets, the HTML `hidden` attribute, `aria-hidden`, off-screen
+positioning, `opacity:0`, `font-size:0`, `height:0;overflow:hidden`,
+`clip-path:inset(100%)` or `text-indent:-9999px`. Stylesheet-based hiding is the
+largest of these in practice — real pages hide content with a CSS class far more
+often than with an inline style.
+
+That is a narrow implementation gap rather than a semantic evasion. **The
+documentation half was closed on 2026-07-29**: every surface now describes what
+the code does rather than what it was assumed to do. **The code gap remains
+open**, recorded here and in `PATTERNS.md` rather than fixed in the same change
+that measures it, because `MAINTENANCE.md` requires an efficacy re-run on any
+detector change and mixing the two would make the measurement circular.
 
 ## Condition 2 — false-positive rate (was: precision)
 
@@ -157,7 +169,7 @@ done and what remains.
 
 ### The source
 
-**arXiv 2605.05274 — "Sealing the Audit-Runtime Gap for LLM Skills"** (SIGIL).
+**[arXiv 2605.05274](https://arxiv.org/abs/2605.05274) — "Sealing the Audit-Runtime Gap for LLM Skills"** (SIGIL).
 Tingda Shen, Yebo Feng, Konglin Zhu, Xiaojun Jia, Yang Liu, Lin Zhang. Submitted
 6 May 2026. Abstract retrieved from the arXiv API on 2026-07-29.
 
