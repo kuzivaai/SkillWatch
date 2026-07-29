@@ -50,7 +50,11 @@ dependencies = [
     "trafilatura>=2.0,<3",
     "requests>=2.33.0",
     "beautifulsoup4>=4.12",
-    "pyyaml>=6.0",
+    # >=6.0.2 is a matrix floor, not a security floor. 6.0 publishes no cp312 or
+    # cp313 wheel and fails to build on both; 6.0.1 installs on 3.13 only by
+    # compiling from sdist, which needs a toolchain a user may not have. 6.0.2 is
+    # the first release shipping wheels across the whole 3.10-3.13 matrix.
+    "pyyaml>=6.0.2",
     "confusable_homoglyphs>=3.3",
 ]
 

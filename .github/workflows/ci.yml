@@ -63,8 +63,18 @@ jobs:
   # works, rather than numbers nobody has executed. uv run (not uv sync) because with
   # a lockfile present `uv sync --resolution lowest-direct` resolves above the declared
   # minimums and would test nothing. See docs/DEPENDENCY-FLOORS.md.
+  #
+  # Matrixed over every Python the project claims to support, not just the oldest.
+  # A floor can be advisory-free, bounded, and still uninstallable on one
+  # interpreter: pyyaml>=6.0 published no cp312 or cp313 wheel and failed to build
+  # on both, while a 3.10-only leg stayed green. Declaring support for 3.10-3.13
+  # means the floor contract has to hold on all four.
   lowest-direct:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
@@ -73,6 +83,6 @@ jobs:
       - name: Install uv
         run: pip install uv
       - name: Test against the lowest declared dependency versions
-        # --python 3.10 is the project's own floor; uv fetches it. --isolated keeps
-        # this out of any cached environment.
-        run: uv run --python 3.10 --resolution lowest-direct --isolated --extra dev pytest -q
+        # uv fetches the target interpreter itself; the setup-python above only
+        # provides a host for uv. --isolated keeps this out of any cached env.
+        run: uv run --python ${{ matrix.python-version }} --resolution lowest-direct --isolated --extra dev pytest -q
