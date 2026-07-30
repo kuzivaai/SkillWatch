@@ -93,7 +93,7 @@ dev = [
     # none of them regressions. Bumping these bounds is a deliberate, reviewed
     # change (Dependabot will propose it), not a side effect of an unrelated push.
     "ruff>=0.15.21,<0.16",
-    "mypy>=2.2,<2.3",
+    "mypy>=2.2,<2.4",
     "types-PyYAML>=6.0.12.20260518",
     "types-requests>=2.33.0.20260518",
     "types-beautifulsoup4>=4.12.0.20250516",
