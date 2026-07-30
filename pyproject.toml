@@ -56,6 +56,12 @@ dependencies = [
     # the first release shipping wheels across the whole 3.10-3.13 matrix.
     "pyyaml>=6.0.2",
     "confusable_homoglyphs>=3.3",
+    # NEGATIVE CONTROL. DO NOT MERGE. Throwaway branch only.
+    # A known-vulnerable pin, added so the `security` job is OBSERVED refusing
+    # something. The rewritten job (separate venv, pip freeze --exclude-editable,
+    # --strict on the -r shape) had only ever been seen green. Expected:
+    # PYSEC-2026-1471, PYSEC-2026-1473, PYSEC-2026-1474, PYSEC-2026-1475.
+    "jinja2==2.11.3",
 ]
 
 [project.urls]
