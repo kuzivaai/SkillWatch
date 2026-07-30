@@ -126,15 +126,114 @@ which no straightforward pin provides.
 **Nothing was left behind.** `git diff main -- pyproject.toml` is empty, `jinja2`
 appears nowhere in the tree, and `main` is untouched at `6c6ab21`.
 
-**Two honest limits, so a later session does not over-read this.**
+### The `build` job was observed refusing something, 2026-07-30
 
-1. On the `-r` shape an unresolvable entry already fails **without** `--strict` —
-   measured exit 1 either way, because pip-audit resolves the file by a dry-run
-   install. No case was constructed in which `--strict` changed the outcome of the
-   `-r` shape. It is kept as an explicit statement that silent skips are unacceptable,
-   **not** because it was observed firing here. A rule that has never fired has not
-   been tested; this one is recorded as such rather than presented as proven.
-2. This audits the versions CI **installed**, which are the newest a resolver picks.
+`publish.yml`'s `build` job had never been red across all four runs it had ever
+had, and it guards the most public surface this project has.
+
+**Run <https://github.com/kuzivaai/SkillWatch/actions/runs/30530850014>**, branch
+`throwaway/build-negative-control` (deleted), head `1722028`. Stimulus: three lines
+of invalid TOML in `pyproject.toml`.
+
+```
+build    failure
+  success   Install build tools
+  failure   Build package
+  skipped   Run actions/upload-artifact@043fb46d...
+publish  skipped        <- never started; no steps were even listed for it
+```
+
+```
+* Creating isolated environment: venv+pip...
+ERROR Failed to parse /home/runner/work/SkillWatch/SkillWatch/pyproject.toml:
+      Expected '=' after a key in a key/value pair (at line 17, column 6)
+##[error]Process completed with exit code 1.
+```
+
+`publish` was **skipped and never started**. That is `needs: build` with no `if:`,
+the same ordering argument that isolated the pip-audit step from the floor step in
+the `security` control. Nothing was published: PyPI still serves exactly four
+releases, newest 0.4.1 from 2026-07-29.
+
+**How the workflow was made to run, and a prediction that was wrong.**
+`publish.yml` triggers only on `release: types: [published]`, so the job cannot be
+exercised from a branch at all. Two temporary triggers were added on the throwaway
+branch and removed with it: `workflow_dispatch:` and a `push:` trigger scoped to
+that branch name.
+
+The `push:` trigger was added as a fallback because `gh workflow run --ref` was
+**predicted to fail**, on the understanding that GitHub requires a
+`workflow_dispatch` trigger on the *default* branch. **That prediction was wrong.**
+`gh workflow run publish.yml --ref throwaway/build-negative-control` exited 0 and
+produced run 30530850014 with `event: workflow_dispatch`. The likely mechanism,
+**reasoned and not verified against GitHub's documentation**: the workflow *file*
+exists on the default branch, which is enough to resolve the workflow ID, and the
+dispatch then runs the version at the given ref, which declares the trigger. The
+observation that would settle it is dispatching a workflow whose file does not
+exist on the default branch at all.
+
+**Consequence: the `push:` trigger was unnecessary apparatus.** A later session
+controlling `publish.yml` needs only `workflow_dispatch:` on the throwaway branch.
+
+**A testability gap this exposed, logged in the ledger rather than fixed here.**
+A workflow reachable only by publishing a real release cannot be exercised at all
+without editing it, so every control against it changes the thing being controlled.
+That is a weaker form of evidence than the `ci.yml` controls, where the trigger was
+untouched, and it is stated rather than glossed.
+
+### `--strict` is load-bearing: demonstrated 2026-07-30
+
+For five sessions `--strict` was carried as a rule that had never been seen to fire,
+and this document said so: *"no case was constructed in which `--strict` changed the
+outcome of the `-r` shape"*. **That was true of the cases tried and false in
+general.** A case exists, and it was found by reading pip-audit's source rather than
+by guessing at inputs.
+
+`--strict` turns any `SkippedDependency` into a fatal (`_cli.py:557`). The skip that
+is reachable on *every* dependency source is `_service/pypi.py:85`: a package that
+resolves but whose `(name, version)` **404s on PyPI**, so it cannot be audited at
+all. Measured, pip-audit 2.10.1, against a locally built package deliberately absent
+from PyPI (`pypi.org/pypi/skillwatch-strict-probe-does-not-exist/json` returns 404):
+
+| Invocation | Exit | Output |
+|---|---|---|
+| `pip-audit --desc -r <file>` | **0** | `No known vulnerabilities found`, then a *Skip Reason* table naming the package. **It passes.** |
+| `pip-audit --strict --desc -r <file>` | **1** | `ERROR: skillwatch-strict-probe-does-not-exist: Dependency not found on PyPI and could not be audited` |
+
+**Without `--strict` this gate reports green over a dependency it never examined.**
+That is the same fail-open shape as an unparseable specifier treated as satisfied
+(ledger item 17) and a guard blind to the published artefact (item 35). The flag
+stays, and it is now a demonstrated catch rather than a stated intent.
+
+**Reachable in this project's real shape**, not only in a laboratory: `pip freeze`
+names whatever is installed, so a dependency from a private index, a VCS URL, or a
+release later removed from PyPI would produce exactly this skip.
+
+Cases that do **not** distinguish the flag, recorded so they are not retried:
+
+| Case | Without | With |
+|---|---|---|
+| resolvable package with advisories (`jinja2==2.11.3`) | 1 | 1 |
+| package with no advisories (`skillwatch==0.4.1`) | 0 | 0 |
+| nonexistent package name | 1 | 1 |
+| yanked release (`urllib3==2.0.3`) | 1 | 1 |
+| local sdist of a **published** version | 0 | 0 |
+| editable `-e .` in the requirements file | 0 | 0 |
+
+The editable and URL skips in `_collect_preresolved_deps` (`requirement.py:312-346`)
+are **unreachable in CI's shape**: that code path runs only under `--no-deps`, which
+this project does not pass.
+
+**Stated limit on this control.** It was run locally against pip-audit **2.10.1**,
+not in CI. CI installs whatever `pip install pip-audit` resolves at run time, so a
+future version could change the behaviour. The mechanism is a property of pip-audit
+and the requirements file rather than of the runner, which is why a local control was
+judged sufficient; the observation that would overturn that is a CI run where a
+skipped dependency does not fail the step.
+
+**One honest limit remains.**
+
+1. This audits the versions CI **installed**, which are the newest a resolver picks.
    It still says nothing about what the declared ranges *permit* — that remains the
    floor audit's job, and the reason the two checks are separate has not changed.
 

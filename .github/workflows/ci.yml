@@ -113,10 +113,25 @@ jobs:
         # happens to equal what PyPI serves, and would fail at the next pre-release
         # bump. This shape is robust because the project is excluded outright.
         #
-        # Honest limit: on the -r shape an unresolvable entry already fails WITHOUT
-        # --strict (exit 1 either way), and no case was constructed where --strict
-        # changed the outcome. It is kept as an explicit statement that silent skips
-        # are not acceptable, not because it was observed firing here.
+        # --strict IS load-bearing. Demonstrated 2026-07-30, having been carried for
+        # five sessions as an undemonstrated rule. The case: a package pip resolves
+        # but PyPI 404s, so it cannot be audited at all.
+        #
+        #   pip-audit --desc -r <file>            -> exit 0, prints a "Skip Reason"
+        #                                            table and PASSES
+        #   pip-audit --strict --desc -r <file>   -> exit 1
+        #       "skillwatch-strict-probe-does-not-exist: Dependency not found on
+        #        PyPI and could not be audited"
+        #
+        # Without --strict a dependency that was never audited is silently tolerated
+        # and this gate reports green: the same fail-open shape as an unparseable
+        # specifier treated as satisfied. Reachable here because `pip freeze` names
+        # whatever is installed, including anything from a private index, a VCS URL,
+        # or a release later removed from PyPI.
+        #
+        # An earlier note here said no case had been found. That was true of the four
+        # cases tried then (resolvable-with-advisories, nonexistent package, yanked
+        # release, local sdist of a published version) and false in general.
         #
         # See docs/DEPENDENCY-FLOORS.md for the full record.
         run: /tmp/auditenv/bin/pip-audit --strict --desc -r requirements-audit.txt
