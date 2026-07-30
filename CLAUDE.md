@@ -102,17 +102,18 @@ These are closed findings from the five-prompt forensic audit. Do not re-litigat
 - **The regex triage is evadable by design.** Recall is 60.0% overall (21/35, CI [43.6%, 74.4%]) and 44.0% against evasive adversaries (11/25, CI [26.7%, 62.9%]). Semantic evasions (indirect instruction, polite framing, narrative framing) bypass detection by design. This is documented honestly and is not a bug to fix. The tool is a URL change monitor with best-effort triage, not a detection tool. The older 75%/50% figures were measured on a smaller corpus and are superseded.
 - **"Periodic, not continuous."** The tool runs via cron or CI. It has no daemon mode, no schedule trigger, no unattended monitoring. All user-facing text uses "periodic" or "periodically." Do not introduce "continuous" or "continuously."
 - **No ML or LLM detection.** The detector is regex/keyword/DOM-based. Proposals to add semantic detection are out of scope.
-- **Published; demand condition still unmet.** PyPI serves 0.4.1 (2026-07-29); this repository declares 0.4.1 in `pyproject.toml`. GitHub Pages is live.
-  <!-- Both numbers are checked, not trusted. The declared one is checked offline by
-  tests/test_claude_md_currency.py against pyproject.toml; the published one is checked
-  against the live index by scripts/check_published_claims.py. Verify either by hand
-  with:
+- **Published; demand condition still unmet.** PyPI serves 0.4.1 (2026-07-29); this repository declares 0.4.1 in `pyproject.toml`. GitHub Pages is live. Of the five readiness conditions, only user demand (condition 5) is unmet — and no engineering change moves it. Current scoreboard: SHIP-READINESS.md (DECISION.md is the superseded pre-remediation record). Open work is tracked in OPEN-ITEMS.md, which is the continuity ledger across sessions.
+  <!-- Both version numbers above are checked, not trusted. The declared one is checked
+  offline by tests/test_claude_md_currency.py against pyproject.toml; the published one
+  is checked against the live index by scripts/check_published_claims.py. By hand:
       grep '^version' pyproject.toml
       python3 -c "import json,urllib.request; print(json.load(urllib.request.urlopen('https://pypi.org/pypi/skillwatch/json'))['info']['version'])"
   This sentence previously read "PyPI serves 0.3.0 (2026-07-11); main is 0.4.0" and
   BOTH halves were false as of 2026-07-30: PyPI had served 0.4.1 since 2026-07-29
-  and main was 0.4.1. It briefed every session with a wrong fact for a day. -->
- Of the five readiness conditions, only user demand (condition 5) is unmet — and no engineering change moves it. Current scoreboard: SHIP-READINESS.md (DECISION.md is the superseded pre-remediation record). Open work is tracked in OPEN-ITEMS.md, which is the continuity ledger across sessions.
+  and main was 0.4.1. It briefed every session with a wrong fact for a day.
+  The comment sat mid-bullet when first written, which broke the list item in two;
+  moved to the end 2026-07-30. -->
+
 - **Precision is not a ship gate and must not be published as a deployment property.** It depends on the corpus benign:malicious ratio, which deployment does not share. The transferable figure is the benign false-positive rate. See SHIP-READINESS.md condition 2 for the arithmetic.
 - **Positioning is OWASP AST05, partially.** SkillWatch addresses AST05 "Untrusted External Instructions" in the OWASP Agentic Skills Top 10 (v1.0, 2026 Edition). Of the six preventive mitigations the AST05 page lists, SkillWatch covers one ("Maintain fleet-wide visibility of referenced sources") and part of two ("Pin and verify referenced content" — alerts on drift, does not refuse it; "Rescan continuously" — this tool is periodic by design and does **not** satisfy that mitigation as OWASP words it). It does not address the other three. Never write that the AST05 mitigations "describe what this tool does." That project is **early-stage, not a flagship standard**, and its own pages describe its status inconsistently (incubator vs new project proposal) — check the current status before repeating any maturity claim, and never imply endorsement. AST07 "Update Drift" is adjacent (version pinning) and may be cited only as a partial fit.
 
@@ -378,20 +379,88 @@ CI history below is **exhaustive, not sampled**: all 81 `ci.yml` runs and all 4
 `publish.yml` runs that exist as of 2026-07-30 were inspected. `ci.yml` has 4
 failures; `publish.yml` has none.
 
+**The `Executable hash` column is what stops this table certifying a gate it has
+not examined.** A name and a status record a gate's *identity*. They cannot notice
+that a job was rewritten under the same name and silently kept its old verdict,
+which is precisely what happened to `security` on 2026-07-30. Each job's row
+therefore carries a digest of what that job actually executes, and
+`tests/test_gate_table.py` fails when a job's current digest stops matching, with
+the message that the gate changed materially and needs a fresh negative control.
+The status must then be read as `unknown`, and a second test enforces that it
+cannot say anything else while the hash is drifted.
+
+**Do not update a drifted hash on its own.** That records that the change happened
+and asserts nothing about whether the gate still refuses anything. Run the control,
+then update the status, the evidence and the hash together.
+
+**What the hash covers, and why it is not "`run:` lines only".** Hashing the whole
+workflow *file* was considered earlier and rejected, correctly: it fires on comment
+edits and gets switched off within a week. The obvious narrowing is to hash only
+executable `run:` lines, mirroring `pip_audit_run_lines()` in
+`tests/test_ci_scope.py`. **That narrowing is wrong here, and measurably so.** The
+`publish` job has **zero** `run:` lines, so a run-lines-only digest for it is
+`sha256("[]")` regardless of what the job does. It would be blind to:
+
+- `needs: build` — the ordering that keeps a failed build from ever reaching PyPI,
+  and the entire safety argument for the 2026-07-30 `build` control;
+- `environment: pypi` and `permissions: id-token: write`;
+- the pinned SHA of `pypa/gh-action-pypi-publish`.
+
+A digest blind to all of that is the defect being closed, not a fix for it. So the
+hash is over the **parsed job specification** with cosmetic keys removed. Parsing as
+YAML drops comments, blank lines and trailing whitespace *inherently*, which is a
+stronger normalisation than stripping them by regex, and it keeps step order
+significant — correct, because step ordering is what isolated the pip-audit step
+from the floor step in the `security` control.
+
+**The hash also covers the workflow's `on:` block, and that was found by doing, not
+by reasoning.** An earlier draft hashed the job specification alone. The build
+negative control then added `workflow_dispatch:` to `publish.yml` to make an
+otherwise unreachable workflow reachable, and the hash did not move, because `on:`
+sits outside `jobs:`. A job's behaviour is not only what it runs but **when** it
+runs: changing `ci.yml`'s `on:` from `[push, pull_request]` to `[push]` would stop
+every pull request being gated at all while every job line stayed byte-identical.
+A gate that no longer runs is not a gate. Both directions are asserted in
+`tests/test_gate_table.py::test_the_trigger_block_is_part_of_every_job_hash`.
+
+One trap worth knowing if you touch that code: under YAML 1.1 the bare key `on`
+parses to the **boolean True**, not the string `"on"`. `data["on"]` returns nothing
+on every workflow here, and a digest built on it would silently omit the trigger
+from every hash. Both spellings are read.
+
+`name:` on a job or a step deliberately does **not** move the hash: a rename changes
+nothing that executes. The cost is real and is stated rather than hidden: the
+evidence cells below quote step names, so a rename can leave the prose stale while
+the hash stays green. That is a documentation problem, not a gate-behaviour one.
+
+**Reasoned, not evidenced,** and recorded as such: no source was searched for or
+found on how workflow-gate drift is detected elsewhere, because this is a
+repository-specific accounting problem rather than a general one. The design rests
+on one assumption — that behaviour is fully determined by the parsed job spec minus
+display names. The observation that would overturn it is a job changing behaviour
+with an unchanged spec, which composite actions and `${{ }}` expressions over
+repository variables could both produce. It is cheap to reverse: delete one column
+and three tests.
+
+**Repository-side gates are NOT hashed**, and that hole is left open deliberately
+rather than papered over. `scripts/*.py` can be rewritten under the same name and
+keep their status, exactly as `security` did. A hash of the source text would fire
+on comment edits, which is the rejected shape; the right instrument is a digest over
+the parsed AST with docstrings stripped. Not built. See the ledger.
+
 <!-- gate-table:start -->
-| Gate | Kind | Ever observed red | Evidence |
-|---|---|---|---|
-| `test` | CI job (matrix 3.10-3.13) | RED OBSERVED | <https://github.com/kuzivaai/SkillWatch/actions/runs/30442289082> `test (3.13)`, 2026-07-29; also 30503588045 `test (3.11)` on a Dependabot ruff bump |
-| `security` | CI job | RED OBSERVED | <https://github.com/kuzivaai/SkillWatch/actions/runs/30526422428>, 2026-07-30, PR #38 closed unmerged. Failed at step *Audit resolved dependencies (--strict, no skip flags)* on `jinja2 2.11.3`, reporting PYSEC-2026-1471/1473/1474/1475; the later floor step was `skipped` |
-| `lowest-direct` | CI job (matrix 3.10-3.13) | RED OBSERVED | <https://github.com/kuzivaai/SkillWatch/actions/runs/30500657407>, 2026-07-29, all four legs. **Confounded**: see the note below |
-| `build` | CI job (`publish.yml`) | never observed red | 4 of 4 `publish.yml` runs succeeded (v0.2.0, v0.3.0, v0.4.0, v0.4.1). No negative control has been run against it |
-| `publish` | CI job (`publish.yml`) | never observed red | As above. Hard to control safely: a deliberate failure risks a bad artefact reaching PyPI, so the cheap control is a dry run against TestPyPI rather than a red on the real job |
-| `scripts/audit_dependency_floors.py` | repository gate | RED OBSERVED | 2026-07-30, `exit=1` on a temporary `jinja2>=2.11.3` floor: *"permits versions with: GHSA-cpwx-vrp4-4pq7, ... minimum safe floor: 3.1.6"*. Mutation reverted |
-| `scripts/check_release_claims.py` | repository gate (pre-release) | RED OBSERVED | 2026-07-30, `exit=1` on both paths. Claims: *"Do not release. Correct the claims first."*, 4 violations, caught in README **and** in the freshly built sdist PKG-INFO. Figures: *"Do not release. Published figures disagree with the harness."* Mutations reverted |
-| `scripts/check_published_claims.py` | repository report (never a gate) | RED OBSERVED | 2026-07-30, `exit=2` with PyPI unreachable: *"This check has NOT passed. A check that cannot inspect its subject has not verified anything."* It also exited non-zero on live content on 2026-07-29 (item 2), which is not re-observable now that 0.4.1 is correct |
-| `scripts/figure_rules.py` | repository gate (also a CI step of `test`) | RED OBSERVED | 2026-07-30, `exit=1` on a relabelled README figure: *"[figure-mislabelled] README.md:235: 9/12 is published as false-positive-rate but the harness prints it as recall-overall."* Mutation reverted |
-| `analysis/verify_capture.py` | repository gate | RED OBSERVED | 2026-07-30, `exit=2` MISSING on an absent path and `exit=3` CORRUPT on a wrong file; with both present, 3 outranked 2 as specified. Demonstrated via `--copy`, so no recorded copy was touched |
-<!-- gate-table:end -->
+| Gate | Kind | Executable hash | Ever observed red | Evidence |
+|---|---|---|---|---|
+| `test` | CI job (matrix 3.10-3.13) | `b96b822b258e` | RED OBSERVED | <https://github.com/kuzivaai/SkillWatch/actions/runs/30442289082> `test (3.13)`, 2026-07-29; also 30503588045 `test (3.11)` on a Dependabot ruff bump |
+| `security` | CI job | `576042ed1d31` | RED OBSERVED | <https://github.com/kuzivaai/SkillWatch/actions/runs/30526422428>, 2026-07-30, PR #38 closed unmerged. Failed at step *Audit resolved dependencies (--strict, no skip flags)* on `jinja2 2.11.3`, reporting PYSEC-2026-1471/1473/1474/1475; the later floor step was `skipped` |
+| `lowest-direct` | CI job (matrix 3.10-3.13) | `2496d1c17fbe` | RED OBSERVED | <https://github.com/kuzivaai/SkillWatch/actions/runs/30500657407>, 2026-07-29, all four legs. **Confounded**: see the note below |
+| `build` | CI job (`publish.yml`) | `49bfdcbce0cf` | never observed red | 4 of 4 `publish.yml` runs succeeded (v0.2.0, v0.3.0, v0.4.0, v0.4.1). No negative control has been run against it |
+| `publish` | CI job (`publish.yml`) | `a541d9bfaf8b` | never observed red | As above. Hard to control safely: a deliberate failure risks a bad artefact reaching PyPI, so the cheap control is a dry run against TestPyPI rather than a red on the real job |
+| `scripts/audit_dependency_floors.py` | repository gate | n/a (not a workflow job) | RED OBSERVED | 2026-07-30, `exit=1` on a temporary `jinja2>=2.11.3` floor: *"permits versions with: GHSA-cpwx-vrp4-4pq7, ... minimum safe floor: 3.1.6"*. Mutation reverted |
+| `scripts/check_release_claims.py` | repository gate (pre-release) | n/a (not a workflow job) | RED OBSERVED | 2026-07-30, `exit=1` on both paths. Claims: *"Do not release. Correct the claims first."*, 4 violations, caught in README **and** in the freshly built sdist PKG-INFO. Figures: *"Do not release. Published figures disagree with the harness."* Mutations reverted |
+| `scripts/check_published_claims.py` | repository report (never a gate) | n/a (not a workflow job) | RED OBSERVED | 2026-07-30, `exit=2` with PyPI unreachable: *"This check has NOT passed. A check that cannot inspect its subject has not verified anything."* It also exited non-zero on live content on 2026-07-29 (item 2), which is not re-observable now that 0.4.1 is correct |
+| `scripts/figure_rules.py` | repository gate (also a CI step of `test`) | n/a (not a workflow job) | RED OBSERVED | 2026-07-30, `exit=1` on a relabelled README figure: *"[figure-mislabelled] README.md:235: 9/12 is published as false-positive-rate but the harness prints it as recall-overall."* Mutation reverted |
+| `analysis/verify_capture.py` | repository gate | n/a (not a workflow job) | RED OBSERVED | 2026-07-30, `exit=2` MISSING on an absent path and `exit=3` CORRUPT on a wrong file; with both present, 3 outranked 2 as specified. Demonstrated via `--copy`, so no recorded copy was touched |<!-- gate-table:end -->
 
 **The `lowest-direct` red is confounded, and counting it as clean evidence would
 overstate it.** The floor chosen for that control (`pyyaml>=6.0`) tripped two

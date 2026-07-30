@@ -26,18 +26,69 @@ file asserts the table stays complete:
 * the status is drawn from a controlled vocabulary, so "we think it is fine" cannot
   be written where "never observed red" or "unknown" belongs.
 
-What this cannot see, stated here because that is this project's rule: it checks
-that a status is *recorded*, not that the status is *true*. Someone can write
-"RED OBSERVED" beside a URL to a green run. The evidence cell is required to carry
-a link or an exit code so a reviewer can check it, but the checking is a reviewer's
-job, not this file's.
+A table of names is not enough, and that gap is also closed here. Recording that a
+gate HAS a status validates its identity, not its behaviour: a job rewritten under
+the same name keeps its old row and its old verdict. That is not hypothetical, it
+is what happened. The `security` job was rewritten on 2026-07-30 (separate venv,
+`pip freeze --exclude-editable`, the `-r` shape, `--strict` for `--skip-editable`)
+and silently carried forward a never-observed-red status under an unchanged name.
+An accounting that certifies something it has not examined is the same shape as
+every other defect in this repository's ledger under that heading.
+
+So each job's row also records a hash of what the job actually executes, and the
+suite fails if a job's current hash no longer matches. A changed hash forces the
+row's status to `unknown`: the gate changed materially and needs a fresh negative
+control before it is relied on again.
+
+**Why the hash covers the whole job spec and not only `run:` lines.** Hashing a
+whole workflow *file* was considered and rejected earlier, correctly, because it
+fires on comment edits and gets switched off. The natural narrowing is "executable
+`run:` lines only", mirroring `pip_audit_run_lines()` in tests/test_ci_scope.py.
+That narrowing is wrong here, and measurably so: `publish.yml`'s `publish` job has
+**zero** `run:` lines, so a run-lines-only hash is `sha256("[]")` for it, a
+constant. It could not see `needs: build` (the ordering that keeps a failed build
+from ever reaching PyPI, and the safety property the 2026-07-30 build control
+depends on), nor `environment: pypi`, nor `permissions: id-token: write`, nor the
+pinned SHA of `pypa/gh-action-pypi-publish`. A hash blind to all of that would
+certify a job it had not examined, which is the defect being closed rather than a
+fix for it.
+
+The hash is therefore over the parsed job specification with cosmetic keys removed.
+Parsing as YAML drops comments, blank lines and trailing whitespace *inherently*,
+which is a stronger normalisation than stripping them by regex, and it makes step
+order significant, which is correct: step ordering is what isolated the pip-audit
+step from the floor step in the 2026-07-30 control.
+
+What deliberately does NOT move the hash: `name:` on a job or a step. Renaming a
+step changes nothing that executes. Note the cost, since it is real: the evidence
+cells in the table quote step names, so a rename can leave the *prose* stale while
+the hash stays green. That is a documentation problem, not a gate-behaviour one.
+
+What this cannot see, stated here because that is this project's rule:
+
+1. It checks that a status is *recorded*, not that the status is *true*. Someone
+   can write "RED OBSERVED" beside a URL to a green run. The evidence cell must
+   carry a link or an exit code so a reviewer can check it, but the checking is a
+   reviewer's job, not this file's.
+2. **Repository-side gates are not hashed.** `scripts/*.py` and
+   `analysis/verify_capture.py` can be rewritten under the same name and keep their
+   status, exactly as `security` did. A hash of the source text would fire on
+   comment edits, which is the rejected shape; the right instrument is a hash over
+   the parsed AST with docstrings stripped. That was not built here, and the gap is
+   logged in the ledger rather than left implied.
+3. A job that calls a script whose *contents* changed keeps its hash. The hash sees
+   `python3 scripts/figure_rules.py`, not what that file now does. Point 2 is the
+   same hole seen from the other side.
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 import subprocess
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -96,6 +147,79 @@ def tracked_scripts() -> list[str]:
     return sorted(p for p in out.stdout.split() if p)
 
 
+# --- the executable-surface hash ---------------------------------------------
+
+# Keys whose value changes nothing that executes. `name` is a display label on a
+# job or a step; renaming "Audit installed dependencies" to "Audit resolved
+# dependencies" was part of the 2026-07-30 rewrite and is not itself a behaviour
+# change. Everything else in the spec is in scope, including `needs`, `if`,
+# `environment`, `permissions`, `strategy` and every `uses`/`with`.
+COSMETIC_KEYS = frozenset({"name"})
+
+HASH_LENGTH = 12
+
+
+def _canonicalise(node: Any) -> Any:
+    """Drop cosmetic keys and normalise scalars so only behaviour remains.
+
+    Strings are stripped and their lines right-trimmed. That matters for block
+    scalars: a `run:` line gaining trailing whitespace is not a behaviour change,
+    and a hash that moved on it would be the noisy check this design rejects.
+    """
+    if isinstance(node, dict):
+        return {k: _canonicalise(v) for k, v in sorted(node.items()) if k not in COSMETIC_KEYS}
+    if isinstance(node, list):
+        return [_canonicalise(v) for v in node]
+    if isinstance(node, str):
+        return "\n".join(line.rstrip() for line in node.strip().splitlines())
+    return node
+
+
+def _triggers(data: dict[str, Any]) -> Any:
+    """A workflow's `on:` block.
+
+    Under YAML 1.1 the bare key `on` parses to the boolean True, not the string
+    "on". Reading `data["on"]` returns None on every workflow in this repository
+    and would silently drop the trigger from every hash, which is the vacuous-check
+    shape this file exists to prevent. Both spellings are tried.
+    """
+    if "on" in data:
+        return data["on"]
+    return data.get(True)
+
+
+def job_specs() -> dict[str, Any]:
+    """Every job across every tracked workflow, keyed by job name.
+
+    Each job carries its workflow's trigger block alongside it. A job's behaviour
+    is not only what it runs but WHEN it runs: changing ci.yml's `on:` from
+    `[push, pull_request]` to `[push]` would stop every pull request being gated
+    at all, without touching a single job. A digest blind to that would keep
+    reporting the gate unchanged while the gate had stopped applying.
+
+    This was found by doing rather than by reasoning: the 2026-07-30 build control
+    added `workflow_dispatch:` to publish.yml to make an unreachable workflow
+    reachable, and an earlier draft of this hash did not notice.
+    """
+    specs: dict[str, Any] = {}
+    for path in tracked_workflows():
+        data = yaml.safe_load((REPO / path).read_text(encoding="utf-8"))
+        trig = _triggers(data)
+        for job, spec in (data.get("jobs") or {}).items():
+            specs[job] = {"triggers": trig, "job": spec}
+    return specs
+
+
+def job_hash(job: str) -> str:
+    """A stable digest of what a job executes, and of when it runs."""
+    canon = json.dumps(_canonicalise(job_specs()[job]), sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canon.encode("utf-8")).hexdigest()[:HASH_LENGTH]
+
+
+def current_job_hashes() -> dict[str, str]:
+    return {job: job_hash(job) for job in job_specs()}
+
+
 def _region(text: str, start: str, end: str) -> str:
     """The text between two markers.
 
@@ -115,8 +239,8 @@ def table_region() -> str:
     return _region(claude_text(), TABLE_START, TABLE_END)
 
 
-def table_rows() -> list[list[str]]:
-    """Body rows of the gate table, header and separator dropped."""
+def _raw_table_lines() -> list[list[str]]:
+    """Every pipe-delimited row in the table region, separator rows dropped."""
     rows: list[list[str]] = []
     for line in table_region().splitlines():
         stripped = line.strip()
@@ -126,15 +250,49 @@ def table_rows() -> list[list[str]]:
         if all(set(c) <= set("-: ") and c for c in cells):  # separator row
             continue
         rows.append(cells)
-    return rows[1:] if rows else rows  # drop the header
+    return rows
+
+
+def table_rows() -> list[dict[str, str]]:
+    """Body rows keyed by their column heading, lowercased.
+
+    Keyed rather than indexed on purpose. Positional access (`row[2]` for the
+    status) silently reads the wrong column the moment a column is inserted, and
+    a column was inserted: the executable hash. A checker that keeps passing while
+    reading the wrong cell is the shape this whole file exists to prevent.
+    """
+    raw = _raw_table_lines()
+    if not raw:
+        return []
+    header = [h.lower() for h in raw[0]]
+    return [dict(zip(header, cells)) for cells in raw[1:]]
 
 
 def table_subjects() -> set[str]:
-    """Every backticked token in the first column: the things the table covers."""
+    """Every backticked token in the gate column: the things the table covers."""
     subjects: set[str] = set()
     for row in table_rows():
-        subjects.update(re.findall(r"`([^`]+)`", row[0]))
+        subjects.update(re.findall(r"`([^`]+)`", row.get("gate", "")))
     return subjects
+
+
+def recorded_job_hashes() -> dict[str, str]:
+    """Job name -> the hash the table records for it.
+
+    Only rows whose gate is a workflow job are returned; repository-side gates
+    carry `n/a` and are excluded rather than silently treated as a hash.
+    """
+    jobs = set(job_specs())
+    recorded: dict[str, str] = {}
+    for row in table_rows():
+        names = re.findall(r"`([^`]+)`", row.get("gate", ""))
+        cell = row.get("executable hash", "")
+        for name in names:
+            if name in jobs:
+                found = re.findall(r"`([0-9a-f]{%d})`" % HASH_LENGTH, cell)
+                if found:
+                    recorded[name] = found[0]
+    return recorded
 
 
 def not_a_gate_entries() -> dict[str, str]:
@@ -239,32 +397,222 @@ def test_every_declared_non_gate_carries_a_reason() -> None:
     assert not blank, f"declared not-a-gate without a stated reason: {blank}"
 
 
+def test_the_table_has_the_columns_the_checks_read() -> None:
+    """Guarding the guard: a renamed heading must fail loudly, not silently.
+
+    Every row lookup below is by column name. If a heading were renamed, `.get()`
+    would return "" and several checks would pass while reading nothing at all.
+    """
+    raw = _raw_table_lines()
+    assert raw, "gate table has no rows at all"
+    header = [h.lower() for h in raw[0]]
+    for column in ("gate", "kind", "executable hash", "ever observed red", "evidence"):
+        assert column in header, (
+            f"gate table is missing the {column!r} column; found {header}. The "
+            f"checks read cells by name, so a renamed heading disables them."
+        )
+
+
 def test_every_gate_row_is_complete() -> None:
-    for row in table_rows():
-        assert len(row) >= 4, f"gate table row has {len(row)} cells, expected 4: {row}"
-        blank = [i for i, cell in enumerate(row) if not cell]
-        assert not blank, f"gate table row has empty cells at {blank}: {row}"
+    for cells in _raw_table_lines()[1:]:
+        assert len(cells) >= 5, f"gate table row has {len(cells)} cells, expected 5: {cells}"
+        blank = [i for i, cell in enumerate(cells) if not cell]
+        assert not blank, f"gate table row has empty cells at {blank}: {cells}"
 
 
 def test_every_gate_status_uses_the_controlled_vocabulary() -> None:
     """So that vague prose cannot stand where a verdict belongs."""
     for row in table_rows():
-        status = row[2]
+        status = row.get("ever observed red", "")
         assert any(status.startswith(s) for s in STATUSES), (
-            f"status {status!r} for {row[0]!r} is not one of {STATUSES}. If the "
-            f"history cannot be established, write 'unknown' rather than guessing."
+            f"status {status!r} for {row.get('gate')!r} is not one of {STATUSES}. If "
+            f"the history cannot be established, write 'unknown' rather than guessing."
         )
+
+
+# --- behaviour, not just identity ---------------------------------------------
+
+
+def test_the_hash_parser_finds_a_hash_for_every_job() -> None:
+    """Guarding the guard: an unparsed hash column makes the next test vacuous."""
+    recorded = recorded_job_hashes()
+    missing = [j for j in job_specs() if j not in recorded]
+    assert not missing, (
+        f"no executable hash recorded in the gate table for these jobs: {missing}. "
+        f"A row without a hash records the gate's identity but not its behaviour, "
+        f"so a rewrite under the same name would keep its old verdict. Current "
+        f"hashes are: {current_job_hashes()}"
+    )
+
+
+def test_no_job_has_changed_since_its_negative_control() -> None:
+    """The class fix: a job rewritten under its own name must not keep its status.
+
+    This is exactly what went unnoticed when `security` was rewritten on
+    2026-07-30 and inherited a never-observed-red verdict.
+    """
+    recorded = recorded_job_hashes()
+    current = current_job_hashes()
+    drifted = {job: (recorded[job], current[job])
+               for job in recorded if current.get(job) != recorded[job]}
+    assert not drifted, (
+        "these jobs changed materially since their recorded negative control, so "
+        "their status in the gate table is no longer evidence of anything and must "
+        "be read as `unknown` until a fresh control is run:\n"
+        + "\n".join(f"  {job}: recorded {was}, now {now}" for job, (was, now) in drifted.items())
+        + "\n\nRun a fresh negative control against each, then update both the "
+          "status/evidence cells and the executable hash. Do not update the hash "
+          "alone: that records that the change happened and asserts nothing about "
+          "whether the gate still refuses anything."
+    )
+
+
+def test_a_job_whose_hash_drifted_may_not_claim_red_observed() -> None:
+    """Belt and braces: if the hash check is ever relaxed, the verdict still can't stand.
+
+    Kept separate from the test above so that weakening one does not silently
+    weaken the other.
+    """
+    recorded = recorded_job_hashes()
+    current = current_job_hashes()
+    for row in table_rows():
+        for name in re.findall(r"`([^`]+)`", row.get("gate", "")):
+            if name not in recorded or current.get(name) == recorded[name]:
+                continue
+            assert row.get("ever observed red", "").startswith("unknown"), (
+                f"job {name!r} has drifted from its recorded hash but still claims "
+                f"{row.get('ever observed red')!r}. A changed gate has no history."
+            )
+
+
+def test_a_comment_edit_does_not_move_a_job_hash() -> None:
+    """The rejected whole-file hash fired on comments and would have been disabled.
+
+    Parsing as YAML drops comments before hashing, so this holds structurally
+    rather than by careful regex. Asserted on real workflow text, not a fixture.
+    """
+    for path in tracked_workflows():
+        original = (REPO / path).read_text(encoding="utf-8")
+        commented = original.replace(
+            "jobs:", "jobs:\n  # a comment that changes nothing executable", 1
+        )
+        assert commented != original, f"could not inject a comment into {path}"
+        before = yaml.safe_load(original)
+        after = yaml.safe_load(commented)
+        for job in (before.get("jobs") or {}):
+            hb = hashlib.sha256(json.dumps(
+                _canonicalise(before["jobs"][job]), sort_keys=True, separators=(",", ":")
+            ).encode()).hexdigest()[:HASH_LENGTH]
+            ha = hashlib.sha256(json.dumps(
+                _canonicalise(after["jobs"][job]), sort_keys=True, separators=(",", ":")
+            ).encode()).hexdigest()[:HASH_LENGTH]
+            assert hb == ha, f"a comment edit moved {job}'s hash in {path}: {hb} -> {ha}"
+
+
+def test_the_trigger_block_is_part_of_every_job_hash() -> None:
+    """A gate that stops running is not a gate, and no job line need change for it.
+
+    Found by doing: the build negative control added `workflow_dispatch:` to
+    publish.yml, and an earlier draft of this hash did not notice, because `on:`
+    sits outside `jobs:`.
+    """
+    for path in tracked_workflows():
+        data = yaml.safe_load((REPO / path).read_text(encoding="utf-8"))
+        assert _triggers(data) is not None, (
+            f"{path} has no parseable `on:` block. Under YAML 1.1 the bare key `on` "
+            f"becomes the boolean True; if this returned None the trigger would be "
+            f"silently absent from every hash."
+        )
+
+    def digest(node: Any) -> str:
+        return hashlib.sha256(json.dumps(
+            _canonicalise(node), sort_keys=True, separators=(",", ":")
+        ).encode()).hexdigest()[:HASH_LENGTH]
+
+    spec = job_specs()["build"]
+    widened = json.loads(json.dumps(spec))
+    widened["triggers"] = {**(widened["triggers"] or {}), "workflow_dispatch": None}
+    assert digest(widened) != digest(spec), (
+        "adding a workflow_dispatch trigger did not move the build job's hash. A "
+        "workflow becoming manually invocable is a change to when the gate runs."
+    )
+
+    narrowed = json.loads(json.dumps(job_specs()["test"]))
+    trig = dict(narrowed["triggers"] or {})
+    trig.pop("pull_request", None)
+    narrowed["triggers"] = trig
+    assert digest(narrowed) != digest(job_specs()["test"]), (
+        "dropping the pull_request trigger did not move the test job's hash. That "
+        "change would stop every pull request being gated while every job line "
+        "stayed byte-identical."
+    )
+
+
+def test_an_executable_change_does_move_a_job_hash() -> None:
+    """The other half. A hash that never moves is not a check."""
+    spec = job_specs()["security"]["job"]
+
+    def digest(node: Any) -> str:
+        return hashlib.sha256(json.dumps(
+            _canonicalise(node), sort_keys=True, separators=(",", ":")
+        ).encode()).hexdigest()[:HASH_LENGTH]
+
+    baseline = digest(spec)
+
+    # The mutation is deliberately CONTENT-INDEPENDENT: append a marker to
+    # whichever step happens to be the first with a `run:`. Two earlier drafts
+    # were coupled to real text and both broke. Targeting "pip-audit" hit the
+    # step that merely *installs* it, mutated nothing, and passed vacuously until
+    # the assertion caught it. Targeting "--strict" then broke the moment a
+    # negative control removed that flag from the file, and would break
+    # permanently if the flag were ever retired. A mutation test that depends on
+    # the code under test still saying a particular thing is a test with a
+    # scheduled expiry date.
+    mutated = json.loads(json.dumps(spec))
+    for step in mutated["steps"]:
+        if "run" in step:
+            step["run"] = step["run"] + " --a-flag-that-changes-behaviour"
+            break
+    else:  # pragma: no cover - defensive
+        raise AssertionError(f"job has no run: step to mutate: {mutated}")
+    assert digest(mutated) != baseline, "changing an executable line did not move the hash"
+
+    # `needs:` is the ordering that keeps a failed build from reaching PyPI.
+    pub = yaml.safe_load(
+        (REPO / ".github/workflows/publish.yml").read_text(encoding="utf-8")
+    )["jobs"]["publish"]
+    without_needs = {k: v for k, v in pub.items() if k != "needs"}
+    assert digest(without_needs) != digest(pub), (
+        "removing `needs: build` from the publish job did not move its hash. That "
+        "is the safety property the build negative control relies on, and a "
+        "run-lines-only hash would have been blind to it: publish has none."
+    )
+
+
+def test_a_step_rename_does_not_move_a_job_hash() -> None:
+    """Documented as a deliberate non-trigger, so it is asserted rather than assumed."""
+    data = yaml.safe_load((REPO / ".github/workflows/ci.yml").read_text(encoding="utf-8"))
+    spec = data["jobs"]["security"]
+
+    def digest(node: Any) -> str:
+        return hashlib.sha256(json.dumps(
+            _canonicalise(node), sort_keys=True, separators=(",", ":")
+        ).encode()).hexdigest()[:HASH_LENGTH]
+
+    renamed = json.loads(json.dumps(spec))
+    renamed["steps"][-1]["name"] = "Totally different display name"
+    assert digest(renamed) == digest(spec), "a step rename moved the hash"
 
 
 def test_a_red_observed_claim_carries_checkable_evidence() -> None:
     """Not proof the run was red. Proof a reviewer can go and look."""
     for row in table_rows():
-        if not row[2].startswith("RED OBSERVED"):
+        if not row.get("ever observed red", "").startswith("RED OBSERVED"):
             continue
-        evidence = row[3]
+        evidence = row.get("evidence", "")
         assert "http" in evidence or "exit" in evidence, (
-            f"{row[0]!r} claims RED OBSERVED but its evidence cell carries neither "
-            f"a run URL nor an exit code: {evidence!r}"
+            f"{row.get('gate')!r} claims RED OBSERVED but its evidence cell carries "
+            f"neither a run URL nor an exit code: {evidence!r}"
         )
 
 
