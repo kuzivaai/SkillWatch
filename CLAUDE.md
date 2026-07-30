@@ -81,9 +81,19 @@ Thirteen Python modules under `skillwatch/`:
 | cloak.py | Cloaking detection across fetch strategies |
 | __init__.py | Version declaration |
 
-Two tracked scripts under `scripts/`: `audit_dependency_floors.py`,
-`refresh_confusables.py`. The efficacy harness is `analysis/measure_efficacy.py`
-(tracked; the rest of `analysis/` except `corpus/` is gitignored).
+Six tracked scripts under `scripts/`: `audit_dependency_floors.py`,
+`check_published_claims.py`, `check_release_claims.py`, `claim_rules.py`,
+`figure_rules.py`, `refresh_confusables.py`. This said "Two" until 2026-07-30,
+which was stale from the moment the claims and figure checks landed. Regenerate it
+with `git ls-files 'scripts/*.py'` rather than counting by hand; which of them are
+gates is recorded in the gate table below, and `tests/test_gate_table.py` fails if
+a new one is added without being classified.
+
+Six tracked modules under `analysis/`: `build_realpage_corpus.py`,
+`make_baseline.py`, `measure_base_rate.py`, `measure_efficacy.py`,
+`run_delta_pass.py`, `verify_capture.py`. The efficacy harness is
+`analysis/measure_efficacy.py`; the rest of `analysis/` except `corpus/` and these
+tracked modules is gitignored.
 
 ## Settled constraints
 
@@ -92,7 +102,17 @@ These are closed findings from the five-prompt forensic audit. Do not re-litigat
 - **The regex triage is evadable by design.** Recall is 60.0% overall (21/35, CI [43.6%, 74.4%]) and 44.0% against evasive adversaries (11/25, CI [26.7%, 62.9%]). Semantic evasions (indirect instruction, polite framing, narrative framing) bypass detection by design. This is documented honestly and is not a bug to fix. The tool is a URL change monitor with best-effort triage, not a detection tool. The older 75%/50% figures were measured on a smaller corpus and are superseded.
 - **"Periodic, not continuous."** The tool runs via cron or CI. It has no daemon mode, no schedule trigger, no unattended monitoring. All user-facing text uses "periodic" or "periodically." Do not introduce "continuous" or "continuously."
 - **No ML or LLM detection.** The detector is regex/keyword/DOM-based. Proposals to add semantic detection are out of scope.
-- **Published; demand condition still unmet.** PyPI serves 0.3.0 (2026-07-11); `main` is 0.4.0. GitHub Pages is live. Of the five readiness conditions, only user demand (condition 5) is unmet — and no engineering change moves it. Current scoreboard: SHIP-READINESS.md (DECISION.md is the superseded pre-remediation record). Open work is tracked in OPEN-ITEMS.md, which is the continuity ledger across sessions.
+- **Published; demand condition still unmet.** PyPI serves 0.4.1 (2026-07-29); this repository declares 0.4.1 in `pyproject.toml`. GitHub Pages is live.
+  <!-- Both numbers are checked, not trusted. The declared one is checked offline by
+  tests/test_claude_md_currency.py against pyproject.toml; the published one is checked
+  against the live index by scripts/check_published_claims.py. Verify either by hand
+  with:
+      grep '^version' pyproject.toml
+      python3 -c "import json,urllib.request; print(json.load(urllib.request.urlopen('https://pypi.org/pypi/skillwatch/json'))['info']['version'])"
+  This sentence previously read "PyPI serves 0.3.0 (2026-07-11); main is 0.4.0" and
+  BOTH halves were false as of 2026-07-30: PyPI had served 0.4.1 since 2026-07-29
+  and main was 0.4.1. It briefed every session with a wrong fact for a day. -->
+ Of the five readiness conditions, only user demand (condition 5) is unmet — and no engineering change moves it. Current scoreboard: SHIP-READINESS.md (DECISION.md is the superseded pre-remediation record). Open work is tracked in OPEN-ITEMS.md, which is the continuity ledger across sessions.
 - **Precision is not a ship gate and must not be published as a deployment property.** It depends on the corpus benign:malicious ratio, which deployment does not share. The transferable figure is the benign false-positive rate. See SHIP-READINESS.md condition 2 for the arithmetic.
 - **Positioning is OWASP AST05, partially.** SkillWatch addresses AST05 "Untrusted External Instructions" in the OWASP Agentic Skills Top 10 (v1.0, 2026 Edition). Of the six preventive mitigations the AST05 page lists, SkillWatch covers one ("Maintain fleet-wide visibility of referenced sources") and part of two ("Pin and verify referenced content" — alerts on drift, does not refuse it; "Rescan continuously" — this tool is periodic by design and does **not** satisfy that mitigation as OWASP words it). It does not address the other three. Never write that the AST05 mitigations "describe what this tool does." That project is **early-stage, not a flagship standard**, and its own pages describe its status inconsistently (incubator vs new project proposal) — check the current status before repeating any maturity claim, and never imply endorsement. AST07 "Update Drift" is adjacent (version pinning) and may be cited only as a partial fit.
 
@@ -331,6 +351,120 @@ to catch had 94 characters and a newline in that position, so it could never
 match and passed against the very README it was meant to flag. Every negative
 rule now has a positive fixture in `tests/test_claim_rules.py` proving it fires.
 Add one for any rule you add.
+
+### Every gate, and whether it has ever been seen to refuse anything
+
+<!-- gate-table:rule -->
+**A gate that is added or materially changed requires a negative control before it
+is relied on.** Green is not evidence that a check works. Green is evidence that it
+did not object today, and a check that has never objected is indistinguishable from
+a check that cannot. Make it red on purpose, on a throwaway branch, against a
+stimulus you named in advance; then record the result in the table below.
+
+The rule exists because the shape keeps recurring. It has been logged six times
+(items 17, 35, 36, 42/45, 16, 59), and the sixth was *created by the fix for the
+fifth*: the commit that closed `lowest-direct` by running a negative control also
+rewrote the `security` job, which then inherited the identical problem. Closing
+instances one at a time is how a class survives. The table is what makes the class
+checkable, and `tests/test_gate_table.py` fails if a job or script is added without
+an entry.
+
+Status is one of exactly three values. **RED OBSERVED** with a run URL or a pasted
+exit code, **never observed red**, or **unknown**. If a gate's history cannot be
+established from CI or from the repository, write `unknown`. Do not infer.
+<!-- gate-table:rule-end -->
+
+CI history below is **exhaustive, not sampled**: all 81 `ci.yml` runs and all 4
+`publish.yml` runs that exist as of 2026-07-30 were inspected. `ci.yml` has 4
+failures; `publish.yml` has none.
+
+<!-- gate-table:start -->
+| Gate | Kind | Ever observed red | Evidence |
+|---|---|---|---|
+| `test` | CI job (matrix 3.10-3.13) | RED OBSERVED | <https://github.com/kuzivaai/SkillWatch/actions/runs/30442289082> `test (3.13)`, 2026-07-29; also 30503588045 `test (3.11)` on a Dependabot ruff bump |
+| `security` | CI job | RED OBSERVED | <https://github.com/kuzivaai/SkillWatch/actions/runs/30526422428>, 2026-07-30, PR #38 closed unmerged. Failed at step *Audit resolved dependencies (--strict, no skip flags)* on `jinja2 2.11.3`, reporting PYSEC-2026-1471/1473/1474/1475; the later floor step was `skipped` |
+| `lowest-direct` | CI job (matrix 3.10-3.13) | RED OBSERVED | <https://github.com/kuzivaai/SkillWatch/actions/runs/30500657407>, 2026-07-29, all four legs. **Confounded**: see the note below |
+| `build` | CI job (`publish.yml`) | never observed red | 4 of 4 `publish.yml` runs succeeded (v0.2.0, v0.3.0, v0.4.0, v0.4.1). No negative control has been run against it |
+| `publish` | CI job (`publish.yml`) | never observed red | As above. Hard to control safely: a deliberate failure risks a bad artefact reaching PyPI, so the cheap control is a dry run against TestPyPI rather than a red on the real job |
+| `scripts/audit_dependency_floors.py` | repository gate | RED OBSERVED | 2026-07-30, `exit=1` on a temporary `jinja2>=2.11.3` floor: *"permits versions with: GHSA-cpwx-vrp4-4pq7, ... minimum safe floor: 3.1.6"*. Mutation reverted |
+| `scripts/check_release_claims.py` | repository gate (pre-release) | RED OBSERVED | 2026-07-30, `exit=1` on both paths. Claims: *"Do not release. Correct the claims first."*, 4 violations, caught in README **and** in the freshly built sdist PKG-INFO. Figures: *"Do not release. Published figures disagree with the harness."* Mutations reverted |
+| `scripts/check_published_claims.py` | repository report (never a gate) | RED OBSERVED | 2026-07-30, `exit=2` with PyPI unreachable: *"This check has NOT passed. A check that cannot inspect its subject has not verified anything."* It also exited non-zero on live content on 2026-07-29 (item 2), which is not re-observable now that 0.4.1 is correct |
+| `scripts/figure_rules.py` | repository gate (also a CI step of `test`) | RED OBSERVED | 2026-07-30, `exit=1` on a relabelled README figure: *"[figure-mislabelled] README.md:235: 9/12 is published as false-positive-rate but the harness prints it as recall-overall."* Mutation reverted |
+| `analysis/verify_capture.py` | repository gate | RED OBSERVED | 2026-07-30, `exit=2` MISSING on an absent path and `exit=3` CORRUPT on a wrong file; with both present, 3 outranked 2 as specified. Demonstrated via `--copy`, so no recorded copy was touched |
+<!-- gate-table:end -->
+
+**The `lowest-direct` red is confounded, and counting it as clean evidence would
+overstate it.** The floor chosen for that control (`pyyaml>=6.0`) tripped two
+independent guards, so "all four legs red" is not four legs of matrix-specific
+evidence. The 3.10 and 3.11 legs went red on
+`tests/test_dependency_floors.py::test_load_bearing_floors_are_at_or_above_their_known_good_minimum`,
+which any leg would have caught. Only **3.12 and 3.13** failed on the thing the
+matrix uniquely exists to catch: `Failed to build pyyaml==6.0` /
+`AttributeError: 'build_ext' object has no attribute 'cython_sources'`. Isolating
+it fully needs a floor that is unbuildable but absent from the known-good-minimum
+table.
+
+**The `security` control was confounded too, and differently.** `jinja2==2.11.3`
+is also rejected by `scripts/audit_dependency_floors.py`, so the stimulus was not
+pip-audit-specific. Step ordering isolated it: pip-audit runs first, so the floor
+step reported `skipped` and the red is attributable to the pip-audit step alone.
+That is weaker than an unconfounded stimulus and stronger than the
+`lowest-direct` case, where both guards actually ran.
+
+<!-- gate-table:not-a-gate -->
+Tracked scripts that are deliberately **not** gates. Listed rather than omitted, so
+a new gate cannot arrive unclassified. Same shape as `NO_FLOOR_EXPECTED` in the
+floor auditor: opting out is a written declaration with a reason.
+
+- `scripts/claim_rules.py`: a rules module with no CLI entry point. It defines the
+  rules; the three callers in the table above are what enforce them.
+- `scripts/refresh_confusables.py`: a data-refresh utility, run by hand, with no
+  pass/fail verdict over the repository.
+- `analysis/measure_efficacy.py`: a measurement harness. Its stdout is the
+  reference set `figure_rules.py` checks against, which makes it the subject of a
+  gate rather than one.
+- `analysis/measure_base_rate.py`: a measurement harness, as above.
+- `analysis/build_realpage_corpus.py`: a corpus builder, run once to produce inputs.
+- `analysis/make_baseline.py`: a baseline builder. It verifies its own output
+  (201/201 content hashes) but issues no verdict over the repository.
+- `analysis/run_delta_pass.py`: a measurement harness. Its date guard was observed
+  refusing on 2026-07-30 (`exit=3`, *"REFUSING: today is 2026-07-30; this pass is
+  scheduled for 2026-08-05 or later"*), but a scheduling guard is not a gate on the
+  repository's correctness.
+<!-- gate-table:not-a-gate-end -->
+
+### The facts in this file are claims too
+
+**Asked and answered on 2026-07-30: is there a cheap check for staleness in this
+file, as `figure_rules.py` is for published proportions? Yes, and it is now in
+place.** The question arose because the version sentence above was false in both
+halves, and the same sentence had already gone stale once (ledger item 12).
+
+It is cheap because it is the *same* fix as the figure check: stop keeping a second
+copy of a fact, and derive the claim from the artefact it describes. It splits in
+two along the line this repository already draws between a gate and a report.
+
+| Claim | Derived from | Where checked | Blocking |
+|---|---|---|---|
+| "this repository declares X in `pyproject.toml`" | `pyproject.toml` | `tests/test_claude_md_currency.py` | yes, offline, in CI |
+| "N Python modules under `skillwatch/`" | `git ls-files` | `tests/test_claude_md_currency.py` | yes |
+| "N tracked scripts under `scripts/`", and each named | `git ls-files` | `tests/test_claude_md_currency.py` | yes |
+| "N tracked modules under `analysis/`", and each named | `git ls-files` | `tests/test_claude_md_currency.py` | yes |
+| "PyPI serves X (date)" | the live PyPI index | `scripts/check_published_claims.py` | **no, and must never be** |
+
+The last row cannot be blocking, for the reason already recorded above: only a
+release can make it true, so gating on it would deadlock exactly as gating on the
+published-claims report would. It is a finding to act on.
+
+Because those claims are now parsed, **their wording is load-bearing**. Write them
+in the forms the checks expect (`this repository declares X.Y.Z in
+\`pyproject.toml\``, `PyPI serves X.Y.Z (YYYY-MM-DD)`, `N tracked scripts under
+\`scripts/\``) or the check fails closed rather than passing vacuously.
+
+**What this does not cover, stated rather than implied.** Only mechanically
+derivable facts. The prose claims here — that Pages is live, the AST05 positioning,
+the base-rate reasoning, the boundary statements — are not checked by anything and
+can go stale silently. That is a smaller version of the same hole and it stays open.
 
 ## Conventions
 

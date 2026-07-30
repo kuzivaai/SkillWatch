@@ -65,6 +65,67 @@ alongside the project, `pip freeze` would also capture *its* dependency tree
 (cyclonedx, CacheControl, boolean.py, license-expression, …) and an advisory in the
 auditing tool would fail this project's CI for something this project does not ship.
 
+### The `security` job was observed refusing something, 2026-07-30
+
+The shape above was adopted on the strength of measurement, but until 2026-07-30 it
+had only ever been observed **green**. That is not evidence a gate works; it is
+evidence it did not object. The same commit that closed the identical complaint for
+`lowest-direct` (ledger item 16) created it here (item 59).
+
+**Run <https://github.com/kuzivaai/SkillWatch/actions/runs/30526422428>**, PR
+[#38](https://github.com/kuzivaai/SkillWatch/pull/38) titled "DO NOT MERGE", closed
+unmerged (`mergedAt: null`), branch `throwaway/security-negative-control` deleted
+locally and on the remote. `security` conclusion **failure**; all eight `test` and
+`lowest-direct` legs **success**. Step conclusions:
+
+```
+success   Install dependencies
+success   Export the resolved dependency set, excluding the project itself
+success   Install pip-audit in an isolated environment
+failure   Audit resolved dependencies (--strict, no skip flags)
+skipped   Audit declared dependency floors
+```
+
+```
+Found 4 known vulnerabilities in 1 package
+jinja2 2.11.3  PYSEC-2026-1473  3.1.3
+jinja2 2.11.3  PYSEC-2026-1471  3.1.6
+jinja2 2.11.3  PYSEC-2026-1474  3.1.4
+jinja2 2.11.3  PYSEC-2026-1475  3.1.5
+##[error]Process completed with exit code 1.
+```
+
+**Route A was chosen over Route B, and the reasoning matters more than the result.**
+
+The audited set is not a committed file. It is generated at CI time by `pip freeze`
+into a gitignored `requirements-audit.txt`, so there is no requirements file in the
+repository to add a vulnerable pin to. That left two routes:
+
+| | What it does | What it exercises | What it misses |
+|---|---|---|---|
+| **A (chosen)** | vulnerable pin in `pyproject.toml` | the whole rewritten path: declaration, `pip install -e ".[dev]"`, `pip freeze --exclude-editable`, the `-r` shape, `--strict` | needs a `pyproject.toml` revert, proven by an empty `git diff main` |
+| B | append a vulnerable line to `requirements-audit.txt` inside the workflow | the audit command only | never proves the *generation* path works, which is the part that was rewritten |
+
+The class being closed is "a gate is changed and relied upon without anyone ever
+observing it refuse anything". What was changed here was the generation path, so
+only Route A observes the failure path of the thing that actually changed. Route B
+would have produced a red run that says nothing about whether `pip freeze
+--exclude-editable` captures what it is supposed to.
+
+**The control was confounded, and counting it as clean would overstate it.**
+`jinja2==2.11.3` is also rejected by `scripts/audit_dependency_floors.py`
+(`exit=1`, *"minimum safe floor: 3.1.6"*), so the stimulus was not pip-audit
+specific. Step ordering rescues the attribution rather than the choice of stimulus:
+pip-audit runs first, so the floor step reported `skipped` and never executed. The
+red is therefore attributable to the pip-audit step alone. This is weaker than an
+unconfounded stimulus and stronger than the `lowest-direct` control, where both
+guards actually ran. An unconfounded stimulus would need a dependency that
+pip-audit flags on the *resolved* version while its declared floor stays clean,
+which no straightforward pin provides.
+
+**Nothing was left behind.** `git diff main -- pyproject.toml` is empty, `jinja2`
+appears nowhere in the tree, and `main` is untouched at `6c6ab21`.
+
 **Two honest limits, so a later session does not over-read this.**
 
 1. On the `-r` shape an unresolvable entry already fails **without** `--strict` —
