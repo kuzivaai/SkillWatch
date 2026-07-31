@@ -1267,6 +1267,80 @@ adding 'skillwatch-0.4.1.dist-info/top_level.txt'
 adding 'skillwatch-0.4.1.dist-info/RECORD'
 removing build/bdist.linux-x86_64/wheel
 Successfully built skillwatch-0.4.1.tar.gz and skillwatch-0.4.1-py3-none-any.whl
+
+## Final restricted-review closure and post-fix targeted gates
+
+Reviewer A final response: `Fixed, no residual.`
+
+Reviewer B final response: the two MEDIUM findings were resolved in the complete
+commit candidate; no residual remained provided `docs/current-handover.txt` was
+staged with the unit. The file is included in the explicit staging set below.
+
+Post-fix targeted output:
+
+```text
+63 passed in 0.95s
+Readiness status, generated scoreboard, harness metrics, and ledger sections agree.
+All checks passed!
+Success: no issues found in 26 source files
+```
+
+## Continuation verification — legacy handover sibling surface
+
+On the next verification turn, the repository was clean at
+`aaa6a283204d89ac6cfe7bd933aaa1a8dc8c94f3`, four commits ahead of unchanged
+upstream `de2a998498293ad17f6b1990e19dc8868c614293`; fetch and PR reads exited 0.
+PR #34 remained OPEN, MERGEABLE/CLEAN at the upstream head with all nine checks
+passing. Production code still had no diff from `origin/main`.
+
+The requested stale-claim search found `docs/HANDOVER-2026-07-31.md` presenting
+the superseded “only thing gating” conclusion without an opening historical
+warning. This was a missed sibling surface of item 73. Fail-before:
+
+```text
+test_legacy_handover_is_explicitly_superseded FAILED
+AssertionError: docs/HANDOVER-2026-07-31.md
+1 failed, 10 passed in 0.54s
+```
+
+The legacy handover now opens with an explicit SUPERSEDED notice naming the
+authoritative readiness handover and structured current source. Ledger item 74
+records and closes the class extension. No historical content was rewritten.
+
+### Continuation adversarial findings and final controls
+
+Reviewer A found two MEDIUM follow-on defects: the first regression test
+hard-coded the 31 July handover as permanent authority, and the ledger's Last
+reviewed stamp remained 31 July while item 74 was dated 1 August. Reviewer B
+independently found the stale review stamp. Both were reproduced.
+
+The class fix now uses tracked `docs/current-handover.txt` as a movable pointer.
+The validator requires valid syntax, an existing target with the exact
+AUTHORITATIVE marker and no SUPERSEDED marker, plus an exact SUPERSEDED opt-out
+and pointer target in every sibling handover. Ledger chronology requires Last
+reviewed to be no earlier than any item first-raised/closed date. The real ledger
+must be clean before the synthetic stale-date mutation is tested.
+
+Final pass-after:
+
+```text
+85 passed in 1.16s
+targeted_exit=0
+Readiness status, generated scoreboard, harness metrics, and ledger sections agree.
+readiness_exit=0
+All checks passed!
+ruff_exit=0
+Success: no issues found in 26 source files
+mypy_exit=0
+diff_check_exit=0
+```
+
+The unrestricted full continuation suite before the last marker-only
+strengthening produced `644 passed in 35.89s`, 95.70% coverage; collection 644;
+ruff, mypy, floors, release claims, live published claims, figures and capture
+all exited 0. The delta guard refused on 2026-08-01 with exit 3 as designed.
+The final marker/pointer/chronology changes are exercised by the 85-test targeted
+pass above; they do not touch production code.
 === POST-REVIEW TARGETED ===
 ........................................................................ [ 86%]
 ...........                                                              [100%]

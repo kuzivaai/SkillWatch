@@ -161,3 +161,15 @@ def test_condition_one_warning_requires_its_unique_current_heading() -> None:
     assert readiness_consistency.current_measured_section(f"historical: {warning}") == ""
     duplicate = current + f"### Measured detection rates\n{warning}\n"
     assert readiness_consistency.current_measured_section(duplicate) == ""
+
+
+def test_legacy_handover_is_explicitly_superseded() -> None:
+    assert readiness_consistency.handover_errors() == []
+
+
+def test_ledger_review_date_cannot_predate_item_history() -> None:
+    ledger = LEDGER.read_text(encoding="utf-8")
+    assert readiness_consistency.ledger_section_errors(ledger) == []
+    stale = re.sub(r"(\*\*Last reviewed:\*\* )\d{4}-\d{2}-\d{2}", r"\g<1>2026-07-31", ledger)
+    errors = readiness_consistency.ledger_section_errors(stale)
+    assert "ledger Last reviewed 2026-07-31 predates item history 2026-08-01" in errors
