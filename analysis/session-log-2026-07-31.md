@@ -159,3 +159,145 @@ $ git rev-parse origin/main origin/feat/archive-durability-and-strict-audit
 Remote references were byte-identical before and after fetch. No force-push is
 needed. PR #34 is OPEN, non-draft, mergeable/CLEAN, but its head is still the
 remote branch at `4b366c5`; it does not yet include the three local commits.
+
+## Full test suite with coverage
+
+```text
+$ PYTHONDONTWRITEBYTECODE=1 pytest --cov=skillwatch --cov-report=term-missing --cov-fail-under=90 -q
+........................................................................ [ 11%]
+........................................................................ [ 22%]
+........................................................................ [ 34%]
+........................................................................ [ 45%]
+........................................................................ [ 57%]
+........................................................................ [ 68%]
+........................................................................ [ 80%]
+........................................................................ [ 91%]
+....................................................                     [100%]
+TOTAL                      1627     70    96%
+Required test coverage of 90% reached. Total coverage: 95.70%
+628 passed in 20.11s
+```
+
+## Named local gates and scheduled refusal
+
+```text
+$ ruff check skillwatch/ tests/ scripts/ analysis/
+All checks passed!
+ruff_exit=0
+
+$ mypy skillwatch/ scripts/ $(git ls-files 'analysis/*.py')
+Success: no issues found in 25 source files
+mypy_exit=0
+
+$ python scripts/audit_dependency_floors.py
+Audited 20 declared dependency floors.
+Declared Python support: 3.10, 3.11, 3.12, 3.13
+All declared floors are clear of known advisories.
+Every declared requirement has a lower bound.
+Every floor version exists and permits every supported Python.
+(Installability is proven by the lowest-direct CI matrix, not here.)
+floors_exit=0
+
+$ python scripts/check_release_claims.py
+Checked README.md
+Checked sdist PKG-INFO (38895 chars) from skillwatch-0.4.1.tar.gz
+
+No claim violations.
+
+Harness currently produces 34 distinct proportions.
+correspondence coverage: 27 of 50 non-exempt proportions carry a recognisable metric label.
+the remaining 23 are NOT correspondence-checked — they are still checked for currency and arithmetic. See ledger item 42.
+No figure violations: every published proportion is one the harness currently produces, under a label consistent with the harness's own.
+release_claims_exit=0
+
+$ python scripts/figure_rules.py
+Harness currently produces 34 distinct proportions.
+  measure_base_rate.py      17 parsed, minimum 10
+  measure_efficacy.py       22 parsed, minimum 18
+correspondence coverage: 27 of 50 non-exempt proportions carry a recognisable metric label.
+the remaining 23 are NOT correspondence-checked — they are still checked for currency and arithmetic. See ledger item 42.
+No figure violations: every published proportion is one the harness currently produces, under a label consistent with the harness's own.
+figures_exit=0
+
+$ python analysis/verify_capture.py
+manifest      /home/mkuziva/skillwatch/analysis/corpus/realpage/CAPTURE-INTEGRITY.json
+expected      sha256 861027d158b67c517074e3a17348777e4405a644c13a33c7fbc85f25aa417dfe  (59968045 bytes)
+per-page      8 of 201 recorded hashes checked (deterministic sample)
+host          DESKTOP-71IU9IC (recorded holder)
+VERIFIED  /home/mkuziva/.skillwatch-archive/realpage-2026-07-29/fetched_pages.json
+VERIFIED  /mnt/d/skillwatch-archive/realpage-2026-07-29/fetched_pages.json
+VERIFIED  /mnt/c/Users/mkuzi/skillwatch-archive/realpage-2026-07-29/fetched_pages.json
+3 verified, 0 missing, 0 corrupt, of 3 recorded copies.
+All recorded copies verified against the manifest.
+capture_exit=0
+
+$ python analysis/run_delta_pass.py
+REFUSING: today is 2026-07-31; this pass is scheduled for 2026-08-05 or later.
+The first snapshots were 2026-07-29. A second pass sooner than seven days measures per-request churn, not editorial drift — which is exactly what made the first attempt return 0/3.
+delta_exit=3
+```
+
+The delta result is the required pre-date refusal, not a failed push gate. The
+dated commitment remains intact and was not bypassed.
+
+## Continuity regression tests — initial failure
+
+```text
+$ pytest -q tests/test_continuity.py
+.FF                                                                      [100%]
+FAILED tests/test_continuity.py::test_item_22_names_the_later_strict_demonstration
+AssertionError: item 22 retains its earlier 'no case was found' conclusion without pointing to item 60, which later demonstrated --strict changing the outcome
+FAILED tests/test_continuity.py::test_item_60_links_back_to_the_superseded_record
+AssertionError: assert 'item 22' in <item 60 row>
+2 failed, 1 passed in 0.02s
+```
+
+The durability test already passes because the `.gitignore` class fix preceded
+the test. Its required fail-before demonstration follows with that rule removed
+temporarily and restored immediately afterward.
+
+```text
+$ [temporarily remove !analysis/session-log-*.md]
+$ pytest -q tests/test_continuity.py::test_dated_session_logs_are_not_ignored
+F                                                                        [100%]
+FAILED tests/test_continuity.py::test_dated_session_logs_are_not_ignored
+AssertionError: analysis/session-log-2099-12-31.md is ignored; a session cutoff would strand its evidence on one machine. Re-include dated session logs in .gitignore.
+1 failed in 0.02s
+$ [restore !analysis/session-log-*.md]
+
+$ pytest -q tests/test_continuity.py
+...                                                                      [100%]
+3 passed in 0.01s
+```
+
+The durability test failed for the intended reason with the rule reverted. The
+ledger tests failed on the measured contradiction and pass after item 22 names
+item 60 as its superseding evidence and item 60 links back to item 22.
+
+## Continuity unit verification
+
+```text
+$ pytest -q tests/test_continuity.py
+...                                                                      [100%]
+3 passed in 0.01s
+
+$ ruff check tests/test_continuity.py
+All checks passed!
+
+$ mypy tests/test_continuity.py
+Success: no issues found in 1 source file
+
+$ pytest --cov=skillwatch --cov-report=term-missing --cov-fail-under=90 -q
+........................................................................ [ 11%]
+........................................................................ [ 22%]
+........................................................................ [ 34%]
+........................................................................ [ 45%]
+........................................................................ [ 57%]
+........................................................................ [ 68%]
+........................................................................ [ 79%]
+........................................................................ [ 91%]
+.......................................................                  [100%]
+TOTAL                      1627     70    96%
+Required test coverage of 90% reached. Total coverage: 95.70%
+631 passed in 18.83s
+```
