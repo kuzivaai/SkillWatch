@@ -512,7 +512,7 @@ skillwatch scan --ignore-pattern 'v\d+\.\d+\.\d+'
 
 ## Limitations
 
-- **False positives**: About 1 in 6 safe pages (16.2% in testing) will trigger an alert. Common causes are pages with legitimate `pip install` instructions, new domain references, or base64-like strings in educational content. Review all alerts manually.
+- **False positives**: 6 of 37 benign items in the synthetic, project-authored test corpus triggered an alert (16.2%, 95% CI [7.7%, 31.1%]). This is not a measured real-page alert rate. Common triggers in the corpus include legitimate `pip install` instructions, new domain references, or base64-like strings in educational content. Review all alerts manually.
 - **Evasion**: The checks include decoding for ROT13, reversed text, and HTML comments, but they are fundamentally pattern-based. Attacks phrased as polite requests, stories, or academic language will not be caught. Against deliberately evasive payloads the tool catches 17/32 (53.1%, 95% CI [36.4%, 69.1%]). That figure splits by attack family, and the families sum to the total: mechanical obfuscation 7/7, structural (hidden in markup) 6/10, semantic framing 3/13, non-English instruction 1/2. Treat the triage as decorative against semantic and structural evasion, and rely on the change alert there.
 - **Dynamic pages**: Single-page applications and JavaScript-rendered content may cause false changes. Use `--ignore-pattern` to filter out dynamic elements.
 - **Fetch limitations**: SkillWatch uses a standard browser User-Agent by default (configurable via `--user-agent`). Pages that cloak content by IP address, TLS fingerprint, or require JavaScript rendering can evade fetching entirely.

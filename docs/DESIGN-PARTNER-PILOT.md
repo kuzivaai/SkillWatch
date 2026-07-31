@@ -56,7 +56,7 @@ gathering, not launch copy, a pricing plan or proof of demand.
 3. Establish the initial local baseline. Record time to the first baseline that
    the participant considers useful.
 4. Run once every seven days and after any known upstream change. Weekly cadence
-   is periodic, limits burden, and creates five independent review opportunities
+   is periodic, limits burden, and creates five repeated review opportunities
    after baseline during the 35-day observation window.
 5. For every genuine change, the participant reviews the diff first, then the
    provenance/ledger evidence, recording separate usefulness judgements and the
@@ -89,6 +89,16 @@ retaining timings and decisions.
 
 ## Measurements and decisions
 
+Enroll at least three qualified participants, with no more than two from one
+profile. “Limited intervention” means at most one maintainer interaction and 30
+minutes of maintainer time after the documented install instructions are supplied.
+“Repeated use” means at least three of the five scheduled post-baseline runs;
+“continued unprompted use” means the final one occurs without a reminder.
+“Tolerable review cost” means a participant's median review is at most 15 minutes
+per actionable event and total review burden is at most 30 minutes in a week.
+Burden exceeds perceived value when either limit is exceeded and the participant
+says the resulting decision was not worth that time.
+
 | Measure | Recording method | Decision it informs |
 |---|---|---|
 | Installation completion | yes/no, elapsed time, commands, intervention | Whether self-service use is viable |
@@ -115,6 +125,11 @@ return without prompting, review genuine changes, and at least two independent
 participants report a decision changed at tolerable review cost. A stated price
 does not satisfy this without behavior.
 
+This route also requires at least two of the three enrolled participants to meet
+the repeated-use definition and at least one to complete an unprompted final run.
+If fewer than two participants observe any genuine event by their 56-day cap,
+the pilot cannot support the standalone route, regardless of interview sentiment.
+
 ### Integrate into another tool
 
 Prefer integration when discovery/provenance is useful but participants reject a
@@ -133,6 +148,12 @@ Pause or stop if qualified participants will not install; installation requires
 the maintainer to operate it; genuine changes are too rare by the 56-day cap;
 participants do not return after setup; generic monitors satisfy the workflow;
 provenance never changes a decision; or review burden exceeds perceived value.
+
+Apply routes in this order to avoid post-hoc selection: standalone only if every
+standalone threshold above is met; otherwise integration if monitoring is used
+but a separate CLI is rejected; otherwise consulting if only the assurance user
+repeats use and decision evidence matters; otherwise pause. Mixed evidence is
+reported as inconclusive and does not satisfy the standalone route.
 
 The strongest standalone falsifier is a qualified participant completing the
 workflow and preferring changedetection.io or an existing generic monitor because

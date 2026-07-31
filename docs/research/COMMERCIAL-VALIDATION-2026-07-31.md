@@ -108,5 +108,6 @@ Unverified: that SkillWatch reduces review time, discovers references a partner
 would otherwise miss, changes a decision, earns repeat use, or commands payment.
 The pilot in `docs/DESIGN-PARTNER-PILOT.md` measures those propositions directly.
 
-No additional source was used because another general market or threat source
-would not change the pilot decisions above.
+No additional source was used because the five-source cap was sufficient to
+define the bounded pilot questions. Because every source was reviewed only in
+part, whether deeper reading would change a pilot decision remains unverified.

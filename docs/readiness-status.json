@@ -29,19 +29,19 @@
       "id": 3,
       "status": "pass",
       "basis": "named_owner_and_cadence",
-      "summary": "An owner and quarterly cadence are documented; the current review is overdue."
+      "summary": "The condition requires a named owner and cadence, both documented; the separate current review is overdue."
     },
     {
       "id": 4,
       "status": "pass",
       "basis": "independent_premise_source",
-      "summary": "SIGIL supports the premise; it is a preprint, not peer-reviewed."
+      "summary": "[SIGIL](https://arxiv.org/abs/2605.05274) supports the premise; it is a preprint, not peer-reviewed."
     },
     {
       "id": 5,
       "status": "fail",
       "basis": "zero_users",
-      "summary": "No external user or demand evidence has been observed."
+      "summary": "No external user or demand evidence is recorded in the repository; current external state is not proven by this offline gate."
     }
   ]
 }
