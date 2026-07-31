@@ -383,3 +383,55 @@ $ pytest -q tests/test_continuity.py
 .....                                                                    [100%]
 5 passed in 0.02s
 ```
+
+## Final sealed verification
+
+```text
+$ pytest --cov=skillwatch --cov-report=term-missing --cov-fail-under=90 -q
+TOTAL                      1627     70    96%
+Required test coverage of 90% reached. Total coverage: 95.70%
+633 passed in 21.19s
+
+$ ruff check skillwatch/ tests/ scripts/ analysis/
+All checks passed!
+ruff_exit=0
+
+$ mypy skillwatch/ scripts/ $(git ls-files 'analysis/*.py')
+Success: no issues found in 25 source files
+mypy_exit=0
+
+$ python scripts/audit_dependency_floors.py
+Audited 20 declared dependency floors.
+All declared floors are clear of known advisories.
+Every declared requirement has a lower bound.
+Every floor version exists and permits every supported Python.
+floors_exit=0
+
+$ python scripts/check_release_claims.py
+No claim violations.
+release_claims_exit=0
+
+$ python scripts/figure_rules.py
+No figure violations: every published proportion is one the harness currently produces, under a label consistent with the harness's own.
+figures_exit=0
+
+$ python analysis/verify_capture.py
+3 verified, 0 missing, 0 corrupt, of 3 recorded copies.
+All recorded copies verified against the manifest.
+capture_exit=0
+
+$ pytest -q tests/test_published_claims.py
+8 passed in 0.03s
+
+$ pytest -q tests/test_claim_rules.py
+11 passed in 0.03s
+```
+
+Pandoc rendered `AGENTS.md`, `OPEN-ITEMS.md`, and the consolidated handover.
+The initial Snap Chromium attempt reported screenshots written inside its
+isolated `/tmp` namespace, but the host could not open them. Playwright's first
+attempt then failed with `sandbox_host_linux.cc:41 ... Operation not permitted`.
+The required escalated retry produced inspectable full-page PNGs (1280×1563,
+1280×17396, and 1280×19680). Visual inspection found headings, lists, code
+blocks, tables, wrapping, and the complete ending legible with no truncation or
+overlap.
