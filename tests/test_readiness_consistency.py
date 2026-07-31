@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import importlib.util
 import re
+from datetime import date, timedelta
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -50,7 +51,7 @@ def test_confidence_bound_rule_is_directional() -> None:
 
 def test_retracted_original_ten_claim_is_not_current() -> None:
     text = SHIP.read_text(encoding="utf-8")
-    current = _section(text, "## Condition 1", "## Condition 2")
+    current = readiness_consistency.current_block(text)
     assert "same five are caught" not in current.lower()
 
 
@@ -67,7 +68,7 @@ def test_current_evasive_corpus_total_and_families_are_authoritative() -> None:
         "mechanical": 7,
         "language": 2,
     }
-    current = _section(SHIP.read_text(encoding="utf-8"), "## Condition 1", "## Condition 2")
+    current = readiness_consistency.current_block(SHIP.read_text(encoding="utf-8"))
     assert "25 evasive items" not in current
     assert "Semantic / framing (no obfuscation, no trigger words) | 13 | 2" not in current
 
@@ -88,3 +89,75 @@ def test_structured_status_matches_harness_and_current_scoreboard() -> None:
     assert readiness_consistency.validate_status(status, metrics) == []
     ship = SHIP.read_text(encoding="utf-8")
     assert readiness_consistency.current_block(ship) == readiness_consistency.render_current(status, metrics)
+
+
+def test_duplicate_condition_ids_are_rejected() -> None:
+    status = readiness_consistency.load_status()
+    status["conditions"][1]["id"] = 1
+    try:
+        readiness_consistency.condition_map(status)
+    except AssertionError:
+        pass
+    else:
+        raise AssertionError("duplicate condition IDs were accepted")
+
+
+def test_verdict_and_non_wilson_evidence_are_validated() -> None:
+    status = readiness_consistency.load_status()
+    metrics = readiness_consistency.harness_metrics()
+    status["verdict"] = "MAYBE"
+    assert "invalid verdict MAYBE" in readiness_consistency.validate_status(status, metrics)
+
+    status = readiness_consistency.load_status()
+    status["conditions"][4]["status"] = "pending"
+    errors = readiness_consistency.validate_status(status, metrics)
+    assert "condition 5 zero-demand evidence is absent or status is not fail" in errors
+
+    status = readiness_consistency.load_status()
+    status["conditions"][0]["basis"] = "unchecked_new_basis"
+    errors = readiness_consistency.validate_status(status, metrics)
+    assert "condition 1 has unvalidated basis unchecked_new_basis" in errors
+
+
+def test_current_metadata_fields_reject_arbitrary_or_stale_values() -> None:
+    metrics = readiness_consistency.harness_metrics()
+    for field in readiness_consistency.VALID_TOP_LEVEL:
+        status = readiness_consistency.load_status()
+        status[field] = "arbitrary"
+        assert f"invalid {field} arbitrary" in readiness_consistency.validate_status(status, metrics)
+
+    status = readiness_consistency.load_status()
+    status["evaluated_at"] = (date.today() - timedelta(days=8)).isoformat()
+    assert "evaluated_at is not current: age 8 days" in readiness_consistency.validate_status(
+        status, metrics
+    )
+
+    status = readiness_consistency.load_status()
+    status["general_commercial_readiness"] = "demonstrated"
+    assert (
+        "commercial readiness requires and must agree with GO/all conditions pass"
+        in readiness_consistency.validate_status(status, metrics)
+    )
+
+    status = readiness_consistency.load_status()
+    status["pilot_status"] = "not_permissible"
+    assert (
+        "pilot status must agree with the evidence-gathering pilot document"
+        in readiness_consistency.validate_status(status, metrics)
+    )
+
+    status = readiness_consistency.load_status()
+    status["organic_delta"] = "complete"
+    assert (
+        "organic delta status must agree with the registered result artefact"
+        in readiness_consistency.validate_status(status, metrics)
+    )
+
+
+def test_condition_one_warning_requires_its_unique_current_heading() -> None:
+    warning = "**Treat the triage as decorative against semantic evasion.**"
+    current = f"preamble\n### Measured detection rates\n{warning}\n## Next\n"
+    assert warning in readiness_consistency.current_measured_section(current)
+    assert readiness_consistency.current_measured_section(f"historical: {warning}") == ""
+    duplicate = current + f"### Measured detection rates\n{warning}\n"
+    assert readiness_consistency.current_measured_section(duplicate) == ""

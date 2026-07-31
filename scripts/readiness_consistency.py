@@ -7,6 +7,7 @@ import math
 import re
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 from typing import Any, cast
 
@@ -18,6 +19,21 @@ CURRENT_OPEN = "<!-- readiness:current -->"
 CURRENT_CLOSE = "<!-- readiness:end -->"
 VALID_STATUSES = {"pass", "fail", "not_demonstrated", "pending"}
 METRIC_DIRECTIONS = {"benign_false_positive_rate": "lower_is_better"}
+VALID_VERDICTS = {"GO", "HOLD"}
+EXPECTED_BASES = {
+    1: "documentation_route",
+    2: "wilson_bound",
+    3: "named_owner_and_cadence",
+    4: "independent_premise_source",
+    5: "zero_users",
+}
+VALID_TOP_LEVEL = {
+    "commercial_constraint": {"zero_users"},
+    "readiness_gate": {"condition_2"},
+    "organic_delta": {"pending", "complete"},
+    "pilot_status": {"permissible_evidence_gathering", "not_permissible"},
+    "general_commercial_readiness": {"not_demonstrated", "demonstrated"},
+}
 
 
 def wilson_interval(k: int, n: int) -> tuple[float, float]:
@@ -61,19 +77,43 @@ def harness_metrics() -> dict[str, tuple[int, int]]:
 
 
 def condition_map(status: dict[str, Any]) -> dict[int, dict[str, Any]]:
+    if len(status["conditions"]) != 5:
+        raise AssertionError("readiness status must define exactly five conditions")
     conditions = {int(item["id"]): item for item in status["conditions"]}
     if set(conditions) != {1, 2, 3, 4, 5}:
         raise AssertionError("readiness status must define conditions 1 through 5 exactly once")
     return conditions
 
 
+def current_measured_section(readme: str) -> str:
+    """Return the uniquely headed current measurement section, or no evidence."""
+    heading = "### Measured detection rates"
+    parts = readme.split(heading)
+    return parts[1].split("\n## ", 1)[0] if len(parts) == 2 else ""
+
+
 def validate_status(status: dict[str, Any], metrics: dict[str, tuple[int, int]]) -> list[str]:
     errors: list[str] = []
     conditions = condition_map(status)
     nonpassing = [number for number, item in conditions.items() if item["status"] != "pass"]
+    if status["verdict"] not in VALID_VERDICTS:
+        errors.append(f"invalid verdict {status['verdict']}")
+    try:
+        evaluated_at = date.fromisoformat(str(status["evaluated_at"]))
+    except ValueError:
+        errors.append(f"invalid evaluated_at {status['evaluated_at']}")
+    else:
+        age = (date.today() - evaluated_at).days
+        if age < 0 or age > 7:
+            errors.append(f"evaluated_at is not current: age {age} days")
+    for field, allowed in VALID_TOP_LEVEL.items():
+        if status.get(field) not in allowed:
+            errors.append(f"invalid {field} {status.get(field)}")
     for number, item in conditions.items():
         if item["status"] not in VALID_STATUSES:
             errors.append(f"condition {number} has invalid status {item['status']}")
+        if item.get("basis") != EXPECTED_BASES[number]:
+            errors.append(f"condition {number} has unvalidated basis {item.get('basis')}")
     if not nonpassing and status["verdict"] != "GO":
         errors.append("all conditions pass but verdict is not GO")
     if nonpassing and status["verdict"] == "GO":
@@ -82,6 +122,47 @@ def validate_status(status: dict[str, Any], metrics: dict[str, tuple[int, int]])
         errors.append("only_remaining_gate requires exactly one non-passing condition")
     if status["commercial_constraint"] == status["readiness_gate"]:
         errors.append("commercial constraint and readiness gate must be distinct concepts")
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    maintenance = (ROOT / "MAINTENANCE.md").read_text(encoding="utf-8")
+    launch_facts = (ROOT / "docs" / "LAUNCH-FACTS.md").read_text(encoding="utf-8")
+    ledger = LEDGER_PATH.read_text(encoding="utf-8")
+    measured_section = current_measured_section(readme)
+    if (
+        conditions[1]["status"] != "pass"
+        or "**Treat the triage as decorative against semantic evasion.**" not in measured_section
+    ):
+        errors.append("condition 1 documentation-route evidence is absent or status is not pass")
+    owner = re.search(r"^## Owner\s+\*\*[^*]+\*\* — sole contributor and maintainer\.$", maintenance, re.M)
+    cadence = re.search(r"^### Quarterly pattern review\s+Every calendar quarter \([^)]+\), review", maintenance, re.M)
+    if conditions[3]["status"] != "pass" or not owner or not cadence:
+        errors.append("condition 3 owner/cadence evidence is absent or status is not pass")
+    if (
+        conditions[4]["status"] != "pass"
+        or "https://arxiv.org/abs/2605.05274" not in conditions[4]["summary"]
+        or "[arXiv 2605.05274, SIGIL](https://arxiv.org/abs/2605.05274)" not in launch_facts
+        or "Preprint, not peer-reviewed" not in launch_facts
+    ):
+        errors.append("condition 4 primary-source evidence is absent or status is not pass")
+    if conditions[5]["status"] != "fail" or not re.search(
+        r"\| 9 \|.*(?:zero users|No users|No evidence of demand)", ledger, re.IGNORECASE
+    ):
+        errors.append("condition 5 zero-demand evidence is absent or status is not fail")
+    if status["commercial_constraint"] == "zero_users" and conditions[5]["status"] != "fail":
+        errors.append("zero_users commercial constraint requires condition 5 fail")
+    if status["readiness_gate"] == "condition_2" and conditions[2]["status"] == "pass":
+        errors.append("condition_2 readiness gate cannot point to a passing condition")
+    all_pass = all(item["status"] == "pass" for item in conditions.values())
+    commercially_ready = status["general_commercial_readiness"] == "demonstrated"
+    if commercially_ready != (status["verdict"] == "GO" and all_pass):
+        errors.append("commercial readiness requires and must agree with GO/all conditions pass")
+    pilot_exists = (ROOT / "docs" / "DESIGN-PARTNER-PILOT.md").is_file()
+    pilot_permissible = status["pilot_status"] == "permissible_evidence_gathering"
+    if pilot_permissible != pilot_exists:
+        errors.append("pilot status must agree with the evidence-gathering pilot document")
+    delta_complete = (ROOT / "analysis" / "corpus" / "realpage" / "DELTA-PASS.json").is_file()
+    if (status["organic_delta"] == "complete") != delta_complete:
+        errors.append("organic delta status must agree with the registered result artefact")
 
     for number, item in conditions.items():
         if item.get("basis") != "wilson_bound":
@@ -123,15 +204,29 @@ def render_current(status: dict[str, Any], metrics: dict[str, tuple[int, int]]) 
     for number in range(1, 6):
         item = conditions[number]
         lines.append(f"| {number} | **{str(item['status']).upper()}** | {item['summary']} |")
-    fp_k, fp_n = metrics["benign_false_positive_rate"]
-    low, high = wilson_interval(fp_k, fp_n)
+    nonpassing = [item for item in conditions.values() if item["status"] != "pass"]
+    clauses = [
+        f"Condition {item['id']} {str(item['status']).replace('_', ' ')}"
+        for item in nonpassing
+    ]
+    evidence_lines: list[str] = []
+    for item in conditions.values():
+        if item.get("basis") != "wilson_bound":
+            continue
+        k, n = metrics[str(item["metric"])]
+        low, high = wilson_interval(k, n)
+        bound_name = "lower" if item["direction"] == "higher_is_better" else "upper"
+        evidence_lines.append(
+            f"Condition {item['id']} evidence: {k}/{n} ({k / n:.1%}), 95% Wilson interval "
+            f"[{low:.1%}, {high:.1%}]. This {str(item['direction']).replace('_', '-')} "
+            f"gate uses the {bound_name} bound."
+        )
     lines.extend(
         [
             "",
-            f"**Verdict: {status['verdict']}.** Condition 2 is not demonstrated; condition 5 fails.",
-            f"Condition 2 evidence: {fp_k}/{fp_n} ({fp_k / fp_n:.1%}), 95% Wilson interval "
-            f"[{low:.1%}, {high:.1%}]. This lower-is-better gate uses the upper bound.",
-            "Zero users is the binding commercial constraint, distinct from the unresolved condition 2 evidence gate.",
+            f"**Verdict: {status['verdict']}.** " + "; ".join(clauses) + ".",
+            *evidence_lines,
+            f"{str(status['commercial_constraint']).replace('_', ' ').capitalize()} is the binding commercial constraint, distinct from the unresolved {str(status['readiness_gate']).replace('_', ' ')} evidence gate.",
             f"Organic delta evidence: {status['organic_delta']}. Private pilot: {status['pilot_status']}. "
             f"General commercial readiness: {status['general_commercial_readiness']}.",
             CURRENT_CLOSE,
