@@ -132,13 +132,31 @@ def verify_pages(
 # one still looking authoritative.
 
 
+def _copy_paths(manifest: Any) -> tuple[str, ...]:
+    """Return a validated copy registry or raise ``ValueError``."""
+    if not isinstance(manifest, dict):
+        raise ValueError("the manifest root is not an object")
+    copies = manifest.get("copies")
+    if not isinstance(copies, list):
+        raise ValueError("copies is not a list")
+    paths: list[str] = []
+    for index, copy in enumerate(copies):
+        if not isinstance(copy, dict):
+            raise ValueError(f"copies[{index}] is not an object")
+        path = copy.get("path")
+        if not isinstance(path, str) or not path.strip():
+            raise ValueError(f"copies[{index}].path is not a non-empty string")
+        paths.append(path)
+    return tuple(paths)
+
+
 def recorded_copies(manifest_path: Path | str = DEFAULT_MANIFEST) -> tuple[str, ...]:
-    """Every path the manifest records, in order. Empty if it cannot be read."""
+    """Every validated path the manifest records; empty if it is unusable."""
     try:
         manifest = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+        return _copy_paths(manifest)
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError, ValueError):
         return ()
-    return tuple(c["path"] for c in manifest.get("copies", []) if c.get("path"))
 
 
 def assert_capture_trustworthy(
@@ -231,7 +249,14 @@ def main() -> int:
     if args.copy:
         paths = [Path(p) for p in args.copy]
     else:
-        paths = [Path(c["path"]) for c in manifest.get("copies", [])]
+        try:
+            paths = [Path(path) for path in _copy_paths(manifest)]
+        except ValueError as exc:
+            print(f"UNUSABLE: {manifest_path} has an invalid copy registry: {exc}.",
+                  file=sys.stderr)
+            print("This check has NOT passed — it could not inspect its subject.",
+                  file=sys.stderr)
+            return EXIT_UNUSABLE
         if not paths:
             # Zero copies must not verify vacuously. That is "no copy" spelled quietly.
             print(f"UNUSABLE: {manifest_path} records no copies, so there is nothing "
