@@ -301,3 +301,85 @@ TOTAL                      1627     70    96%
 Required test coverage of 90% reached. Total coverage: 95.70%
 631 passed in 18.83s
 ```
+
+## Continuity commit and preliminary debt enumeration
+
+```text
+$ git commit -m "Make continuity claims self-consistent" ...
+[feat/archive-durability-and-strict-audit 86f77ff] Make continuity claims self-consistent
+ 3 files changed, 193 insertions(+), 3 deletions(-)
+ create mode 100644 tests/test_continuity.py
+
+$ git status --short
+
+$ git log --oneline -5
+86f77ff Make continuity claims self-consistent
+fa748d4 Record repository and PR baseline
+ed3ee71 Make session evidence durable
+39cc419 Add tracked Codex transition handover
+f6b75c8 Close adversarial assurance findings
+
+$ git diff -U0 39cc419..HEAD -- . ':!analysis/session-log-2026-07-31.md' | rg -ni 'skip|xfail|ignore|disable|noqa|type: ignore|TODO|FIXME|(^|[^A-Za-z])(pin|pinned|pins|version pin)' || true
+Matches occurred only in the `.gitignore` filename and the ledger/test prose
+about closing the ignored-log defect and preserving historical `pip-audit`
+skip evidence. There are no new suppressions, pins, skips, exclusions, stubs,
+hardcoded values, TODOs, FIXMEs, `noqa`, or `type: ignore` directives.
+
+$ git diff --check 39cc419..HEAD
+
+$ git diff --quiet main..HEAD -- skillwatch/; echo detection_diff_exit=$?
+detection_diff_exit=0
+```
+
+The complete matching lines remain available in this commit's parent session
+output; the decisive enumeration above distinguishes documentary mentions from
+introduced debt.
+
+## Independent adversarial review
+
+The reviewer received only the session diff for `.gitignore` and
+`tests/test_continuity.py`, committed verification output at log lines 163–299,
+and `OPEN-ITEMS.md`. Its findings are reproduced verbatim:
+
+```text
+Independent constrained review — 2 material findings, no HIGH.
+
+MEDIUM — `.gitignore` hunk `!analysis/session-log-*.md`; `tests/test_continuity.py:20-31` (`test_dated_session_logs_are_not_ignored`). The claimed class fix is durability/permanence (“dated session evidence logs are permanent handover inputs”; test docstring says an ignored log “disappears on the next clone or machine”), but the test proves only that a hypothetical pathname is *not ignored*. It does not prove any real dated session log is tracked, committed, present, or retained. A newly created `analysis/session-log-YYYY-MM-DD.md` passes immediately while still untracked and therefore still disappears on the next clone; deleting every tracked session log also leaves this test green. This is an instance/workaround that leaves the defect class open. Reproducible falsification: create any matching untracked log, run `pytest -q tests/test_continuity.py::test_dated_session_logs_are_not_ignored` (passes), then run `git ls-files --error-unmatch <that-log>` (fails). A class-level test needs to enumerate the required real log(s) and assert they are returned by `git ls-files` (and, if permanence means retention, assert the expected dated evidence file remains present).
+
+MEDIUM — `tests/test_continuity.py:33-46`, especially exact phrase exclusion and substring cross-links. The module claims continuity evidence is “internally current,” and the session evidence says “the measured contradiction” is now regression-tested, but these tests enforce only today’s wording/links, not semantic consistency. Item 22 passes as long as it contains the literal `Superseded by item 60` and avoids exactly `no case was found in which `--strict` changed the outcome`; item 60 passes if the characters `item 22` appear anywhere. A synonymous contradiction (e.g. “we never identified an outcome altered by `--strict`”) plus those cross-links passes. Likewise `item 22` could occur in unrelated prose in item 60. The evidence accurately demonstrates this one historical wording failed, but overclaims a class closure. Reproducible check: on a throwaway edit, replace item 22’s final two sentences with `Superseded by item 60. We never identified an outcome altered by --strict.` and retain `item 22` in item 60; run the two ledger tests and observe green despite contradiction with item 60’s DEMONSTRATED/load-bearing claim. This should be described as an instance regression test unless assertions parse mutually exclusive status/facts rather than prose substrings.
+
+Exact sources/commands used only:
+1. `git diff 39cc419..86f77ff -- .gitignore tests/test_continuity.py`
+2. `sed -n '163,299p' /home/mkuziva/skillwatch/analysis/session-log-2026-07-31.md` (covers exactly requested 163-242 and 243-299)
+3. `sed -n '1,10000p' /home/mkuziva/skillwatch/OPEN-ITEMS.md`
+4. `rg '^\\| (22|60|67) \\|' /home/mkuziva/skillwatch/OPEN-ITEMS.md` (targeted reread of the authorized ledger only)
+No other files/history/network inspected; no edits.
+```
+
+Both MEDIUM findings were accepted. The first is closed by enumerating every
+existing `analysis/session-log-*.md` and requiring `git ls-files
+--error-unmatch` to prove it survives a fresh clone. The second is closed by a
+structured supersession index (`22 -> 60`) and a regression test for that
+machine-readable lineage; the literal prose checks remain instance regression
+tests and are not represented as semantic interpretation of arbitrary prose.
+
+The initial strengthened run also exposed that the new index row shadowed the
+five-column ledger row in `_ledger_item`; the helper now selects exactly one
+five-column ledger row. This was an unexpected fail, not suppressed.
+
+```text
+$ pytest -q tests/test_continuity.py  # strengthened tests before fixes
+.F..F
+FAILED test_existing_session_logs_are_tracked - NameError: name 'probe' is not defined
+FAILED test_supersession_index_records_item_22_to_60 - AssertionError
+2 failed, 3 passed in 0.03s
+
+$ pytest -q tests/test_continuity.py  # after index, before row disambiguation
+..F..
+FAILED test_item_22_names_the_later_strict_demonstration
+1 failed, 4 passed in 0.03s
+
+$ pytest -q tests/test_continuity.py
+.....                                                                    [100%]
+5 passed in 0.02s
+```
