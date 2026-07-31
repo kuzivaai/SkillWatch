@@ -63,3 +63,14 @@ reproduced, fixed, regression-tested, and recorded as ledger item 72.
 
 Set `PYTHONDONTWRITEBYTECODE=1` for verification runs. The canonical commands and
 the reasons behind them are maintained in `CLAUDE.md`.
+
+## Current readiness truth
+
+Do not infer readiness from historical prose. `docs/readiness-status.json` is the
+structured current source; `SHIP-READINESS.md` contains its generated/validated
+scoreboard, and `scripts/readiness_consistency.py` checks it against the efficacy
+harness and ledger sections. Condition 2 is **not demonstrated** (lower-is-better
+false-positive gate: Wilson upper bound 31.1% > 30%). Condition 5 fails; zero
+users is the binding commercial constraint. A private design-partner pilot is
+permissible evidence gathering, not production or commercial readiness. The
+organic delta measurement remains pending and must not be run in this session.
