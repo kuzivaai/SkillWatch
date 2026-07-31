@@ -154,22 +154,33 @@ def tracked_scripts() -> list[str]:
 # dependencies" was part of the 2026-07-30 rewrite and is not itself a behaviour
 # change. Everything else in the spec is in scope, including `needs`, `if`,
 # `environment`, `permissions`, `strategy` and every `uses`/`with`.
-COSMETIC_KEYS = frozenset({"name"})
-
 HASH_LENGTH = 12
 
 
-def _canonicalise(node: Any) -> Any:
+def _canonicalise(node: Any, *, display_object: bool = True) -> Any:
     """Drop cosmetic keys and normalise scalars so only behaviour remains.
 
     Strings are stripped and their lines right-trimmed. That matters for block
     scalars: a `run:` line gaining trailing whitespace is not a behaviour change,
     and a hash that moved on it would be the noisy check this design rejects.
+
+    ``name`` is cosmetic only on a job or step object. Action inputs such as
+    ``with.name`` are behavior-bearing and must remain in the digest.
     """
     if isinstance(node, dict):
-        return {k: _canonicalise(v) for k, v in sorted(node.items()) if k not in COSMETIC_KEYS}
+        result: dict[Any, Any] = {}
+        for key, value in sorted(node.items()):
+            if key == "name" and display_object:
+                continue
+            if key == "job":
+                result[key] = _canonicalise(value, display_object=True)
+            elif key == "steps" and isinstance(value, list):
+                result[key] = [_canonicalise(item, display_object=True) for item in value]
+            else:
+                result[key] = _canonicalise(value, display_object=False)
+        return result
     if isinstance(node, list):
-        return [_canonicalise(v) for v in node]
+        return [_canonicalise(v, display_object=False) for v in node]
     if isinstance(node, str):
         return "\n".join(line.rstrip() for line in node.strip().splitlines())
     return node
@@ -602,6 +613,28 @@ def test_a_step_rename_does_not_move_a_job_hash() -> None:
     renamed = json.loads(json.dumps(spec))
     renamed["steps"][-1]["name"] = "Totally different display name"
     assert digest(renamed) == digest(spec), "a step rename moved the hash"
+
+
+def test_an_action_input_named_name_does_move_a_job_hash() -> None:
+    """Only display labels are cosmetic; `with.name` is action behaviour."""
+    def digest(node: Any) -> str:
+        return hashlib.sha256(json.dumps(
+            _canonicalise(node), sort_keys=True, separators=(",", ":")
+        ).encode()).hexdigest()[:HASH_LENGTH]
+
+    baseline = {
+        "steps": [{
+            "name": "Upload evidence",
+            "uses": "actions/upload-artifact@v4",
+            "with": {"name": "evidence-before"},
+        }]
+    }
+    changed = json.loads(json.dumps(baseline))
+    changed["steps"][0]["with"]["name"] = "evidence-after"
+
+    assert digest(changed) != digest(baseline), (
+        "changing behavior-bearing `with.name` did not move the job hash"
+    )
 
 
 def test_a_red_observed_claim_carries_checkable_evidence() -> None:

@@ -226,6 +226,22 @@ def test_a_manifest_recording_no_copies_is_not_a_pass(tmp_path: Path) -> None:
     assert r.returncode != EXIT_OK, r.stdout + r.stderr
 
 
+@pytest.mark.parametrize("copies", [[None], ["not-an-object"], [{}], [{"path": 42}]])
+def test_a_manifest_with_malformed_copies_is_unusable(
+    synthetic: dict[str, Path], copies: list[object]
+) -> None:
+    """Valid JSON with an invalid copy registry must honour the exit-4 contract."""
+    manifest = json.loads(synthetic["manifest"].read_text(encoding="utf-8"))
+    manifest["copies"] = copies
+    synthetic["manifest"].write_text(json.dumps(manifest), encoding="utf-8")
+
+    r = run("--manifest", str(synthetic["manifest"]))
+
+    assert r.returncode == EXIT_UNUSABLE, r.stdout + r.stderr
+    assert "UNUSABLE" in r.stdout + r.stderr
+    assert "Traceback" not in r.stdout + r.stderr
+
+
 def test_page_sample_is_deterministic(synthetic: dict[str, Path]) -> None:
     """Two runs must sample the same pages, or a passing run proves nothing."""
     a = run("--manifest", str(synthetic["manifest"]), "--pages", "4", "--verbose")
