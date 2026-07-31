@@ -1285,6 +1285,14 @@ All checks passed!
 Success: no issues found in 26 source files
 ```
 
+The exact committed-tree full-suite rerun corrected the earlier continuation
+count, which preceded the final chronology test:
+
+```text
+Required test coverage of 90% reached. Total coverage: 95.70%
+645 passed in 23.91s
+```
+
 ## Continuation verification — legacy handover sibling surface
 
 On the next verification turn, the repository was clean at
