@@ -1,5 +1,9 @@
 # SkillWatch readiness-consistency handover — 2026-07-31
 
+> **AUTHORITATIVE HANDOVER:** `docs/current-handover.txt` designates this file.
+> Current readiness values remain derived from `docs/readiness-status.json`, not
+> from narrative prose in this handover.
+
 Audience: an adversarial reviewer without access to the session. The permanent
 raw record is `analysis/session-log-2026-07-31-readiness.md`. This document uses
 **Demonstrated**, **Unverified** and **Contradicted** with the meanings required

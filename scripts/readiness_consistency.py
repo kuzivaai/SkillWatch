@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 STATUS_PATH = ROOT / "docs" / "readiness-status.json"
 SHIP_PATH = ROOT / "SHIP-READINESS.md"
 LEDGER_PATH = ROOT / "OPEN-ITEMS.md"
+HANDOVER_POINTER_PATH = ROOT / "docs" / "current-handover.txt"
 CURRENT_OPEN = "<!-- readiness:current -->"
 CURRENT_CLOSE = "<!-- readiness:end -->"
 VALID_STATUSES = {"pass", "fail", "not_demonstrated", "pending"}
@@ -245,14 +246,50 @@ def ledger_section_errors(text: str) -> list[str]:
     open_text = text.split("## Open", 1)[1].split("## Closed", 1)[0]
     closed_text = text.split("## Closed", 1)[1].split("## Standing decisions", 1)[0]
     errors: list[str] = []
+    reviewed = re.search(r"^\*\*Last reviewed:\*\* (\d{4}-\d{2}-\d{2})", text, re.MULTILINE)
+    recorded_dates: list[str] = []
     for row in re.findall(r"^\| \d+ \|.*$", open_text, re.MULTILINE):
+        recorded_dates.extend(re.findall(r"\b\d{4}-\d{2}-\d{2}\b", row.split("|")[3]))
         status = row.split("|")[4].strip()
         if not re.match(r"^\*\*(?:Open|Partial|Partly)", status, re.I):
             errors.append(f"non-open status under Open: {row[:80]}")
     for row in re.findall(r"^\| \d+ \|.*$", closed_text, re.MULTILINE):
-        status = row.split("|")[4]
+        columns = row.split("|")
+        recorded_dates.extend(re.findall(r"\b\d{4}-\d{2}-\d{2}\b", columns[3]))
+        recorded_dates.extend(re.findall(r"\b\d{4}-\d{2}-\d{2}\b", columns[4]))
+        status = columns[4]
         if re.match(r"^\*\*(?:Open|Partial|Partly)", status, re.I):
             errors.append(f"open/partial row under Closed: {row[:80]}")
+    if not reviewed:
+        errors.append("ledger has no Last reviewed date")
+    elif recorded_dates and reviewed.group(1) < max(recorded_dates):
+        errors.append(
+            f"ledger Last reviewed {reviewed.group(1)} predates item history {max(recorded_dates)}"
+        )
+    return errors
+
+
+def handover_errors() -> list[str]:
+    """Ensure one movable pointer identifies authority and every sibling opts out."""
+    name = HANDOVER_POINTER_PATH.read_text(encoding="utf-8").strip()
+    if not re.fullmatch(r"HANDOVER[A-Z0-9-]*\.md", name):
+        return [f"invalid current handover pointer: {name}"]
+    current = ROOT / "docs" / name
+    errors: list[str] = []
+    if not current.is_file():
+        errors.append(f"current handover does not exist: {name}")
+    else:
+        current_opening = "\n".join(current.read_text(encoding="utf-8").splitlines()[:12])
+        if "> **AUTHORITATIVE HANDOVER:**" not in current_opening:
+            errors.append(f"current handover lacks authoritative marker: {name}")
+        if "> **SUPERSEDED:**" in current_opening:
+            errors.append(f"current handover disclaims authority: {name}")
+    for handover in (ROOT / "docs").glob("HANDOVER*.md"):
+        if handover == current:
+            continue
+        opening = "\n".join(handover.read_text(encoding="utf-8").splitlines()[:12])
+        if "> **SUPERSEDED:**" not in opening or f"`{name}`" not in opening:
+            errors.append(f"legacy handover does not explicitly defer to {name}: {handover.name}")
     return errors
 
 
@@ -264,6 +301,7 @@ def main() -> int:
     if current_block(ship) != render_current(status, metrics):
         errors.append("SHIP-READINESS current block differs from generated readiness status")
     errors.extend(ledger_section_errors(LEDGER_PATH.read_text(encoding="utf-8")))
+    errors.extend(handover_errors())
     if errors:
         for error in errors:
             print(f"FAIL: {error}")
