@@ -167,9 +167,9 @@ inline `style` attribute contains one of two lower-case substrings.
 |---|---|
 | `display:none`, `visibility:hidden` — **any case** | yes |
 | `opacity:0`, `font-size:0` | yes |
-| `position:absolute;left:-9999px` | yes |
+| `position:absolute;left:-9999px` | **no — deliberate accessibility boundary** |
 | `height:0`/`width:0` with `overflow:hidden` | yes |
-| HTML `hidden` attribute | yes |
+| HTML `hidden` attribute | **no — deliberate base-rate decision** |
 | A rule in a same-document `<style>` block | yes |
 | `clip-path:inset(100%)`, `text-indent:-9999px` | **no — deliberate** |
 | `aria-hidden="true"` | **no — deliberate** |
@@ -177,10 +177,10 @@ inline `style` attribute contains one of two lower-case substrings.
 
 **Two of those "no" rows are choices, and one is a boundary.**
 
-`clip-path` and `text-indent` are the canonical `.sr-only` screen-reader idioms. A
-rule firing on them fires on well-built accessible sites, and the cost lands on the
-benign false-positive rate. An attacker who uses `.sr-only` markup to carry a
-payload is not caught. That is a stated gap.
+Off-screen positioning is the canonical `.sr-only` screen-reader idiom documented
+by WebAIM, so flagging it would fire on correct accessibility markup. `clip-path`
+and `text-indent` are also excluded by the measured taxonomy. An attacker using
+any of those forms to carry a payload is not caught. That is a stated gap.
 
 `aria-hidden` hides content from assistive technology while leaving it visually
 present — the inverse of this threat.
@@ -355,7 +355,7 @@ These are fundamental limits of pattern matching. Catching them would require a 
 
 ### Precision does not transfer to your change stream
 
-The corpora above are 38 benign items against 47 malicious ones. Your monitored
+The corpora above are 43 benign items against 54 malicious ones. Your monitored
 URLs are not. Almost every change SkillWatch shows you will be a legitimate
 edit — a version bump, a reworded paragraph, a new link. Precision is
 `TP/(TP+FP)`, so it depends on that ratio, and a figure measured at roughly 1:1
@@ -370,7 +370,7 @@ tells you to read the diff rather than trust the flag.
 
 ### Which flags produce the false positives
 
-All five false positives across both benign corpora (38 items) came from three
+All seven false positives across both benign corpora (43 items) came from four
 "something new appeared" delta checks:
 
 | Flag code | False positives |
@@ -607,7 +607,8 @@ pip install -e ".[dev]"
 pytest
 ```
 
-326 tests, 95% code coverage.
+Run the full suite with coverage as shown in `CLAUDE.md`; test counts are recorded
+by each verified change rather than maintained as a second current fact here.
 
 ## Licence
 

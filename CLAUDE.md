@@ -26,6 +26,9 @@ mypy skillwatch/ scripts/ $(git ls-files 'analysis/*.py')
 # Published figures must match the harness (CI step + pre-release gate)
 python3 scripts/figure_rules.py
 
+# Structured current readiness, generated scoreboard, harness and ledger agree
+python3 scripts/readiness_consistency.py
+
 # Dependency floor audit (security gate — must exit 0)
 python3 scripts/audit_dependency_floors.py
 
@@ -81,9 +84,9 @@ Thirteen Python modules under `skillwatch/`:
 | cloak.py | Cloaking detection across fetch strategies |
 | __init__.py | Version declaration |
 
-Six tracked scripts under `scripts/`: `audit_dependency_floors.py`,
+Seven tracked scripts under `scripts/`: `audit_dependency_floors.py`,
 `check_published_claims.py`, `check_release_claims.py`, `claim_rules.py`,
-`figure_rules.py`, `refresh_confusables.py`. This said "Two" until 2026-07-30,
+`figure_rules.py`, `readiness_consistency.py`, `refresh_confusables.py`. This said "Two" until 2026-07-30,
 which was stale from the moment the claims and figure checks landed. Regenerate it
 with `git ls-files 'scripts/*.py'` rather than counting by hand; which of them are
 gates is recorded in the gate table below, and `tests/test_gate_table.py` fails if
@@ -99,10 +102,10 @@ tracked modules is gitignored.
 
 These are closed findings from the five-prompt forensic audit. Do not re-litigate.
 
-- **The regex triage is evadable by design.** Recall is 60.0% overall (21/35, CI [43.6%, 74.4%]) and 44.0% against evasive adversaries (11/25, CI [26.7%, 62.9%]). Semantic evasions (indirect instruction, polite framing, narrative framing) bypass detection by design. This is documented honestly and is not a bug to fix. The tool is a URL change monitor with best-effort triage, not a detection tool. The older 75%/50% figures were measured on a smaller corpus and are superseded.
+- **The regex triage is evadable by design.** Current harness output is 64.3% overall recall (27/42, CI [49.2%, 77.0%]) and 53.1% against evasive adversaries (17/32, CI [36.4%, 69.1%]). Semantic evasions (indirect instruction, polite framing, narrative framing) bypass detection by design. This is documented honestly and is not a bug to fix. The tool is a URL change monitor with best-effort triage, not a detection tool. Historical measurements are archived and are not current facts.
 - **"Periodic, not continuous."** The tool runs via cron or CI. It has no daemon mode, no schedule trigger, no unattended monitoring. All user-facing text uses "periodic" or "periodically." Do not introduce "continuous" or "continuously."
 - **No ML or LLM detection.** The detector is regex/keyword/DOM-based. Proposals to add semantic detection are out of scope.
-- **Published; demand condition still unmet.** PyPI serves 0.4.1 (2026-07-29); this repository declares 0.4.1 in `pyproject.toml`. GitHub Pages is live. Of the five readiness conditions, only user demand (condition 5) is unmet — and no engineering change moves it. Current scoreboard: SHIP-READINESS.md (DECISION.md is the superseded pre-remediation record). Open work is tracked in OPEN-ITEMS.md, which is the continuity ledger across sessions.
+- **Published; readiness and demand remain distinct.** PyPI serves 0.4.1 (2026-07-29); this repository declares 0.4.1 in `pyproject.toml`. GitHub Pages is live. Condition 2 remains **not demonstrated** because the lower-is-better false-positive gate uses its Wilson upper bound (31.1% > 30%). Condition 5 fails with zero users and is the binding commercial constraint. Current structured status: `docs/readiness-status.json`; generated/validated scoreboard: `SHIP-READINESS.md`. Open work is tracked in `OPEN-ITEMS.md`.
   <!-- Both version numbers above are checked, not trusted. The declared one is checked
   offline by tests/test_claude_md_currency.py against pyproject.toml; the published one
   is checked against the live index by scripts/check_published_claims.py. By hand:
@@ -464,6 +467,7 @@ the parsed AST with docstrings stripped. Not built. See the ledger.
 | `scripts/check_release_claims.py` | repository gate (pre-release) | n/a (not a workflow job) | RED OBSERVED | 2026-07-30, `exit=1` on both paths. Claims: *"Do not release. Correct the claims first."*, 4 violations, caught in README **and** in the freshly built sdist PKG-INFO. Figures: *"Do not release. Published figures disagree with the harness."* Mutations reverted |
 | `scripts/check_published_claims.py` | repository report (never a gate) | n/a (not a workflow job) | RED OBSERVED | 2026-07-30, `exit=2` with PyPI unreachable: *"This check has NOT passed. A check that cannot inspect its subject has not verified anything."* It also exited non-zero on live content on 2026-07-29 (item 2), which is not re-observable now that 0.4.1 is correct |
 | `scripts/figure_rules.py` | repository gate (also a CI step of `test`) | n/a (not a workflow job) | RED OBSERVED | 2026-07-30, `exit=1` on a relabelled README figure: *"[figure-mislabelled] README.md:235: 9/12 is published as false-positive-rate but the harness prints it as recall-overall."* Mutation reverted |
+| `scripts/readiness_consistency.py` | repository gate | n/a (not a workflow job) | RED OBSERVED | 2026-07-31, `exit=1` fail-before: condition 2 was non-passing while the verdict said conditions 1–4 pass; stale corpus/current detector prose and closed rows under Open were also observed. Four focused mutation controls are recorded in the readiness session log. |
 | `analysis/verify_capture.py` | repository gate | n/a (not a workflow job) | RED OBSERVED | 2026-07-30, `exit=2` MISSING on an absent path and `exit=3` CORRUPT on a wrong file; with both present, 3 outranked 2 as specified. Demonstrated via `--copy`, so no recorded copy was touched |<!-- gate-table:end -->
 
 **The `lowest-direct` red is confounded, and counting it as clean evidence would
