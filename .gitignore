@@ -52,6 +52,9 @@ analysis/*
 # untracked verifier is no verifier: it would exist on one machine, which is the
 # same single-point-of-failure shape as the capture it protects (ledger item 55).
 !analysis/verify_capture.py
+# Dated session evidence logs are permanent handover inputs. Re-include them so
+# a session cutoff cannot leave the only evidence in an ignored local file.
+!analysis/session-log-*.md
 # DELTA-REHEARSAL.json is deliberately NOT re-included. It is a zero-change
 # delta produced by feeding one snapshot in as both sides, so it is not a
 # measurement. Committing it would put a figure in the repository that a
