@@ -138,8 +138,8 @@ an incorrect result.
 ## Complete assurance results
 
 ```text
-POST-REVIEW TARGETED: 83 passed in 1.48s; exit 0
-POST-REVIEW FULL: 643 passed in 40.64s
+POST-REVIEW TARGETED: 63 passed in 0.95s; exit 0
+POST-REVIEW FULL: 645 passed in 23.91s
 TOTAL 1627 statements, 70 missed, 95.70% coverage; required 90%; exit 0
 ruff: All checks passed; exit 0
 mypy: Success: no issues found in 26 source files; exit 0
@@ -154,8 +154,8 @@ delta guard: REFUSING on 2026-07-31 as designed; exit 3
 ```
 
 Test-count accounting: prior collection 633; only
-`tests/test_readiness_consistency.py` was added, with ten collected tests; final
-collection/full run 643. Production coverage remained 95.70%.
+`tests/test_readiness_consistency.py` was added, with twelve collected tests;
+final collection/full run 645. Production coverage remained 95.70%.
 
 No-new-debt enumeration: no suppression, pin, skip, xfail, noqa, type-ignore,
 exclusion, stub, hardcoded harness output or TODO was introduced. Generated build
