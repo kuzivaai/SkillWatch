@@ -12,7 +12,7 @@ Dates are the date the item was first recorded, taken from git history or from
 the handover that raised it. Where an item predates its first written record the
 date is marked *(at latest)*.
 
-**Last reviewed:** 2026-08-01 (pilot-readiness clean-room rehearsal; all-rejected add defect corrected; participant operations package added; no demand inferred)
+**Last reviewed:** 2026-08-01 (final-head mechanical closure; parser-rejected-only add defect corrected; no human or demand evidence inferred)
 
 ---
 
@@ -77,6 +77,7 @@ engineering, and engineering is not the constraint.
 
 | # | Item | First raised | Closed | How |
 |---|---|---|---|---|
+| 81 | **`skillwatch add FILE` returned success when parser-level safety checks removed every extracted URL before SSRF validation.** A file containing only `http://127.0.0.1/` printed “No URLs found” and exited 0, so automation could treat a rejected input as accepted. This was a sibling class gap left by item 79, whose regression covered URLs reaching the later SSRF-validation loop. | 2026-08-01 | 2026-08-01 | The zero-extracted/zero-monitorable path now exits 1, uses the same actionable “No monitorable URLs were added” contract, and never prints the scan instruction. The exact final-head workflow reproduced the defect before the change. The focused regression failed before, passed after, and failed when the corrected return value was mutated back to 0; the mutation was reverted. No parser policy, detector, corpus, threshold or dependency changed. |
 | 80 | **No participant-operational package connected the canonical pilot thresholds to executable installation, observation, support and removal steps.** | 2026-08-01 | 2026-08-01 | Added a participant runbook, maintainer checklist and manual observation template. They link to `docs/DESIGN-PARTNER-PILOT.md` rather than duplicating thresholds. The protocol records the executability matrix and labels clean-room runs as agent rehearsals, not demand or user evidence. |
 | 79 | **`skillwatch add FILE` returned success and instructed the operator to scan when every discovered URL was blocked and zero URLs were added.** Both clean-room runs reproduced the misleading state. | 2026-08-01 | 2026-08-01 | The all-rejected case now exits 1, gives a corrective message and omits the scan instruction; mixed files and already-monitored state retain usable behavior. The test failed before, passed after and failed under a return-code mutation. A sibling mixed-input test was made DNS-independent after live resolution exposed its nondeterminism. |
 | 76 | **The raw distribution-session log failed `git diff --check`, yet the first commit proceeded because its shell sequence used semicolons instead of fail-fast chaining.** Nine `gh pr checks` rows carried trailing tabs. | 2026-08-01 | 2026-08-01 | Preserved the failed output, mechanically stripped only trailing whitespace, reran `git diff --check`, and required subsequent commit gates to use `&&`. No evidence content or result changed. |

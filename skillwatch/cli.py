@@ -304,8 +304,12 @@ def _cmd_add(store: Store, args: argparse.Namespace) -> int:
         return 1
 
     if not urls:
-        print(yellow(f"  No URLs found in {args.file}"))
-        return 0
+        print(
+            red(f"  No monitorable URLs were added from {args.file}; "
+                "correct or remove invalid or private/reserved references and retry."),
+            file=sys.stderr,
+        )
+        return 1
 
     from .ssrf import SSRFError, validate_url
 
