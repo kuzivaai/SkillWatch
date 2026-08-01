@@ -107,6 +107,12 @@ exported by the participant. No database, skill file, URL inventory, alert or
 ledger is uploaded automatically. Participants may redact URLs and content while
 retaining timings and decisions.
 
+Before observation, the maintainer supplies the complete CSV field list, records
+consent and redaction choices, names everyone permitted to access the agreed
+worksheet, and agrees a deletion or retention date. Withdrawal stops collection;
+maintainer-held copies are deleted by that date except for non-identifying
+aggregates the participant explicitly allowed.
+
 ## Measurements and decisions
 
 Enroll at least three qualified participants, with no more than two from one
@@ -118,6 +124,15 @@ minutes of maintainer time after the documented install instructions are supplie
 per actionable event and total review burden is at most 30 minutes in a week.
 Burden exceeds perceived value when either limit is exceeded and the participant
 says the resulting decision was not worth that time.
+
+A **genuine change** is a participant-confirmed edit to the publisher-controlled
+fetched representation, excluding fetch/render failures, transient transport
+differences and changes confirmed not to be upstream edits. Relevance and
+actionability are recorded separately. An **independent participant** is a user
+in a different organisation and decision chain; colleagues, a buyer/user pair,
+or a consultant/client relationship count once. The support pause begins after
+the penultimate scheduled run and lasts through the final seven-day interval; a
+run is unprompted only when participant-initiated without a reminder then.
 
 | Measure | Recording method | Decision it informs |
 |---|---|---|

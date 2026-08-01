@@ -48,6 +48,10 @@ not publisher identity or the truth of the fetched content. Review an alert with
 - If a fetch fails, retain the output, check ordinary network/DNS access, and do
   not bypass private-address protection.
 - If the input path is wrong or malformed, correct the file and rerun `add`.
+- If the database is unwritable/corrupt, `verify` fails, or export fails, stop;
+  preserve the error and database and record an intervention before retrying.
+- With mixed accepted/blocked references, confirm `list` contains every expected
+  public URL and record omissions before scanning.
 - Ask the maintainer to record every intervention; an assisted run is not an
   unprompted-use result.
 

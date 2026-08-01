@@ -590,3 +590,13 @@ class TestCLI:
             # The new reference is now monitored
             self._run("list", db_path=db_path)
             assert "new-ref.test/x" in capsys.readouterr().out
+
+
+def test_add_url_calls_production_ssrf_validator(tmp_path, capsys):
+    """The CLI boundary retains production SSRF validation outside DNS test doubles."""
+    private_answer = [(2, 1, 6, "", ("127.0.0.1", 443))]
+    with patch("socket.getaddrinfo", return_value=private_answer):
+        code = main(["--db", str(tmp_path / "test.db"), "add-url", "https://public.test/"])
+
+    assert code == 1
+    assert "Blocked" in capsys.readouterr().err
