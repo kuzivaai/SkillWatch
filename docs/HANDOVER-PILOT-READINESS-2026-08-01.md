@@ -122,3 +122,21 @@ The complete canonical ledger is `OPEN-ITEMS.md` and is reproduced verbatim in
 the Downloads consolidation generated from this handover and the ledger. No item
 was removed. Items 37, 38, 43 and 52 remain open pending the organic pass; item 9
 remains open because an agent rehearsal is not a user.
+
+## Final bounded verification update
+
+Final verification commit: `60dbd8f Record final pilot workflow verification`.
+The candidate wheel was built from `e74b89a5de2e0ccd684886d211accf43361fd3a8`
+and has SHA-256 `2719b78bea0f68ce1a49f431fad078f2257ca2ed1af6d0d311fceb2a3322e231`.
+The project-owned README URL returned HTTP 200 and was accepted without an SSRF
+bypass. With approved read-only network access, the fresh isolated run installed
+all dependencies, added one URL, completed the first scan and a second unchanged
+scan, verified two ledger entries, exported the ledger, removed the URL, and
+rejected the localhost-only input with exit 1 and corrective guidance. The
+restricted subagent attempt was blocked at dependency installation by DNS; its
+`--no-deps` workaround was invalid and did not test product behavior. No new P0
+or P1 was reproduced. Mechanical decision: READY. Human usability, trust,
+demand, retention, payment and provenance decision value remain Unverified.
+
+The final full suite was `647 passed in 53.20s`, with 95.71% coverage. The latest
+working tree is clean, 15 commits ahead of upstream, and no remote write occurred.
