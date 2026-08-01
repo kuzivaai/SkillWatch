@@ -560,6 +560,18 @@ class TestCLI:
         assert "No monitorable URLs were added" in captured.err
         assert "skillwatch scan" not in captured.out
 
+    def test_add_file_fails_when_parser_rejects_every_url(self, db_path, capsys, tmp_path):
+        """A source emptied by parser-level safety checks must fail actionably."""
+        source = tmp_path / "SKILL.md"
+        source.write_text("See http://127.0.0.1/\n")
+
+        code, _ = self._run("add", str(source), db_path=db_path)
+        captured = capsys.readouterr()
+
+        assert code == 1
+        assert "No monitorable URLs were added" in captured.err
+        assert "skillwatch scan" not in captured.out
+
     def test_sources_empty(self, db_path, capsys):
         code, _ = self._run("sources", db_path=db_path)
         assert code == 0
