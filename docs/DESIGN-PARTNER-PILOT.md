@@ -114,7 +114,9 @@ says the resulting decision was not worth that time.
 | Repeated use | scan dates | Whether use survives first setup |
 | Continued unprompted use | participant-initiated run after support pause | Adoption rather than compliance |
 | Change detection vs provenance | separate 5-point preference plus reason | Which value proposition survives |
+| Integration request | requested destination, urgency and workflow owner | Whether integration-first distribution is preferred |
 | Stated willingness to pay | range/context, labelled stated preference | Interview signal only, never purchase evidence |
+| Actual commercial follow-through | paid engagement, procurement step, signed commitment, or none | Behavioral commercial evidence; kept distinct from stated preference |
 
 ## Falsification and routing decisions
 
@@ -135,12 +137,15 @@ the pilot cannot support the standalone route, regardless of interview sentiment
 Prefer integration when discovery/provenance is useful but participants reject a
 separate CLI, want findings in an existing scanner/ticket workflow, or generic
 monitoring supplies the change event while SkillWatch-specific evidence remains
-useful.
+useful. At least two independent concrete integration requests naming a workflow
+owner and destination are required before building an adapter.
 
 ### Consulting or assurance asset
 
 Prefer this route when consultants repeatedly use exports/ledger evidence in
-client decisions but end users do not operate the tool independently.
+client decisions but end users do not operate the tool independently. Commercial
+viability additionally requires a paid engagement, procurement step or signed
+commitment; an interview statement does not qualify.
 
 ### Pause or stop
 

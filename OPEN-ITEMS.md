@@ -12,7 +12,7 @@ Dates are the date the item was first recorded, taken from git history or from
 the handover that raised it. Where an item predates its first written record the
 date is marked *(at latest)*.
 
-**Last reviewed:** 2026-08-01 (readiness-continuity verification: remote and PR state re-established; legacy handover authority made movable and fail-closed; item chronology checked against this review stamp)
+**Last reviewed:** 2026-08-01 (distribution evidence sprint: public and PR state reproduced; integration-first pilot selected; generic monitoring rejected; no demand inferred)
 
 ---
 
@@ -32,16 +32,11 @@ once in `docs/readiness-status.json` and rendered in `SHIP-READINESS.md`; do not
 copy their current values into this narrative. The individual ledger rows below
 remain the authoritative history and acceptance criteria for their own items.
 
-As of 2026-07-29 the published artefact is correct for the first time: 0.4.1 is
-live, `scripts/check_published_claims.py` exits 0 against it, and items 2 and 33
-are closed. **That removes the last reason to delay distribution.** Nothing on the
-engineering list now blocks item 11.
-
-As of 2026-07-29 item 11's **blockers** are cleared: the uniqueness claims that
-would have contaminated launch copy are purged (item 34), and the facts an asset
-needs are assembled in `docs/LAUNCH-FACTS.md`. What remains is writing the copy
-itself, which is first-person, posted under a real name, and deliberately not
-written by an agent. **That is a maintainer task, not an engineering one.**
+The published artefact is technically available, but availability is not demand
+or readiness. The 2026-08-01 distribution sprint rejects an immediate generic
+launch as the next evidence unit. The current CLI is pilot apparatus for testing
+an integration-first route; public launch remains an attention experiment after
+qualified design-partner evidence, not the binding next step.
 
 Read that before picking up anything else on this list. Most items below are
 engineering, and engineering is not the constraint.
@@ -80,6 +75,8 @@ engineering, and engineering is not the constraint.
 
 | # | Item | First raised | Closed | How |
 |---|---|---|---|---|
+| 76 | **The raw distribution-session log failed `git diff --check`, yet the first commit proceeded because its shell sequence used semicolons instead of fail-fast chaining.** Nine `gh pr checks` rows carried trailing tabs. | 2026-08-01 | 2026-08-01 | Preserved the failed output, mechanically stripped only trailing whitespace, reran `git diff --check`, and required subsequent commit gates to use `&&`. No evidence content or result changed. |
+| 75 | **The existing five-source commercial review was intentionally pilot-bounded and insufficient to choose a distribution route.** It did not systematically compare adjacent package managers, monitors, scanners and signature systems, sample competitor issues, or test commercial-route sensitivity. | 2026-08-01 | 2026-08-01 | Added reproducible academic/official evidence, a normalized competitor benchmark, systematic competitor-voice sampling, a route decision with sensitivity, a compounding-asset moat thesis and stronger pilot commercial-follow-through measures. Decision: test integration-first with portable provenance as a secondary use; reject generic standalone monitoring; pause if behavioral thresholds fail. This is a research decision, not demonstrated demand or authority to build an integration. |
 | 74 | **The legacy tracked handover still presented the superseded “only gate” conclusion as current after the readiness-truth class fix.** `docs/HANDOVER-2026-07-31.md` is a required onboarding surface and could silently substitute historical state for the structured current verdict. | 2026-08-01 | 2026-08-01 | Added a supersession notice before any legacy claim. `docs/current-handover.txt` is the single movable authority pointer; every other `docs/HANDOVER*.md` must open with the exact supersession marker and name the pointer target. The real legacy file failed before the notice. Adversarial review caught and closed two follow-on gaps: the first test froze the dated 31 July handover forever, and the ledger review date lagged this 1 August item. The gate now validates pointer syntax/existence, exact sibling opt-out, and ledger review-date chronology. |
 | 73 | **Current readiness status, historical narrative, generated measurements and summary verdicts could contradict one another while all checks remained green.** Reproduced in `SHIP-READINESS.md`: condition 2 was NOT DEMONSTRATED while the verdict said conditions 1–4 pass; it also carried stale corpus prose, a retracted claim and the old `hidden_content` description. The ledger kept closed rows under `## Open`. | 2026-07-31 | 2026-07-31 | Closed structurally. `docs/readiness-status.json` is the freshness-bounded current source; `scripts/readiness_consistency.py` validates unique condition IDs, controlled and cross-field status semantics, directional Wilson evidence, condition-specific evidence, the generated SHIP scoreboard and ledger sections. Current status copies outside the generated block were removed. Historical SHIP prose is archived and excluded from the verdict. The real fail-before was 5/5; required mutations failed and reverted; an initially passing direction mutation exposed and closed a duplicated-truth hole. Two independent restricted reviews found one HIGH and multiple MEDIUM/LOW gaps; every reproduced finding was fixed, including the synthetic page-rate overclaim, derived verdict clauses, evidence/freshness checks, pilot decision thresholds and heading fail-closed behavior. Final focused re-reviews found no HIGH or MEDIUM residue. |
 | 35 | The claims guard could not see the published artefact. `tests/test_published_claims.py` read four repository paths and its own docstring said it "does not fetch anything", so the PyPI long description — the most public surface this project has — was outside its scope. The guard reported green while the live page served two distortions the repository had already corrected. Same fail-open shape as the dependency auditor treating an unparseable specifier as satisfied. | 2026-07-29 | **CLOSED 2026-07-29 by this commit.** Rules extracted to `scripts/claim_rules.py` with one entry point over arbitrary text; three callers now run them against repository files, a built sdist's PKG-INFO, and the live page. Gate and report kept separate and documented in CLAUDE.md as to which is which and why they cannot be merged. | (closed) |
