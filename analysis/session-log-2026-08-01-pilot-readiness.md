@@ -4979,3 +4979,438 @@ Post-review targeted result: `57 passed in 6.33s`; readiness consistency and
 `git diff --check` exited 0. The prior complete escalated suite was 646 passing;
 the added boundary test changes final collection to 647 tests. Its focused file
 run was `40 passed in 3.91s` before the handover-pointer correction.
+
+=== FINAL BOUNDED VERIFICATION ===
+Sat Aug  1 12:07:08 UTC 2026
+/home/mkuziva/skillwatch
+## feat/archive-durability-and-strict-audit...origin/feat/archive-durability-and-strict-audit [ahead 14]
+ M analysis/session-log-2026-08-01-pilot-readiness.md
+error: cannot open '.git/FETCH_HEAD': Read-only file system
+fetch_exit=255
+start_head=e74b89a5de2e0ccd684886d211accf43361fd3a8
+origin_main=6c6ab215742b8d4913b9193a8df49e645f5cd060
+upstream=de2a998498293ad17f6b1990e19dc8868c614293
+0	14
+diff_check_exit=0
+M	analysis/corpus/realpage/CAPTURE-INTEGRITY.json
+M	analysis/run_delta_pass.py
+verification_python=.venv/bin/python
+........................................                                 [100%]
+40 passed in 4.93s
+cli_tests_exit=0
+........................................................................ [ 84%]
+.............                                                            [100%]
+85 passed in 1.25s
+focused_exit=0
+........................................................................ [ 11%]
+........................................................................ [ 22%]
+........................................................................ [ 33%]
+........................................................................ [ 44%]
+........................................................................ [ 55%]
+........................................................................ [ 66%]
+........................................................................ [ 77%]
+........................................................................ [ 89%]
+.......................................................................  [100%]
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.12.3-final-0 ________________
+
+Name                      Stmts   Miss  Cover   Missing
+-------------------------------------------------------
+skillwatch/__init__.py        1      0   100%
+skillwatch/anchoring.py     101     12    88%   58-59, 109-110, 144, 155-156, 189-190, 197-198, 200
+skillwatch/cli.py           494     30    94%   271-272, 307-308, 327, 335-336, 340, 366, 387, 391, 411, 428, 452, 562-564, 579-581, 585, 587, 724-727, 758-760, 787-788, 817
+skillwatch/cloak.py          49      0   100%
+skillwatch/detector.py      313      5    98%   266, 320, 732, 815-816
+skillwatch/differ.py          8      0   100%
+skillwatch/fetcher.py       117     12    90%   112, 155, 160-161, 168, 171, 185-187, 218-224
+skillwatch/formatter.py     131      2    98%   23, 220
+skillwatch/ledger.py         35      0   100%
+skillwatch/parser.py        103      5    95%   75, 95, 123, 142, 144
+skillwatch/sarif.py          17      0   100%
+skillwatch/ssrf.py           81      4    95%   112, 130, 148, 190
+skillwatch/store.py         180      0   100%
+-------------------------------------------------------
+TOTAL                      1630     70    96%
+Required test coverage of 90% reached. Total coverage: 95.71%
+647 passed in 37.04s
+full_suite_exit=0
+647 tests collected in 1.16s
+All checks passed!
+ruff_exit=0
+Success: no issues found in 26 source files
+mypy_exit=0
+Readiness status, generated scoreboard, harness metrics, and ledger sections agree.
+readiness_exit=0
+Audited 20 declared dependency floors.
+Declared Python support: 3.10, 3.11, 3.12, 3.13
+All declared floors are clear of known advisories.
+Every declared requirement has a lower bound.
+Every floor version exists and permits every supported Python.
+(Installability is proven by the lowest-direct CI matrix, not here.)
+floors_exit=0
+Checked README.md
+Checked sdist PKG-INFO (39235 chars) from skillwatch-0.4.1.tar.gz
+
+No claim violations.
+
+Harness currently produces 34 distinct proportions.
+Per-command parses are checked against per-command minimums. There is no global floor: the minimums sum without deduplication and the distinct count deduplicates, so the two are not comparable.
+  measure_base_rate.py      17 parsed, minimum 10
+  measure_efficacy.py       22 parsed, minimum 18
+
+  README.md                 15 label-checked,  11 name no metric
+  docs/llms.txt              1 label-checked,   0 name no metric
+  docs/LAUNCH-FACTS.md      10 label-checked,  10 name no metric
+  PATTERNS.md                0 label-checked,   0 name no metric
+  SHIP-READINESS.md          0 label-checked,   1 name no metric
+  CHANGELOG.md               0 label-checked,   0 name no metric
+
+correspondence coverage: 26 of 48 non-exempt proportions carry a recognisable metric label.
+the remaining 22 are NOT correspondence-checked — they are still checked for currency and arithmetic. See ledger item 42.
+
+No figure violations: every published proportion is one the harness currently produces, under a label consistent with the harness's own.
+release_claims_exit=0
+Live on PyPI: skillwatch 0.4.1 (38623 chars)
+
+No claim violations.
+
+No claim-marker drift between HEAD and the live page.
+
+CLAUDE.md's published-version claim matches the live index (0.4.1).
+published_claims_exit=0
+Harness currently produces 34 distinct proportions.
+Per-command parses are checked against per-command minimums. There is no global floor: the minimums sum without deduplication and the distinct count deduplicates, so the two are not comparable.
+  measure_base_rate.py      17 parsed, minimum 10
+  measure_efficacy.py       22 parsed, minimum 18
+
+  README.md                 15 label-checked,  11 name no metric
+  docs/llms.txt              1 label-checked,   0 name no metric
+  docs/LAUNCH-FACTS.md      10 label-checked,  10 name no metric
+  PATTERNS.md                0 label-checked,   0 name no metric
+  SHIP-READINESS.md          0 label-checked,   1 name no metric
+  CHANGELOG.md               0 label-checked,   0 name no metric
+
+correspondence coverage: 26 of 48 non-exempt proportions carry a recognisable metric label.
+the remaining 22 are NOT correspondence-checked — they are still checked for currency and arithmetic. See ledger item 42.
+
+No figure violations: every published proportion is one the harness currently produces, under a label consistent with the harness's own.
+figures_exit=0
+manifest      /home/mkuziva/skillwatch/analysis/corpus/realpage/CAPTURE-INTEGRITY.json
+expected      sha256 861027d158b67c517074e3a17348777e4405a644c13a33c7fbc85f25aa417dfe  (59968045 bytes)
+per-page      8 of 201 recorded hashes checked (deterministic sample)
+host          DESKTOP-71IU9IC (recorded holder)
+
+VERIFIED  /home/mkuziva/.skillwatch-archive/realpage-2026-07-29/fetched_pages.json
+          sha256 matches; 8 per-page hashes match.
+VERIFIED  /mnt/d/skillwatch-archive/realpage-2026-07-29/fetched_pages.json
+          sha256 matches; 8 per-page hashes match.
+VERIFIED  /mnt/c/Users/mkuzi/skillwatch-archive/realpage-2026-07-29/fetched_pages.json
+          sha256 matches; 8 per-page hashes match.
+
+3 verified, 0 missing, 0 corrupt, of 3 recorded copies.
+All recorded copies verified against the manifest.
+capture_exit=0
+* Creating isolated environment: venv+pip...
+* Installing packages in isolated environment:
+  - setuptools>=83.0.0
+  - wheel>=0.46.2
+* Getting build dependencies for sdist...
+running egg_info
+writing skillwatch.egg-info/PKG-INFO
+writing dependency_links to skillwatch.egg-info/dependency_links.txt
+writing entry points to skillwatch.egg-info/entry_points.txt
+writing requirements to skillwatch.egg-info/requires.txt
+writing top-level names to skillwatch.egg-info/top_level.txt
+reading manifest file 'skillwatch.egg-info/SOURCES.txt'
+reading manifest template 'MANIFEST.in'
+adding license file 'LICENSE'
+writing manifest file 'skillwatch.egg-info/SOURCES.txt'
+* Installed build dependency versions:
+  - setuptools==83.0.0
+  - wheel==0.47.0
+* Building sdist...
+running sdist
+running egg_info
+writing skillwatch.egg-info/PKG-INFO
+writing dependency_links to skillwatch.egg-info/dependency_links.txt
+writing entry points to skillwatch.egg-info/entry_points.txt
+writing requirements to skillwatch.egg-info/requires.txt
+writing top-level names to skillwatch.egg-info/top_level.txt
+reading manifest file 'skillwatch.egg-info/SOURCES.txt'
+reading manifest template 'MANIFEST.in'
+adding license file 'LICENSE'
+writing manifest file 'skillwatch.egg-info/SOURCES.txt'
+running check
+creating skillwatch-0.4.1
+creating skillwatch-0.4.1/skillwatch
+creating skillwatch-0.4.1/skillwatch.egg-info
+creating skillwatch-0.4.1/skillwatch/data
+creating skillwatch-0.4.1/tests
+creating skillwatch-0.4.1/tests/fixtures
+copying files to skillwatch-0.4.1...
+copying CHANGELOG.md -> skillwatch-0.4.1
+copying LICENSE -> skillwatch-0.4.1
+copying MANIFEST.in -> skillwatch-0.4.1
+copying README.md -> skillwatch-0.4.1
+copying pyproject.toml -> skillwatch-0.4.1
+copying skillwatch/__init__.py -> skillwatch-0.4.1/skillwatch
+copying skillwatch/anchoring.py -> skillwatch-0.4.1/skillwatch
+copying skillwatch/cli.py -> skillwatch-0.4.1/skillwatch
+copying skillwatch/cloak.py -> skillwatch-0.4.1/skillwatch
+copying skillwatch/detector.py -> skillwatch-0.4.1/skillwatch
+copying skillwatch/differ.py -> skillwatch-0.4.1/skillwatch
+copying skillwatch/fetcher.py -> skillwatch-0.4.1/skillwatch
+copying skillwatch/formatter.py -> skillwatch-0.4.1/skillwatch
+copying skillwatch/ledger.py -> skillwatch-0.4.1/skillwatch
+copying skillwatch/parser.py -> skillwatch-0.4.1/skillwatch
+copying skillwatch/sarif.py -> skillwatch-0.4.1/skillwatch
+copying skillwatch/ssrf.py -> skillwatch-0.4.1/skillwatch
+copying skillwatch/store.py -> skillwatch-0.4.1/skillwatch
+copying skillwatch.egg-info/PKG-INFO -> skillwatch-0.4.1/skillwatch.egg-info
+copying skillwatch.egg-info/SOURCES.txt -> skillwatch-0.4.1/skillwatch.egg-info
+copying skillwatch.egg-info/dependency_links.txt -> skillwatch-0.4.1/skillwatch.egg-info
+copying skillwatch.egg-info/entry_points.txt -> skillwatch-0.4.1/skillwatch.egg-info
+copying skillwatch.egg-info/requires.txt -> skillwatch-0.4.1/skillwatch.egg-info
+copying skillwatch.egg-info/top_level.txt -> skillwatch-0.4.1/skillwatch.egg-info
+copying skillwatch/data/freetsa_cacert.pem -> skillwatch-0.4.1/skillwatch/data
+copying tests/__init__.py -> skillwatch-0.4.1/tests
+copying tests/conftest.py -> skillwatch-0.4.1/tests
+copying tests/test_anchoring.py -> skillwatch-0.4.1/tests
+copying tests/test_ci_scope.py -> skillwatch-0.4.1/tests
+copying tests/test_claim_rules.py -> skillwatch-0.4.1/tests
+copying tests/test_claude_md_currency.py -> skillwatch-0.4.1/tests
+copying tests/test_cli.py -> skillwatch-0.4.1/tests
+copying tests/test_cloak.py -> skillwatch-0.4.1/tests
+copying tests/test_concealment_unevaluable.py -> skillwatch-0.4.1/tests
+copying tests/test_continuity.py -> skillwatch-0.4.1/tests
+copying tests/test_delta_pass.py -> skillwatch-0.4.1/tests
+copying tests/test_delta_rehearsal.py -> skillwatch-0.4.1/tests
+copying tests/test_dependency_floors.py -> skillwatch-0.4.1/tests
+copying tests/test_detector.py -> skillwatch-0.4.1/tests
+copying tests/test_differ.py -> skillwatch-0.4.1/tests
+copying tests/test_e2e.py -> skillwatch-0.4.1/tests
+copying tests/test_efficacy_harness.py -> skillwatch-0.4.1/tests
+copying tests/test_fetcher.py -> skillwatch-0.4.1/tests
+copying tests/test_figure_rules.py -> skillwatch-0.4.1/tests
+copying tests/test_formatter.py -> skillwatch-0.4.1/tests
+copying tests/test_fp_adaptation.py -> skillwatch-0.4.1/tests
+copying tests/test_gate_table.py -> skillwatch-0.4.1/tests
+copying tests/test_hidden_content.py -> skillwatch-0.4.1/tests
+copying tests/test_hiding_taxonomy.py -> skillwatch-0.4.1/tests
+copying tests/test_ledger.py -> skillwatch-0.4.1/tests
+copying tests/test_parser.py -> skillwatch-0.4.1/tests
+copying tests/test_published_claims.py -> skillwatch-0.4.1/tests
+copying tests/test_readiness_consistency.py -> skillwatch-0.4.1/tests
+copying tests/test_sarif.py -> skillwatch-0.4.1/tests
+copying tests/test_ssrf.py -> skillwatch-0.4.1/tests
+copying tests/test_store.py -> skillwatch-0.4.1/tests
+copying tests/test_threading.py -> skillwatch-0.4.1/tests
+copying tests/test_verify_capture.py -> skillwatch-0.4.1/tests
+copying tests/fixtures/sample_skill.md -> skillwatch-0.4.1/tests/fixtures
+copying skillwatch.egg-info/SOURCES.txt -> skillwatch-0.4.1/skillwatch.egg-info
+Writing skillwatch-0.4.1/setup.cfg
+Creating tar archive
+removing 'skillwatch-0.4.1' (and everything under it)
+* Building wheel from sdist
+* Creating isolated environment: venv+pip...
+* Installing packages in isolated environment:
+  - setuptools>=83.0.0
+  - wheel>=0.46.2
+* Getting build dependencies for wheel...
+running egg_info
+writing skillwatch.egg-info/PKG-INFO
+writing dependency_links to skillwatch.egg-info/dependency_links.txt
+writing entry points to skillwatch.egg-info/entry_points.txt
+writing requirements to skillwatch.egg-info/requires.txt
+writing top-level names to skillwatch.egg-info/top_level.txt
+reading manifest file 'skillwatch.egg-info/SOURCES.txt'
+reading manifest template 'MANIFEST.in'
+adding license file 'LICENSE'
+writing manifest file 'skillwatch.egg-info/SOURCES.txt'
+* Installed build dependency versions:
+  - setuptools==83.0.0
+  - wheel==0.47.0
+* Building wheel...
+running bdist_wheel
+running build
+running build_py
+creating build/lib/skillwatch
+copying skillwatch/ledger.py -> build/lib/skillwatch
+copying skillwatch/ssrf.py -> build/lib/skillwatch
+copying skillwatch/store.py -> build/lib/skillwatch
+copying skillwatch/fetcher.py -> build/lib/skillwatch
+copying skillwatch/__init__.py -> build/lib/skillwatch
+copying skillwatch/cloak.py -> build/lib/skillwatch
+copying skillwatch/differ.py -> build/lib/skillwatch
+copying skillwatch/detector.py -> build/lib/skillwatch
+copying skillwatch/parser.py -> build/lib/skillwatch
+copying skillwatch/anchoring.py -> build/lib/skillwatch
+copying skillwatch/formatter.py -> build/lib/skillwatch
+copying skillwatch/sarif.py -> build/lib/skillwatch
+copying skillwatch/cli.py -> build/lib/skillwatch
+running egg_info
+writing skillwatch.egg-info/PKG-INFO
+writing dependency_links to skillwatch.egg-info/dependency_links.txt
+writing entry points to skillwatch.egg-info/entry_points.txt
+writing requirements to skillwatch.egg-info/requires.txt
+writing top-level names to skillwatch.egg-info/top_level.txt
+reading manifest file 'skillwatch.egg-info/SOURCES.txt'
+reading manifest template 'MANIFEST.in'
+adding license file 'LICENSE'
+writing manifest file 'skillwatch.egg-info/SOURCES.txt'
+creating build/lib/skillwatch/data
+copying skillwatch/data/freetsa_cacert.pem -> build/lib/skillwatch/data
+warning: build_py: byte-compiling is disabled, skipping.
+
+installing to build/bdist.linux-x86_64/wheel
+running install
+running install_lib
+creating build/bdist.linux-x86_64/wheel
+creating build/bdist.linux-x86_64/wheel/skillwatch
+copying build/lib/skillwatch/ledger.py -> build/bdist.linux-x86_64/wheel/./skillwatch
+copying build/lib/skillwatch/ssrf.py -> build/bdist.linux-x86_64/wheel/./skillwatch
+copying build/lib/skillwatch/store.py -> build/bdist.linux-x86_64/wheel/./skillwatch
+copying build/lib/skillwatch/fetcher.py -> build/bdist.linux-x86_64/wheel/./skillwatch
+copying build/lib/skillwatch/__init__.py -> build/bdist.linux-x86_64/wheel/./skillwatch
+copying build/lib/skillwatch/cloak.py -> build/bdist.linux-x86_64/wheel/./skillwatch
+copying build/lib/skillwatch/differ.py -> build/bdist.linux-x86_64/wheel/./skillwatch
+copying build/lib/skillwatch/detector.py -> build/bdist.linux-x86_64/wheel/./skillwatch
+copying build/lib/skillwatch/parser.py -> build/bdist.linux-x86_64/wheel/./skillwatch
+copying build/lib/skillwatch/anchoring.py -> build/bdist.linux-x86_64/wheel/./skillwatch
+copying build/lib/skillwatch/formatter.py -> build/bdist.linux-x86_64/wheel/./skillwatch
+copying build/lib/skillwatch/sarif.py -> build/bdist.linux-x86_64/wheel/./skillwatch
+copying build/lib/skillwatch/cli.py -> build/bdist.linux-x86_64/wheel/./skillwatch
+creating build/bdist.linux-x86_64/wheel/skillwatch/data
+copying build/lib/skillwatch/data/freetsa_cacert.pem -> build/bdist.linux-x86_64/wheel/./skillwatch/data
+warning: install_lib: byte-compiling is disabled, skipping.
+
+running install_egg_info
+Copying skillwatch.egg-info to build/bdist.linux-x86_64/wheel/./skillwatch-0.4.1-py3.12.egg-info
+running install_scripts
+creating build/bdist.linux-x86_64/wheel/skillwatch-0.4.1.dist-info/WHEEL
+creating '/home/mkuziva/skillwatch/dist/.tmp-8oql_g7l/skillwatch-0.4.1-py3-none-any.whl' and adding 'build/bdist.linux-x86_64/wheel' to it
+adding 'skillwatch/__init__.py'
+adding 'skillwatch/anchoring.py'
+adding 'skillwatch/cli.py'
+adding 'skillwatch/cloak.py'
+adding 'skillwatch/detector.py'
+adding 'skillwatch/differ.py'
+adding 'skillwatch/fetcher.py'
+adding 'skillwatch/formatter.py'
+adding 'skillwatch/ledger.py'
+adding 'skillwatch/parser.py'
+adding 'skillwatch/sarif.py'
+adding 'skillwatch/ssrf.py'
+adding 'skillwatch/store.py'
+adding 'skillwatch/data/freetsa_cacert.pem'
+adding 'skillwatch-0.4.1.dist-info/licenses/LICENSE'
+adding 'skillwatch-0.4.1.dist-info/METADATA'
+adding 'skillwatch-0.4.1.dist-info/WHEEL'
+adding 'skillwatch-0.4.1.dist-info/entry_points.txt'
+adding 'skillwatch-0.4.1.dist-info/top_level.txt'
+adding 'skillwatch-0.4.1.dist-info/RECORD'
+removing build/bdist.linux-x86_64/wheel
+Successfully built skillwatch-0.4.1.tar.gz and skillwatch-0.4.1-py3-none-any.whl
+build_exit=0
+dist/skillwatch-0.4.1-py3-none-any.whl
+
+=== POST-FIX VALID-REFERENCE CLEAN-ROOM TRANSCRIPT ===
+2719b78bea0f68ce1a49f431fad078f2257ca2ed1af6d0d311fceb2a3322e231  dist/skillwatch-0.4.1-py3-none-any.whl
+candidate_head=e74b89a5de2e0ccd684886d211accf43361fd3a8
+root=/tmp/tmp.2gc853byKN
+skillwatch 0.4.1
+
+  SkillWatch — 0 URLs monitored
+
+  No URLs being monitored. Use 'skillwatch add <file>' to start.
+
+
+  SkillWatch status
+
+  URLs monitored:   0
+  Last scan:        never
+  Pending alerts:   0
+  Database:         /tmp/tmp.2gc853byKN/home/skillwatch.db
+
+  Get started: skillwatch add <SKILL.md>  then  skillwatch scan
+
+  No open alerts.
+
+  OK  Ledger verified: 2 entries, chain intact.
+  Every recorded observation is unaltered and in original order.
+  Current head: bbf36d5263d7d77ed8a95dca918d266bb11b2ed37e5d2031559e3a008ee0fbb0
+  Anchor it so a rewrite is detectable: run 'skillwatch anchor', or publish this
+  head somewhere you do not control and re-check with 'skillwatch verify --against <head>'.
+
+
+  +  Exported 2 ledger entries to /tmp/tmp.2gc853byKN/ledger.json
+  Anyone can re-verify it: skillwatch.ledger.verify_chain(payload['entries']).
+
+/tmp/tmp.2gc853byKN/home/skillwatch.db
+/tmp/tmp.2gc853byKN/ledger.json
+/tmp/tmp.2gc853byKN/home/skillwatch.db
+
+=== POST-FIX CLEAN-ROOM REPLAY FROM FRESH STATE ===
+  +  https://raw.githubusercontent.com/kuzivaai/SkillWatch/main/README.md
+
+  Added 1 URL(s) from /tmp/tmp.2gc853byKN/assets/SKILL.md
+  Run 'skillwatch scan' to perform the initial check.
+add_exit=0
+
+  SkillWatch — 1 URLs monitored
+
+  Status  URL                                                           Last Checked          Alerts
+  ----------------------------------------------------------------------------------------------------
+  --      https://raw.githubusercontent.com/kuzivaai/SkillWatch/main..  never                 0
+
+
+  Scanning 1 URLs...
+
+  [1/1] OK   https://raw.githubusercontent.com/kuzivaai/SkillWatch/main/README.md
+
+  Scanned 1 URLs: |   1 unchanged
+first_scan_exit=0
+
+  Scanning 1 URLs...
+
+  [1/1] OK   https://raw.githubusercontent.com/kuzivaai/SkillWatch/main/README.md
+
+  Scanned 1 URLs: |   1 unchanged
+second_scan_exit=0
+  No open alerts.
+
+  OK  Ledger verified: 2 entries, chain intact.
+  Every recorded observation is unaltered and in original order.
+  Current head: 7def5bd7b7071f11d3ca0b0a1dbf5822138bce4874e619061ef34df242843f59
+  Anchor it so a rewrite is detectable: run 'skillwatch anchor', or publish this
+  head somewhere you do not control and re-check with 'skillwatch verify --against <head>'.
+
+verify_exit=0
+
+  +  Exported 2 ledger entries to /tmp/tmp.2gc853byKN/ledger.json
+  Anyone can re-verify it: skillwatch.ledger.verify_chain(payload['entries']).
+
+export_exit=0
+  -  Removed https://raw.githubusercontent.com/kuzivaai/SkillWatch/main/README.md
+remove_exit=0
+  No monitorable URLs were added; correct or remove the blocked references and retry.
+  X  http://localhost:8080/admin (blocked: private/reserved)
+
+  Added 0 URL(s) from /tmp/tmp.2gc853byKN/assets/INVALID.md
+invalid_add_exit=1
+
+=== FINAL DECISION ===
+The fresh candidate wheel was built from HEAD e74b89a5de2e0ccd684886d211accf43361fd3a8 with SHA-256 2719b78bea0f68ce1a49f431fad078f2257ca2ed1af6d0d311fceb2a3322e231. The project-owned public README URL resolved with HTTP 200 and was accepted without bypassing SSRF validation. The approved-network clean-room replay completed installation, accepted one reference, created a fetched baseline, completed a second unchanged scan, produced two ledger entries, verified the chain, exported JSON, removed the URL, and rejected the localhost-only input with exit 1 and corrective guidance. The restricted subagent attempt was blocked before installation by dependency DNS; its no-dependencies workaround was invalid for this product workflow. No new P0 or P1 was reproduced. Mechanical decision: READY. Human self-service, trust, demand, retention, payment and provenance decision value remain Unverified.
+/tmp/tmp.2gc853byKN/home/skillwatch.db 139264 bytes
+/tmp/tmp.2gc853byKN/ledger.json 846 bytes
+/tmp/tmp.2gc853byKN/home/skillwatch.db 139264 bytes
+  URL not found: https://raw.githubusercontent.com/kuzivaai/SkillWatch/main/README.md
+remove_exit=0
+  No monitorable URLs were added; correct or remove the blocked references and retry.
+  X  http://localhost:8080/admin (blocked: private/reserved)
+
+  Added 0 URL(s) from /tmp/tmp.2gc853byKN/assets/INVALID.md
+invalid_add_exit=1
+/tmp/tmp.2gc853byKN/home/skillwatch.db 139264 bytes
+/tmp/tmp.2gc853byKN/ledger.json 846 bytes
+/tmp/tmp.2gc853byKN/home/skillwatch.db 139264 bytes
