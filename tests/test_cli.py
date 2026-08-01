@@ -20,6 +20,12 @@ def db_path(tmp_path):
 
 
 class TestCLI:
+    @pytest.fixture(autouse=True)
+    def _deterministic_add_validation(self):
+        """CLI tests exercise SSRF policy without depending on live DNS."""
+        with patch("skillwatch.ssrf.validate_url", side_effect=mock_validate_url):
+            yield
+
     def _run(self, *args, db_path=None):
         """Run CLI with a temp database."""
         if db_path is None:
@@ -524,13 +530,35 @@ class TestCLI:
             f.write(content)
             f.flush()
 
-            code, _ = self._run("add", f.name, db_path=db_path)
+            from skillwatch.ssrf import SSRFError
+
+            def validate_for_add(url):
+                if "localhost" in url:
+                    raise SSRFError("private/reserved")
+
+            with patch("skillwatch.ssrf.validate_url", side_effect=validate_for_add):
+                code, _ = self._run("add", f.name, db_path=db_path)
             assert code == 0
             captured = capsys.readouterr()
             assert "blocked" in captured.out.lower()
             assert "example.com/setup" in captured.out
 
         Path(f.name).unlink()
+
+    def test_add_file_fails_when_every_url_is_blocked(self, db_path, capsys, tmp_path):
+        """An all-rejected source must not claim that a baseline can be scanned."""
+        from skillwatch.ssrf import SSRFError
+
+        source = tmp_path / "SKILL.md"
+        source.write_text("See http://localhost:8080/admin\n")
+
+        with patch("skillwatch.ssrf.validate_url", side_effect=SSRFError("private/reserved")):
+            code, _ = self._run("add", str(source), db_path=db_path)
+        captured = capsys.readouterr()
+
+        assert code == 1
+        assert "No monitorable URLs were added" in captured.err
+        assert "skillwatch scan" not in captured.out
 
     def test_sources_empty(self, db_path, capsys):
         code, _ = self._run("sources", db_path=db_path)

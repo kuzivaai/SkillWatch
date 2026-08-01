@@ -339,6 +339,12 @@ def _cmd_add(store: Store, args: argparse.Namespace) -> int:
     if skipped:
         parts.append(f"{skipped} already monitored")
     print(f"\n  {', '.join(parts)}")
+    if added == 0 and skipped == 0:
+        print(
+            red("  No monitorable URLs were added; correct or remove the blocked references and retry."),
+            file=sys.stderr,
+        )
+        return 1
     print(dim("  Run 'skillwatch scan' to perform the initial check."))
     return 0
 
