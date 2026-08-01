@@ -1,6 +1,7 @@
 # SkillWatch readiness-consistency handover — 2026-07-31
 
-> **AUTHORITATIVE HANDOVER:** `docs/current-handover.txt` designates this file.
+> **SUPERSEDED:** `HANDOVER-PILOT-READINESS-2026-08-01.md` is designated by
+> `docs/current-handover.txt` as the current handover.
 > Current readiness values remain derived from `docs/readiness-status.json`, not
 > from narrative prose in this handover.
 

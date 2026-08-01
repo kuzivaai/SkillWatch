@@ -4953,3 +4953,29 @@ adding 'skillwatch-0.4.1.dist-info/RECORD'
 removing build/bdist.linux-x86_64/wheel
 Successfully built skillwatch-0.4.1.tar.gz and skillwatch-0.4.1-py3-none-any.whl
 build_escalated_exit=0
+
+=== FINAL SCOPE AND REPOSITORY REVIEW ===
+diff_check_exit=0
+## feat/archive-durability-and-strict-audit...origin/feat/archive-durability-and-strict-audit [ahead 13]
+ M analysis/session-log-2026-08-01-pilot-readiness.md
+c0bbe8e (HEAD -> feat/archive-durability-and-strict-audit) Make pilot baseline failures actionable
+44fa051 Record pilot-readiness baseline
+## Independent pilot-readiness review
+
+Reviewer A reported three MEDIUM findings: “genuine change” was undefined,
+participant independence was undefined, and consent/privacy handling was not
+executable enough. It reported LOW gaps in unprompted-use timing and stateful
+failure recovery. All were reproduced from the cited protocol/runbook text and
+corrected in the canonical protocol or participant operations files.
+
+Reviewer B reported one MEDIUM: the class-wide CLI DNS test double removed
+production SSRF-validator coverage at the CLI boundary. Reproduced: all tests in
+`TestCLI` inherited the patch. A separate module-level boundary test now invokes
+the production validator with only `socket.getaddrinfo` controlled and proves a
+private resolution is rejected. No reviewer found detector/measurement changes,
+suppressions, skips, pins, exclusions, integrations or remote writes.
+
+Post-review targeted result: `57 passed in 6.33s`; readiness consistency and
+`git diff --check` exited 0. The prior complete escalated suite was 646 passing;
+the added boundary test changes final collection to 647 tests. Its focused file
+run was `40 passed in 3.91s` before the handover-pointer correction.

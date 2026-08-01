@@ -7,7 +7,8 @@ do not restate or change its thresholds here.
 - [ ] User and potential economic buyer recorded separately.
 - [ ] Exact artefact filename, version and SHA-256 recorded.
 - [ ] Participant has Python 3.10–3.13 and a permitted public URL from their real workflow.
-- [ ] Consent, redaction, export, retention and deletion choices agreed.
+- [ ] CSV fields, permitted worksheet readers, consent/withdrawal, redaction,
+      export, retention deadline and deletion choices agreed and recorded.
 - [ ] Installation and intervention timers started/stopped; every intervention recorded.
 - [ ] Initial baseline and scheduled repeated runs recorded.
 - [ ] Support paused before the protocol's unprompted run.
