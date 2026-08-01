@@ -1,5 +1,25 @@
 # SkillWatch design-partner pilot
 
+Participant execution uses the
+[`pilot/PARTICIPANT-RUNBOOK.md`](pilot/PARTICIPANT-RUNBOOK.md), maintainer
+[`pilot/MAINTAINER-CHECKLIST.md`](pilot/MAINTAINER-CHECKLIST.md), and
+[`pilot/OBSERVATION-TEMPLATE.csv`](pilot/OBSERVATION-TEMPLATE.csv). This file
+remains the sole authority for pilot thresholds and route decisions.
+
+## Pilot-executability audit (2026-08-01)
+
+| Requirement | Current authoritative artefact | Direct evidence | Gap | Consequence | Smallest action |
+|---|---|---|---|---|---|
+| Qualification, user/buyer and routing | This protocol | Repository review | None in protocol | — | Checklist links here |
+| Supported install and Python | Package metadata plus participant runbook | Candidate and PyPI 0.4.1 installed in clean Python 3.12 environments | Human OS range untested | Environment-specific failure remains possible | Record OS/Python per attempt |
+| Discovery and first baseline | CLI plus participant runbook | Maintainer clean-room succeeded with a public URL; restricted operator's `example.com` resolved reserved and failed | No deterministic public demo URL | A rehearsal may end before baseline | Require a participant-owned public workflow URL; record failure, never bypass SSRF |
+| Repeated scan and evidence review | CLI plus participant runbook | Maintainer clean-room completed unchanged repeat, verify and ledger export | No genuine change or alert in rehearsal | Alert interpretation remains unverified by participants | Observe genuine pilot events |
+| Failure recovery and removal | Participant runbook | Missing-file and blocked-reference paths exercised; URL removal exercised | Removing an absent URL remains non-failing friction | Automation may miss a no-op removal | Record as non-blocking friction |
+| Data handling, measurements and exit | This protocol plus checklist/template | Artefacts inspected for manual collection only | No participant execution yet | Privacy and burden are unverified in practice | Obtain consent and record actual interventions |
+
+The clean-room work is an agent rehearsal, not user, demand, trust, retention or
+payment evidence.
+
 Purpose: determine whether periodic change monitoring and provenance create
 enough operational value to justify continued investment. This is evidence
 gathering, not launch copy, a pricing plan or proof of demand.
