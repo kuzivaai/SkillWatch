@@ -92,9 +92,10 @@ with `git ls-files 'scripts/*.py'` rather than counting by hand; which of them a
 gates is recorded in the gate table below, and `tests/test_gate_table.py` fails if
 a new one is added without being classified.
 
-Seven tracked modules under `analysis/`: `build_realpage_corpus.py`,
-`make_baseline.py`, `measure_base_rate.py`, `measure_efficacy.py`,
-`report_delta_pass.py`, `run_delta_pass.py`, `verify_capture.py`. The efficacy harness is
+Eight tracked modules under `analysis/`: `build_realpage_corpus.py`,
+`capture_day0.py`, `make_baseline.py`, `measure_base_rate.py`,
+`measure_efficacy.py`, `report_delta_pass.py`, `run_delta_pass.py`,
+`verify_capture.py`. The efficacy harness is
 `analysis/measure_efficacy.py`; the rest of `analysis/` except `corpus/` and these
 tracked modules is gitignored.
 
@@ -509,6 +510,10 @@ floor auditor: opting out is a written declaration with a reason.
   scheduled for 2026-08-05 or later"*), but a scheduling guard is not a gate on the
   repository's correctness. **It ran on 2026-08-05**; the result is
   `analysis/corpus/realpage/DELTA-PASS.json`.
+- `analysis/capture_day0.py`: takes the day-0 snapshot the K3 measurement is read
+  against, and verifies its copies. It fetches, stores and hashes; it computes no
+  delta and issues no verdict over the repository. Its defaults are deliberately
+  gentler than the delta pass, for the reason in its docstring.
 - `analysis/report_delta_pass.py`: the offline reporter over that artefact, and a
   harness command in `figure_rules.py`. Its stdout is part of the reference set the
   figure gate checks against, which makes it the subject of a gate rather than one,

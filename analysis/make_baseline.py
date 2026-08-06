@@ -82,12 +82,29 @@ def short_hash(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()[:16]
 
 
-def build(source: str) -> int:
+def build(source: str, out: Path | None = None, captured: str = "2026-07-29",
+          fresh_capture: bool = False) -> int:
+    """Build a baseline from stored HTML.
+
+    `out` and `captured` are parameters rather than constants because there is now
+    more than one baseline. The 2026-07-29 one is committed evidence and must not be
+    overwritten by a later capture: this function wrote to a hardcoded path until
+    2026-08-06, so building a day-0 baseline would have destroyed it silently.
+
+    `fresh_capture` changes what a content-hash mismatch MEANS, and nothing else.
+    Reconstructing the 2026-07-29 baseline, a mismatch proves the stored text is not
+    what the tool ingested, and it is fatal. Building from a capture taken later, the
+    pages have legitimately drifted since `MANIFEST.json` was written, so a mismatch
+    is the expected result and treating it as failure would make a fresh baseline
+    impossible to build. The count is still computed and still recorded either way;
+    only its verdict differs, and the artefact says which mode produced it.
+    """
     delta = _load_sibling("run_delta_pass")
     pages = delta._load_rehearsal_pages(source)
     if not pages:
         print("FAIL: no pages loaded; nothing to build.", file=sys.stderr)
         return 2
+    target = Path(out) if out else BASELINE
 
     if not MANIFEST.exists():
         print(f"FAIL: {MANIFEST} is missing; cannot verify the reconstruction.",
@@ -137,14 +154,19 @@ def build(source: str) -> int:
         print(f"  MISMATCH {url}")
     for url in unknown[:5]:
         print(f"  NOT IN MANIFEST {url}")
-    if mismatched:
+    if mismatched and not fresh_capture:
         print("FAIL: reconstruction does not match the recorded content hashes, so "
               "the stored text is not what the tool ingested.", file=sys.stderr)
         return 1
+    if mismatched and fresh_capture:
+        print(f"EXPECTED: {len(mismatched)} pages differ from MANIFEST.json's "
+              f"2026-07-29 content hashes. This is a capture taken later, so drift "
+              f"is the subject of the measurement, not a defect in the build.")
 
-    out = {
+    out_doc = {
         "baseline": "realpage_v1 snapshot_1",
-        "captured": "2026-07-29",
+        "captured": captured,
+        "build_mode": "fresh_capture" if fresh_capture else "reconstruction",
         "purpose": (
             "Everything a future delta pass needs to run the detector against a "
             "fresh fetch, without storing 56.2 MB of raw HTML. `text` is the full "
@@ -168,6 +190,14 @@ def build(source: str) -> int:
             "content_hash_verified": verified,
             "content_hash_mismatched": len(mismatched),
             "not_in_manifest": len(unknown),
+            "mismatch_verdict": (
+                "EXPECTED. This baseline was built from a capture taken after "
+                "MANIFEST.json was written, so a page that differs has drifted, "
+                "which is the subject of the measurement rather than a build defect."
+                if fresh_capture else
+                "FATAL if non-zero. A mismatch would mean the stored text is not "
+                "what the tool ingested on 2026-07-29."
+            ),
         },
         "sets": {
             "text": "full extracted text -> every text check, natively",
@@ -180,19 +210,31 @@ def build(source: str) -> int:
         "items": items,
     }
     CORPUS.mkdir(parents=True, exist_ok=True)
-    with BASELINE.open("w") as handle:
-        json.dump(out, handle, indent=1, sort_keys=True)
+    with target.open("w") as handle:
+        json.dump(out_doc, handle, indent=1, sort_keys=True)
         handle.write("\n")
-    print(f"wrote {BASELINE} ({BASELINE.stat().st_size / 1e6:.2f} MB)")
+    print(f"wrote {target} ({target.stat().st_size / 1e6:.2f} MB)")
     return 0
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", default="capture",
-                        help="HTML source: 'capture' (2026-07-29 bytes) or 'corpus'")
+                        help="HTML source: 'capture' (2026-07-29 bytes), 'corpus', "
+                             "or a path to a fetched_pages.json")
+    parser.add_argument("--out", default=None,
+                        help="where to write the baseline. Defaults to "
+                             "DELTA-BASELINE.json, which is committed evidence: name a "
+                             "different path when building from a later capture")
+    parser.add_argument("--captured", default="2026-07-29",
+                        help="the capture date this baseline describes")
+    parser.add_argument("--fresh-capture", action="store_true",
+                        help="the source was captured after MANIFEST.json was written, "
+                             "so content-hash mismatches are expected drift rather than "
+                             "a failed reconstruction")
     args = parser.parse_args()
-    return build(args.source)
+    return build(args.source, out=args.out, captured=args.captured,
+                 fresh_capture=args.fresh_capture)
 
 
 if __name__ == "__main__":
