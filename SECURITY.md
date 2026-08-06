@@ -36,6 +36,16 @@ by `scripts/check_published_claims.py`.
 
 Last updated: 2026-07-02. Commit: 9f79b1e (code fixes applied same date).
 
+> **This register is a DATED SNAPSHOT, not a current statement.** Everything below
+> describes the repository as it stood on 2026-07-02 and is preserved as evidence of
+> what was found and fixed then. Do not read any version number in it as current. The
+> dependency table in particular lists `cryptography 44.0.3`, which was the resolved
+> transitive version on that date; the declared floor is now higher, and
+> `pyproject.toml` plus `scripts/audit_dependency_floors.py` are authoritative for it.
+> Whether this register should be refreshed or left as a dated record is an open
+> maintainer decision, carried in ledger item 84. It is labelled rather than silently
+> updated because rewriting a dated evidence record in place destroys the evidence.
+
 ### SEC-001: User-Supplied Regex ReDoS (FIXED)
 
 **Severity:** Medium (requires intentional crafted input via --ignore-pattern CLI flag)
