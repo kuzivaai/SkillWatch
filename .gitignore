@@ -58,6 +58,10 @@ analysis/*
 # on a harness command it cannot run. Same reasoning as verify_capture.py above:
 # a gate input that lives on one machine is not a gate input.
 !analysis/report_delta_pass.py
+# The day-0 capture tool, tracked 2026-08-06. It generates the integrity manifest
+# that the K3 measurement reads, and this repository has logged an untracked
+# generator behind committed evidence three times (items 24, 30, 34).
+!analysis/capture_day0.py
 # Dated session evidence logs are permanent handover inputs. Re-include them so
 # a session cutoff cannot leave the only evidence in an ignored local file.
 !analysis/session-log-*.md
