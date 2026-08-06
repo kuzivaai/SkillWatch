@@ -121,7 +121,12 @@ def integrity_manifest(pages: list[dict[str, Any]], archive_path: Path,
     """The same shape verify_capture reads for the 2026-07-29 archive."""
     return {
         "archive": f"realpage-{datetime.date.today().isoformat()} raw HTML capture",
-        "archive_file": archive_path.name,
+        # archive_file is an OBJECT, matching CAPTURE-INTEGRITY.json. It was a bare
+        # filename until 2026-08-06, which made this manifest unreadable to
+        # verify_capture.assert_capture_trustworthy: the day-0 source was then
+        # announced UNVERIFIED even though its copies had been hashed. Conforming to
+        # the established schema is the fix; special-casing the reader is not.
+        "archive_file": {"name": archive_path.name, "sha256": file_hash, "bytes": size},
         "file_count": 1,
         "location": str(archive_path),
         "not_committed": "third-party HTML, deliberately outside the repository.",
@@ -134,7 +139,12 @@ def integrity_manifest(pages: list[dict[str, Any]], archive_path: Path,
         "sha256": file_hash,
         "bytes": size,
         "per_page": {
-            page["url"]: page["raw_html_hash"] for page in pages if page["raw_html_hash"]
+            page["url"]: {
+                "bytes": len(page["raw_html"] or ""),
+                "content_hash": page["content_hash"],
+                "raw_html_sha256": page["raw_html_hash"],
+            }
+            for page in pages if page["raw_html_hash"]
         },
         "copies": [{"path": path, "role": "primary" if i == 0 else "copy"}
                    for i, path in enumerate(copies)],
@@ -185,6 +195,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check-urls", action="store_true",
                         help="print the URL set difference against the manifest and exit")
+    parser.add_argument("--remanifest", default=None,
+                        help="rebuild the integrity manifest from an existing capture "
+                             "file, fetching nothing")
     parser.add_argument("--verify", action="store_true",
                         help="verify recorded copies against the integrity manifest")
     parser.add_argument("--out-manifest", default=str(CORPUS / "CAPTURE-INTEGRITY-DAY0.json"))
@@ -199,6 +212,22 @@ def main() -> int:
     manifest_path = Path(args.out_manifest)
     if args.verify:
         return verify(manifest_path)
+
+    if args.remanifest:
+        source = Path(args.remanifest)
+        payload = source.read_text(encoding="utf-8")
+        pages = json.loads(payload)
+        file_hash = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+        copies = [str(source)]
+        for sibling in ("/mnt/d/skillwatch-archive", "/mnt/c/Users/mkuzi/skillwatch-archive"):
+            candidate = Path(sibling) / source.parent.name / source.name
+            if candidate.is_file():
+                copies.append(str(candidate))
+        manifest_path.write_text(json.dumps(
+            integrity_manifest(pages, source, file_hash, len(payload.encode()), copies),
+            indent=2) + "\n", encoding="utf-8")
+        print(f"rebuilt {manifest_path} from {source} ({len(pages)} pages, no fetch)")
+        return 0
 
     urls = manifest_urls()
     if args.check_urls:

@@ -198,6 +198,30 @@ _CAPTURE_CANDIDATES = (
 # anything the first pass did not already fail to say.
 EARLIEST = datetime.date(2026, 8, 5)
 
+# Seven days, the interval the 2026-08-05 measurement used and the one the K3 design
+# fixes. Applied to whichever baseline is passed, so a newer baseline moves the floor
+# forward instead of leaving it behind at an absolute date.
+MIN_INTERVAL_DAYS = 7
+
+# Ledger item 87. These were ten workers and fifteen seconds, inline, until 2026-08-06.
+# On that day the same settings returned 145/201 on this corpus with 53 timeouts across
+# 31 hosts, and 55 of those 56 URLs succeeded immediately on a sequential retry at
+# thirty seconds. The loss was an artefact of concurrency, not of the world, and it is
+# NON-RANDOM: it falls on whichever hosts are slow or rate-limiting that day. A
+# measurement that quietly drops a quarter of its corpus that way reports a rate over a
+# biased remainder. Three workers at thirty seconds returned 197/201, matching the
+# 2026-08-05 pass exactly. A measurement is taken once and read for a long time, so the
+# extra minutes are the cheapest part of it.
+FETCH_WORKERS = 3
+FETCH_TIMEOUT_SECONDS = 30
+
+# The fraction of the corpus that must re-fetch for the result to be reportable. A rate
+# over a heavily depleted corpus is not a rate over the corpus, and the 2026-08-06
+# episode shows the depletion can be large and silent. At 201 URLs this refuses below
+# 181. Deliberately a coverage floor and not a detection threshold: it changes whether a
+# number may be published, never whether a flag fires.
+MIN_REFETCH_COVERAGE = 0.90
+
 # Which extractor feeds which flag. Mirrors _check_html_changes in detector.py.
 HTML_CHECKS = (
     ("hidden_texts", "hidden_content"),
@@ -428,6 +452,22 @@ def baseline_from_page(page: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def _recorded_copy_manifest(source: str) -> Path | None:
+    """Which integrity manifest, if any, records this path as one of its copies.
+
+    Returns None when no manifest claims it, which is the honest UNVERIFIED case.
+    """
+    target = str(Path(source).resolve())
+    for manifest in sorted(CORPUS.glob("CAPTURE-INTEGRITY*.json")):
+        try:
+            copies = _verify_capture.recorded_copies(manifest)
+        except Exception:
+            continue
+        if target in {str(Path(c).resolve()) for c in copies} or source in copies:
+            return manifest
+    return None
+
+
 def _load_rehearsal_pages(source: str) -> list[dict[str, Any]]:
     """Load stored HTML for a rehearsal. Never fetches."""
     if source not in REHEARSAL_SOURCES and not Path(source).is_file():
@@ -447,10 +487,15 @@ def _load_rehearsal_pages(source: str) -> list[dict[str, Any]]:
         # If it is some other file it may legitimately be a different capture, so it
         # loads — but it is announced as unverified. Silence would read as a clean
         # bill of health, and this repository has shipped that mistake four times.
-        if str(Path(source).resolve()) in {
-            str(Path(p).resolve()) for p in _verify_capture.recorded_copies()
-        } or source in _verify_capture.recorded_copies():
-            _verify_capture.assert_capture_trustworthy(source)
+        # Every integrity manifest in the corpus, not just the 2026-07-29 one. The
+        # day-0 capture taken for the K3 measurement is recorded in
+        # CAPTURE-INTEGRITY-DAY0.json, so a single-manifest lookup announced it as
+        # UNVERIFIED even though its three copies had been hashed and verified. A
+        # warning that is known to be wrong is worse than none: it trains the reader
+        # to ignore the one that matters.
+        manifest_for = _recorded_copy_manifest(source)
+        if manifest_for is not None:
+            _verify_capture.assert_capture_trustworthy(source, manifest_path=manifest_for)
         else:
             print(f"UNVERIFIED source: {source} is not a copy recorded in "
                   f"CAPTURE-INTEGRITY.json, so its bytes have been checked against "
@@ -746,6 +791,13 @@ def main() -> int:
         help="run before 2026-08-05 anyway. The result must not be published.",
     )
     parser.add_argument("--out", default=str(CORPUS / "DELTA-PASS.json"))
+    # The baseline is a parameter because there is now more than one. It was a
+    # hardcoded constant until 2026-08-06, which meant the day-0 capture taken for
+    # the K3 measurement could be stored, verified and hashed, and still be
+    # unreachable by the pass that exists to read it.
+    parser.add_argument("--baseline", default=str(BASELINE),
+                        help="baseline JSON to diff against (default: the 2026-07-29 "
+                             "DELTA-BASELINE.json)")
     parser.add_argument(
         "--rehearse", action="store_true",
         help="run the whole pipeline over STORED html, fetching nothing. The result "
@@ -810,24 +862,39 @@ def main() -> int:
             print(f"\nwrote {args.rehearsal_out}")
         return 0
 
+    baseline_path = Path(args.baseline)
     today = datetime.date.today()
-    if today < EARLIEST and not args.i_understand_this_is_early:
-        print(f"REFUSING: today is {today}; this pass is scheduled for {EARLIEST} "
+    # The floor is the LATER of the absolute date and seven days after whatever
+    # baseline is actually being used. A constant alone was correct only while there
+    # was one baseline: against the 2026-08-06 day-0 capture it would have permitted a
+    # zero day interval, which is precisely the per-request churn this guard exists to
+    # refuse. Derived from the artefact, not restated beside it.
+    earliest = EARLIEST
+    if baseline_path.exists():
+        try:
+            captured = datetime.date.fromisoformat(
+                json.loads(baseline_path.read_text())["captured"])
+            earliest = max(EARLIEST, captured + datetime.timedelta(days=MIN_INTERVAL_DAYS))
+        except (KeyError, ValueError):
+            print(f"WARNING: {baseline_path.name} records no usable capture date; "
+                  f"falling back to the absolute floor {EARLIEST}.", file=sys.stderr)
+    if today < earliest and not args.i_understand_this_is_early:
+        print(f"REFUSING: today is {today}; this pass is scheduled for {earliest} "
               f"or later.", file=sys.stderr)
         print("The first snapshots were 2026-07-29. A second pass sooner than seven "
               "days measures per-request churn, not editorial drift — which is "
               "exactly what made the first attempt return 0/3.", file=sys.stderr)
         return 3
 
-    if not MANIFEST.exists() or not BASELINE.exists():
-        print(f"FAIL: need both {MANIFEST.name} and {BASELINE.name}.", file=sys.stderr)
+    if not MANIFEST.exists() or not baseline_path.exists():
+        print(f"FAIL: need both {MANIFEST.name} and {baseline_path.name}.", file=sys.stderr)
         print("This check has NOT passed — it could not inspect its subject.",
               file=sys.stderr)
         return 2
 
     efficacy = _load_sibling("measure_efficacy")
     manifest = json.loads(MANIFEST.read_text())
-    baseline = json.loads(BASELINE.read_text())
+    baseline = json.loads(baseline_path.read_text())
     urls = [i["url"] for i in manifest["items"] if i["url"] in baseline["items"]]
     print(f"re-fetching {len(urls)} URLs (baseline captured {baseline['captured']}, "
           f"today {today})")
@@ -837,7 +904,7 @@ def main() -> int:
         # vocabulary label, and it is the ONLY one of the two the artefact writer
         # reads. See ledger item 82 and the operator ruling above.
         try:
-            result = fetch_url(url, timeout=15)
+            result = fetch_url(url, timeout=FETCH_TIMEOUT_SECONDS)
         except Exception as exc:  # a crash must be recorded, not lost
             message = f"EXCEPTION: {exc!r}"
             return {"url": url, "error": message,
@@ -850,13 +917,48 @@ def main() -> int:
         }
 
     fetched: list[dict[str, Any]] = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as pool:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=FETCH_WORKERS) as pool:
         for i, record in enumerate(pool.map(one, urls), 1):
             fetched.append(record)
             if i % 50 == 0:
                 print(f"  {i}/{len(urls)}", flush=True)
 
     usable = [f for f in fetched if not f.get("error") and f.get("raw_html")]
+
+    # Item 87 coverage floor. Fail closed: a rate computed over a heavily depleted
+    # corpus describes the remainder, not the corpus, and the depletion is non-random.
+    # The capture is still written, with reportable false and no rate, because the
+    # fetch outcomes are evidence about the failure even when the rate is not evidence
+    # about drift. Discarding them would lose the only record of what went wrong.
+    coverage = len(usable) / len(urls) if urls else 0.0
+    if coverage < MIN_REFETCH_COVERAGE:
+        by_reason_short: dict[str, int] = {}
+        for f in fetched:
+            if f.get("failure_reason"):
+                by_reason_short[f["failure_reason"]] = by_reason_short.get(
+                    f["failure_reason"], 0) + 1
+        print(f"\nREFUSING to report a rate: {len(usable)}/{len(urls)} URLs re-fetched "
+              f"({coverage:.1%}), below the {MIN_REFETCH_COVERAGE:.0%} floor.",
+              file=sys.stderr)
+        print(f"  failures by reason: {by_reason_short}", file=sys.stderr)
+        print("  A rate over this remainder would describe the hosts that happened to "
+              "respond, not the corpus. Re-run when the losses are understood; see "
+              "ledger item 87.", file=sys.stderr)
+        Path(args.out).write_text(json.dumps({
+            "ran": today.isoformat(), "baseline_captured": baseline["captured"],
+            "urls": len(urls), "refetched_ok": len(usable),
+            "reportable": False,
+            "refusal": "refetch coverage below MIN_REFETCH_COVERAGE",
+            "coverage": round(coverage, 4),
+            "by_failure_reason": by_reason_short,
+            "fetch_failures": [
+                {"url": f["url"], "reason": f.get("failure_reason") or "other"}
+                for f in fetched if f.get("error") or not f.get("raw_html")
+            ],
+        }, indent=2) + "\n")
+        print(f"\nwrote {args.out} with reportable=false", file=sys.stderr)
+        return 4
+
     by_url = {i["url"]: i for i in manifest["items"]}
 
     # cli.py:443 — detection runs only when the extracted text hash changed.
@@ -924,6 +1026,7 @@ def main() -> int:
         "ran": today.isoformat(), "baseline_captured": baseline["captured"],
         "urls": len(urls), "refetched_ok": len(usable), "gate_open": n,
         "flagged": flagged, "by_code": by_code, "per_page": per_page,
+        "reportable": True, "coverage": round(coverage, 4),
         # Item 82. Both are closed vocabularies: FETCH_FAILURE_REASONS and the
         # detector's own TECHNIQUE_BUCKETS keys. No page content reaches either.
         "fetch_failures": fetch_failures, "by_failure_reason": by_reason,

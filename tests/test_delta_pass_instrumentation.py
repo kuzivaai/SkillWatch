@@ -21,6 +21,7 @@ and no page-controlled text can reach either of them.
 from __future__ import annotations
 
 import importlib.util
+import re
 import subprocess
 import sys
 
@@ -202,11 +203,32 @@ def test_the_artefact_writer_reads_only_closed_vocabulary_fields() -> None:
     building the item 82 keys. It reads `failure_reason`, which is a label.
     """
     source = (REPO / "analysis" / "run_delta_pass.py").read_text(encoding="utf-8")
-    writer = source.split("Path(args.out).write_text(", 1)[1].split("print(f\"\\nwrote", 1)[0]
-    for forbidden in ("content_text", "raw_html", '"error"', "evidence"):
-        assert forbidden not in writer, f"artefact writer references {forbidden}"
-    assert "fetch_failures" in writer
-    assert "by_hidden_technique" in writer
+    # EVERY writer, not just the last one. The coverage-floor refusal added on
+    # 2026-08-06 is a second `Path(args.out).write_text(`, and an earlier version of
+    # this test sliced only the final block, so a new writer could have carried page
+    # content past it unexamined. Checking one writer in a file with two is the same
+    # scope defect this repository keeps logging.
+    blocks = source.split("Path(args.out).write_text(")[1:]
+    assert len(blocks) >= 2, "expected a refusal writer and a success writer"
+    for i, block in enumerate(blocks):
+        writer = block.split("indent=2", 1)[0]
+        # Reading a field to DECIDE something is fine and necessary: the failure list
+        # is built by filtering on f.get("error") and f.get("raw_html"). What must
+        # never happen is a page-content field becoming a written value. So strip the
+        # read-only filter expressions, then check what is left, which is what the
+        # artefact actually carries.
+        written = re.sub(r'f\.get\("[a-z_]+"\)', "<read>", writer)
+        written = re.sub(r'f\["[a-z_]+"\]', "<read>", written)
+        for forbidden in ("content_text", "raw_html", "evidence"):
+            assert forbidden not in written, (
+                f"artefact writer {i} writes {forbidden} rather than only reading it"
+            )
+        # `error` may be read as a filter; it must never be a written value or key.
+        assert '"error":' not in written, f"artefact writer {i} records the raw error"
+    combined = " ".join(blocks)
+    assert "fetch_failures" in combined
+    assert "by_hidden_technique" in combined
+    assert "reportable" in combined
 
 
 def test_the_failure_record_builder_never_copies_the_raw_message() -> None:
