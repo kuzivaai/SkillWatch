@@ -38,6 +38,8 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          fetch-depth: 0  # history for the fail-before controls
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
         with:
           python-version: ${{ matrix.python-version }}
@@ -49,17 +51,17 @@ jobs:
         run: ruff check skillwatch/ tests/ scripts/ analysis/
       - name: Type check
         # scripts/ is included because the floor audit is now a security gate.
-        # measure_base_rate.py and build_realpage_corpus.py were added 2026-07-29
-        # and were outside this scope until 2026-07-30 — a narrower gate than the
-        # one CLAUDE.md documented, and the same out-of-scope shape as ledger
-        # items 17, 35, 36 and 42. Widened rather than left implicit.
-        run: >-
-          mypy skillwatch/ scripts/
-          analysis/measure_efficacy.py
-          analysis/measure_base_rate.py
-          analysis/build_realpage_corpus.py
-          analysis/run_delta_pass.py
-          analysis/make_baseline.py
+        #
+        # The analysis/ scope is DERIVED from git ls-files, not typed out. It used to
+        # be a hand-written list of five files; measure_base_rate.py and
+        # build_realpage_corpus.py were added 2026-07-29 and sat outside it until
+        # 2026-07-30 — a narrower gate than the one CLAUDE.md documented, and the
+        # same out-of-scope shape as ledger items 17, 35, 36 and 42. A list you have
+        # to remember to extend is that defect waiting for its next outing, so the
+        # list is now generated. Only TRACKED files are included: the rest of
+        # analysis/ is gitignored scratch, which a bare `mypy analysis/` would try
+        # to check. tests/test_ci_scope.py asserts this stays derived.
+        run: mypy skillwatch/ scripts/ $(git ls-files 'analysis/*.py')
       - name: Test
         run: pytest --cov=skillwatch --cov-report=term-missing --cov-fail-under=90 -q
       - name: Published figures match the harness
@@ -81,19 +83,62 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          fetch-depth: 0  # history for the fail-before controls
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
         with:
           python-version: "3.12"
       - name: Install dependencies
-        run: pip install -e ".[dev]" pip-audit
-      - name: Audit installed dependencies
-        # --strict is omitted because SkillWatch itself is never auditable in its own
-        # CI: as an editable install pip-audit reports "distribution marked as
-        # editable", and as a regular install it reports "not found on PyPI" (the
-        # version under test is unreleased by definition). Both fail --strict, so it
-        # would block on the project rather than on any dependency. --skip-editable
-        # does not satisfy --strict; it is the skip that --strict rejects.
-        run: pip-audit --skip-editable --desc
+        # pip-audit is deliberately NOT installed here. It goes in an isolated
+        # environment below, so the freeze in the next step is SkillWatch's own
+        # dependency closure and not pip-audit's as well. Auditing the auditor's
+        # dependencies would let an advisory in cyclonedx or CacheControl fail this
+        # project's CI for something this project does not ship.
+        run: pip install -e ".[dev]"
+      - name: Export the resolved dependency set, excluding the project itself
+        # --exclude-editable drops the editable SkillWatch install. That is the whole
+        # trick: the project is not in the audited set, so whether the version under
+        # test is published stops mattering.
+        run: pip freeze --exclude-editable > requirements-audit.txt
+      - name: Install pip-audit in an isolated environment
+        run: python -m venv /tmp/auditenv && /tmp/auditenv/bin/pip install pip-audit
+      - name: Audit resolved dependencies (--strict, no skip flags)
+        # --strict was omitted here until 2026-07-30, with a comment asserting it
+        # could never pass. That was tested on 2026-07-30 and the strong claim is
+        # FALSE: --strict passes on this shape. Measured, both branches:
+        #
+        #   env scan, version 0.4.1 (published)   pip-audit --strict          -> 0
+        #   env scan, version 0.9.9 (unreleased)  pip-audit --strict          -> 1
+        #       "skillwatch: Dependency not found on PyPI and could not be audited"
+        #   this shape, either version            --strict -r <resolved file> -> 0
+        #
+        # So the ORIGINAL reasoning was right about the mechanism and wrong about
+        # today: the env-scan shape passes at the moment only because main's version
+        # happens to equal what PyPI serves, and would fail at the next pre-release
+        # bump. This shape is robust because the project is excluded outright.
+        #
+        # --strict IS load-bearing. Demonstrated 2026-07-30, having been carried for
+        # five sessions as an undemonstrated rule. The case: a package pip resolves
+        # but PyPI 404s, so it cannot be audited at all.
+        #
+        #   pip-audit --desc -r <file>            -> exit 0, prints a "Skip Reason"
+        #                                            table and PASSES
+        #   pip-audit --strict --desc -r <file>   -> exit 1
+        #       "skillwatch-strict-probe-does-not-exist: Dependency not found on
+        #        PyPI and could not be audited"
+        #
+        # Without --strict a dependency that was never audited is silently tolerated
+        # and this gate reports green: the same fail-open shape as an unparseable
+        # specifier treated as satisfied. Reachable here because `pip freeze` names
+        # whatever is installed, including anything from a private index, a VCS URL,
+        # or a release later removed from PyPI.
+        #
+        # An earlier note here said no case had been found. That was true of the four
+        # cases tried then (resolvable-with-advisories, nonexistent package, yanked
+        # release, local sdist of a published version) and false in general.
+        #
+        # See docs/DEPENDENCY-FLOORS.md for the full record.
+        run: /tmp/auditenv/bin/pip-audit --strict --desc -r requirements-audit.txt
       - name: Audit declared dependency floors
         run: python3 scripts/audit_dependency_floors.py
 
@@ -116,6 +161,8 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7
+        with:
+          fetch-depth: 0  # history for the fail-before controls
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
         with:
           python-version: "3.12"

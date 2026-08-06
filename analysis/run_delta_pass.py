@@ -103,10 +103,15 @@ from bs4 import BeautifulSoup
 
 from skillwatch.differ import generate_diff
 from skillwatch.detector import (
+    _DECLARATION_TECHNIQUES,
+    TECHNIQUE_BUCKETS,
     _extract_data_uri_sources,
     _extract_hidden_texts,
     _extract_meta_refreshes,
     _extract_suspicious_script_contents,
+    _is_flagged,
+    _parse_declarations,
+    _style_block_rules,
     detect_suspicious_changes,
 )
 from skillwatch.fetcher import _normalise_whitespace, fetch_url, strip_escape_sequences
@@ -115,6 +120,22 @@ _HERE = Path(__file__).resolve().parent
 CORPUS = _HERE / "corpus" / "realpage"
 MANIFEST = CORPUS / "MANIFEST.json"
 BASELINE = CORPUS / "DELTA-BASELINE.json"
+
+
+def _load_sibling_early(name: str) -> ModuleType:
+    """Load a sibling module in `analysis/` by path (see measure_base_rate.py).
+
+    Defined up here, above the constants, because _CAPTURE_CANDIDATES is derived
+    from verify_capture.recorded_copies() at import time. `_load_sibling` below is
+    an alias kept for the existing call sites.
+    """
+    spec = importlib.util.spec_from_file_location(name, _HERE / f"{name}.py")
+    if spec is None or spec.loader is None:
+        raise SystemExit(f"FAIL: cannot load analysis/{name}.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
 
 # Rehearsal output goes here and nowhere else. A zero-change delta is not a
 # measurement and must never reach README.md, SHIP-READINESS.md, PATTERNS.md,
@@ -149,17 +170,27 @@ REHEARSAL_SOURCES = ("capture", "corpus")
 # corpus runs only the five HTML checks, which is exactly why a corpus-only rehearsal
 # could not see the old_text=None defect.
 #
-# Integrity manifest: analysis/corpus/realpage/CAPTURE-INTEGRITY.json (per-page
-# hashes, so a copy can be verified without the original).
+# Integrity manifest: analysis/corpus/realpage/CAPTURE-INTEGRITY.json. It records
+# per-page hashes AND, since 2026-07-30, every copy's location — it is the single
+# registry of where the capture lives. `analysis/verify_capture.py` verifies them.
 #
-# 56.2 MB of third-party HTML, deliberately NOT committed.
+# 56.2 MB of third-party HTML (the containing JSON is 60.0 MB), deliberately NOT
+# committed.
 CAPTURE_ARCHIVE = "/home/mkuziva/.skillwatch-archive/realpage-2026-07-29/fetched_pages.json"
 
-# Searched in order: the durable archive, then any surviving scratchpad. NOTE the
-# scratchpad path is FOUR levels deep (/tmp/claude-*/<project>/<session>/scratchpad);
-# a three-level glob finds nothing and would suggest the capture is gone when it is not.
+_verify_capture = _load_sibling_early("verify_capture")
+
+# Searched in order: every copy the MANIFEST records, then any surviving scratchpad.
+# The copy list is not duplicated here — a second hand-maintained list is free to
+# drift from the first, and the stale one still looks authoritative. That is the
+# figure-drift defect in another costume.
+#
+# NOTE the scratchpad path is FOUR levels deep
+# (/tmp/claude-*/<project>/<session>/scratchpad); a three-level glob finds nothing
+# and would make a present file look permanently lost. That near-miss is ledger
+# item 51 and a test asserts the depth stays at four.
 _CAPTURE_CANDIDATES = (
-    CAPTURE_ARCHIVE,
+    *(_verify_capture.recorded_copies() or (CAPTURE_ARCHIVE,)),
     "/tmp/claude-1000/-home-mkuziva-skillwatch/*/scratchpad/fetched_pages.json",
 )
 
@@ -177,15 +208,7 @@ HTML_CHECKS = (
 )
 
 
-def _load_sibling(name: str) -> ModuleType:
-    """Load a sibling module in `analysis/` by path (see measure_base_rate.py)."""
-    spec = importlib.util.spec_from_file_location(name, _HERE / f"{name}.py")
-    if spec is None or spec.loader is None:
-        raise SystemExit(f"FAIL: cannot load analysis/{name}.py")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[name] = module
-    spec.loader.exec_module(module)
-    return module
+_load_sibling = _load_sibling_early
 
 
 def short_hash(text: str) -> str:
@@ -202,6 +225,135 @@ def extract_sets(html: str) -> dict[str, set[str]]:
         "meta_refreshes": {short_hash(x) for x in _extract_meta_refreshes(soup)},
         "data_uri_sources": {short_hash(x) for x in _extract_data_uri_sources(soup)},
     }
+
+
+# --- ledger item 82: what failed, and what concealed it ----------------------
+#
+# The 2026-08-05 pass recorded only a URL and a flag code per page. Two things were
+# therefore unanswerable afterwards. Which four of the 201 URLs failed to re-fetch,
+# and why. And which concealment technique fired `hidden_content`, which is exactly
+# what item 43's pre-registered `display:none` rule needs, so that rule could not be
+# applied to the artefact it was written for.
+#
+# OPERATOR RULING, 2026-08-06: the artefact may record the matched technique as a
+# FIXED ENUM LABEL plus a fetch-failure reason. No content strings, no matched-text
+# excerpts, no evidence snippets. The hash-only principle otherwise stands.
+#
+# Both fields below are therefore closed vocabularies. Nothing derived from page
+# content can reach either one: the technique labels come from the detector's own
+# TECHNIQUE_BUCKETS keys, and the failure reasons are a fixed tuple. A raw exception
+# message is deliberately NOT recorded, because an exception string can quote a
+# response body.
+
+# The closed vocabulary for concealment attribution, derived from the detector's own
+# bucket table rather than typed out here. Only flagged techniques can be attributed,
+# because only they can fire hidden_content in the first place.
+TECHNIQUE_LABELS = frozenset(
+    name for name, bucket in TECHNIQUE_BUCKETS.items() if bucket == "a"
+)
+
+FETCH_FAILURE_REASONS = (
+    "timeout",
+    "dns_failure",
+    "connection_failed",
+    "tls_error",
+    "too_many_redirects",
+    "http_error",
+    "blocked_by_ssrf_policy",
+    "content_too_large",
+    "other",
+)
+
+
+def classify_fetch_failure(message: str | None) -> str:
+    """Map a failure to one of FETCH_FAILURE_REASONS. Never returns the message.
+
+    Classification reads the message; the message itself never leaves this function.
+    That is the whole point: the caller receives a label from a closed set, so no
+    server-controlled text can reach the artefact through this path.
+    """
+    text = (message or "").lower()
+    if not text:
+        return "other"
+    if "timed out" in text or "timeout" in text:
+        return "timeout"
+    if "nodename" in text or "name or service not known" in text or "getaddrinfo" in text:
+        return "dns_failure"
+    if "ssl" in text or "certificate" in text or "tlsv" in text:
+        return "tls_error"
+    if "too many redirects" in text or "redirect" in text and "exceed" in text:
+        return "too_many_redirects"
+    if "blocked" in text or "private" in text or "loopback" in text or "ssrf" in text:
+        return "blocked_by_ssrf_policy"
+    if "too large" in text or "exceeds" in text and "size" in text:
+        return "content_too_large"
+    if "http " in text or "status" in text:
+        return "http_error"
+    if "connection" in text or "refused" in text or "unreachable" in text:
+        return "connection_failed"
+    return "other"
+
+
+def _technique_for(declarations: dict[str, str], fully_parsed: bool) -> str | None:
+    """Which flagged technique conceals this declaration block, if any.
+
+    Mirrors `_assess_declarations` in detector.py, which returns only CONCEALED or
+    not. This returns the technique NAME instead, which is the whole point. It reads
+    the detector's own `_DECLARATION_TECHNIQUES` and `_is_flagged`, so the rules are
+    not copied; only the return value differs. `tests/test_delta_pass.py` pins the
+    correspondence, and if `_assess_declarations` becomes more than this loop, this
+    must be updated with it.
+    """
+    positioned = declarations.get("position", "").lower() in {"absolute", "fixed"}
+    overflow_clips = declarations.get("overflow", "").lower() in {"hidden", "clip"}
+    for technique, prop, value_re in _DECLARATION_TECHNIQUES:
+        if not _is_flagged(technique):
+            continue
+        value = declarations.get(prop)
+        if value is None or not value_re.match(value):
+            continue
+        if prop in {"left", "top"} and not positioned:
+            continue
+        if prop in {"height", "width"} and not overflow_clips:
+            continue
+        return technique
+    return None
+
+
+def hidden_text_techniques(html: str) -> dict[str, set[str]]:
+    """Map short_hash(concealed text) to the technique labels that concealed it.
+
+    Keyed by the same truncated hash the baseline stores, so the caller can select
+    only the ADDED hidden texts and attribute those, rather than attributing every
+    hidden element on the page including ones that were already there.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    out: dict[str, set[str]] = {}
+
+    def record(element: Any, technique: str) -> None:
+        text = element.get_text(strip=True)
+        if text:
+            out.setdefault(short_hash(text), set()).add(technique)
+
+    for elem in soup.find_all(style=True):
+        declarations, parsed = _parse_declarations(str(elem.get("style", "")))
+        technique = _technique_for(declarations, parsed)
+        if technique:
+            record(elem, technique)
+
+    rules, _ = _style_block_rules(soup)
+    for selector, declarations, parsed in rules:
+        technique = _technique_for(declarations, parsed)
+        if not technique:
+            continue
+        try:
+            matched = soup.select(selector)
+        except Exception:
+            continue
+        for elem in matched:
+            record(elem, technique)
+
+    return out
 
 
 def flags_for(page: dict[str, Any], baseline: dict[str, Any],
@@ -287,6 +439,23 @@ def _load_rehearsal_pages(source: str) -> list[dict[str, Any]]:
 
     if source not in REHEARSAL_SOURCES:
         # An explicit path — used to verify a preserved copy of the capture.
+        #
+        # If the caller names a RECORDED copy, verify it: naming a path explicitly
+        # must not be a way round the hash check, or a corrupt copy gets promoted
+        # into a regenerated DELTA-BASELINE.json.
+        #
+        # If it is some other file it may legitimately be a different capture, so it
+        # loads — but it is announced as unverified. Silence would read as a clean
+        # bill of health, and this repository has shipped that mistake four times.
+        if str(Path(source).resolve()) in {
+            str(Path(p).resolve()) for p in _verify_capture.recorded_copies()
+        } or source in _verify_capture.recorded_copies():
+            _verify_capture.assert_capture_trustworthy(source)
+        else:
+            print(f"UNVERIFIED source: {source} is not a copy recorded in "
+                  f"CAPTURE-INTEGRITY.json, so its bytes have been checked against "
+                  f"nothing. Results from it say nothing about the 2026-07-29 "
+                  f"capture.", file=sys.stderr)
         with open(source) as handle:
             records = json.load(handle)
         return [{"url": r["url"], "raw_html": r["raw_html"],
@@ -299,13 +468,22 @@ def _load_rehearsal_pages(source: str) -> list[dict[str, Any]]:
             matches.extend(sorted(glob.glob(candidate)))
         if not matches:
             raise SystemExit(
-                "FAIL: the 2026-07-29 HTML capture is no longer on disk.\n"
+                "FAIL: the 2026-07-29 HTML capture is no longer on disk — "
+                f"{_verify_capture.MISSING_PHRASE} at any recorded location.\n"
                 f"  looked for: {_CAPTURE_CANDIDATES}\n"
+                "  NOTE the scratchpad glob is four levels deep. An empty locating "
+                "result is a FAILED command, not an absence: widen the search "
+                "(different glob depths, different roots, search by filename) before "
+                "concluding anything is gone.\n"
                 "This is a FINDING about the baseline's reproducibility, not a "
                 "reason to fetch: DELTA-BASELINE.json was derived from bytes that "
                 "no longer exist anywhere, so its derivation cannot be re-checked. "
                 "Rehearse with --source corpus instead, which uses committed HTML."
             )
+        # Verify BEFORE loading. A rotted copy that still parses would otherwise be
+        # fed through the pipeline and reported as a rehearsal result — which is the
+        # defect one level up from the one the archive copies fix.
+        _verify_capture.assert_capture_trustworthy(matches[0])
         with open(matches[0]) as handle:
             records = json.load(handle)
         pages: list[dict[str, Any]] = []
@@ -655,13 +833,20 @@ def main() -> int:
           f"today {today})")
 
     def one(url: str) -> dict[str, Any]:
+        # `error` stays in memory for the console. `failure_reason` is the closed
+        # vocabulary label, and it is the ONLY one of the two the artefact writer
+        # reads. See ledger item 82 and the operator ruling above.
         try:
             result = fetch_url(url, timeout=15)
         except Exception as exc:  # a crash must be recorded, not lost
-            return {"url": url, "error": f"EXCEPTION: {exc!r}"}
+            message = f"EXCEPTION: {exc!r}"
+            return {"url": url, "error": message,
+                    "failure_reason": classify_fetch_failure(message)}
         return {
             "url": url, "error": result.error, "content_text": result.content_text,
             "raw_html": result.raw_html, "content_hash": result.content_hash,
+            "failure_reason": (classify_fetch_failure(result.error)
+                               if result.error else None),
         }
 
     fetched: list[dict[str, Any]] = []
@@ -678,16 +863,43 @@ def main() -> int:
     gate_open = [f for f in usable
                  if f["content_hash"] != by_url[f["url"]]["snapshot_1"]["content_hash"]]
 
+    # Item 82, first half: which URLs failed and why, as closed-vocabulary labels.
+    # The 2026-08-05 artefact recorded 197 of 201 succeeded and nothing about the
+    # other four, discarding the only live evidence the network paths have ever
+    # produced.
+    fetch_failures = [
+        {"url": f["url"], "reason": f.get("failure_reason") or "other"}
+        for f in fetched if f.get("error") or not f.get("raw_html")
+    ]
+    by_reason: dict[str, int] = {}
+    for failure in fetch_failures:
+        reason = str(failure["reason"])
+        by_reason[reason] = by_reason.get(reason, 0) + 1
+
     per_page = []
     flagged = 0
     by_code: dict[str, int] = {}
+    by_technique: dict[str, int] = {}
     for page in gate_open:
-        codes = flags_for(page, baseline["items"][page["url"]])
+        entry = baseline["items"][page["url"]]
+        codes = flags_for(page, entry)
         if codes:
             flagged += 1
         for code in codes:
             by_code[code] = by_code.get(code, 0) + 1
-        per_page.append({"url": page["url"], "flags": codes})
+        page_record: dict[str, Any] = {"url": page["url"], "flags": codes}
+        # Item 82, second half: attribute hidden_content to a technique, so item
+        # 43's pre-registered display:none rule becomes applicable to a future
+        # capture. Only the ADDED hidden texts are attributed, matching the delta
+        # semantics of the check itself.
+        if "hidden_content" in codes:
+            attributed = hidden_text_techniques(page["raw_html"])
+            added = set(attributed) - set(entry.get("hidden_texts", []))
+            techniques = sorted({t for h in added for t in attributed[h]})
+            page_record["hidden_techniques"] = techniques
+            for technique in techniques:
+                by_technique[technique] = by_technique.get(technique, 0) + 1
+        per_page.append(page_record)
 
     n = len(gate_open)
     print(f"\nre-fetched OK          {len(usable)}/{len(urls)}")
@@ -703,10 +915,19 @@ def main() -> int:
         print(f"\nWARNING: n={n}. Too small to support a claim. Do not publish this "
               f"as a rate; report it as n and say so.")
 
+    for reason in sorted(by_reason, key=lambda r: -by_reason[r]):
+        print(f"  fetch failure  {reason:<24} {by_reason[reason]}")
+    for technique in sorted(by_technique, key=lambda t: -by_technique[t]):
+        print(f"  hidden via     {technique:<24} {by_technique[technique]}")
+
     Path(args.out).write_text(json.dumps({
         "ran": today.isoformat(), "baseline_captured": baseline["captured"],
         "urls": len(urls), "refetched_ok": len(usable), "gate_open": n,
         "flagged": flagged, "by_code": by_code, "per_page": per_page,
+        # Item 82. Both are closed vocabularies: FETCH_FAILURE_REASONS and the
+        # detector's own TECHNIQUE_BUCKETS keys. No page content reaches either.
+        "fetch_failures": fetch_failures, "by_failure_reason": by_reason,
+        "by_hidden_technique": by_technique,
     }, indent=2) + "\n")
     print(f"\nwrote {args.out}")
     return 0

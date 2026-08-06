@@ -22,9 +22,220 @@ environment does not get the newest version. They get whatever the floor allows.
 
 | Check | Question it answers | Where |
 |---|---|---|
-| `pip-audit --skip-editable` | Do the versions we installed have advisories? | `security` job |
+| `pip-audit --strict -r <resolved set>` | Do the versions we installed have advisories? | `security` job |
 | `scripts/audit_dependency_floors.py` | Do the versions we *permit* have advisories? | `security` job |
 | `uv run --resolution lowest-direct` | Do the versions we permit actually work? | `lowest-direct` job |
+
+## `pip-audit --strict`: settled 2026-07-30
+
+For five sessions the ledger carried this as open, with two claims: that `--strict`
+cannot pass **in the invocation shape CI used**, and — untested — that it can
+**never** pass. The untested claim was tested on 2026-07-30. **It is false.**
+
+The shape that works exports a resolved requirements file that excludes the project
+itself, and audits that file:
+
+```bash
+pip install -e ".[dev]"
+pip freeze --exclude-editable > requirements-audit.txt   # drops the editable project
+python -m venv /tmp/auditenv && /tmp/auditenv/bin/pip install pip-audit
+/tmp/auditenv/bin/pip-audit --strict --desc -r requirements-audit.txt
+```
+
+Measured, on pip-audit 2.10.1, 47 packages:
+
+| Shape | Project version | Result |
+|---|---|---|
+| env scan, `pip-audit --strict` | 0.4.1 (published) | **exit 0** |
+| env scan, `pip-audit --strict` | 0.9.9 (unreleased) | **exit 1** — `skillwatch: Dependency not found on PyPI and could not be audited: skillwatch (0.9.9)` |
+| `--strict -r <resolved>` | 0.4.1 | **exit 0** |
+| `--strict -r <resolved>` | 0.9.9 | **exit 0** |
+
+So the original reasoning was **right about the mechanism and wrong about today**.
+The env-scan shape passes at the moment only because `main`'s version happens to
+equal what PyPI serves; it would fail at the next pre-release version bump, exactly
+as the old comment predicted. The `-r` shape is robust because the project is
+excluded from the audited set outright, so whether its version is published stops
+mattering.
+
+**Adopted.** `--skip-editable` is gone — it was the skip that `--strict` rejects.
+
+Why pip-audit is installed in a **separate** virtualenv: if it were installed
+alongside the project, `pip freeze` would also capture *its* dependency tree
+(cyclonedx, CacheControl, boolean.py, license-expression, …) and an advisory in the
+auditing tool would fail this project's CI for something this project does not ship.
+
+### The `security` job was observed refusing something, 2026-07-30
+
+The shape above was adopted on the strength of measurement, but until 2026-07-30 it
+had only ever been observed **green**. That is not evidence a gate works; it is
+evidence it did not object. The same commit that closed the identical complaint for
+`lowest-direct` (ledger item 16) created it here (item 59).
+
+**Run <https://github.com/kuzivaai/SkillWatch/actions/runs/30526422428>**, PR
+[#38](https://github.com/kuzivaai/SkillWatch/pull/38) titled "DO NOT MERGE", closed
+unmerged (`mergedAt: null`), branch `throwaway/security-negative-control` deleted
+locally and on the remote. `security` conclusion **failure**; all eight `test` and
+`lowest-direct` legs **success**. Step conclusions:
+
+```
+success   Install dependencies
+success   Export the resolved dependency set, excluding the project itself
+success   Install pip-audit in an isolated environment
+failure   Audit resolved dependencies (--strict, no skip flags)
+skipped   Audit declared dependency floors
+```
+
+```
+Found 4 known vulnerabilities in 1 package
+jinja2 2.11.3  PYSEC-2026-1473  3.1.3
+jinja2 2.11.3  PYSEC-2026-1471  3.1.6
+jinja2 2.11.3  PYSEC-2026-1474  3.1.4
+jinja2 2.11.3  PYSEC-2026-1475  3.1.5
+##[error]Process completed with exit code 1.
+```
+
+**Route A was chosen over Route B, and the reasoning matters more than the result.**
+
+The audited set is not a committed file. It is generated at CI time by `pip freeze`
+into a gitignored `requirements-audit.txt`, so there is no requirements file in the
+repository to add a vulnerable pin to. That left two routes:
+
+| | What it does | What it exercises | What it misses |
+|---|---|---|---|
+| **A (chosen)** | vulnerable pin in `pyproject.toml` | the whole rewritten path: declaration, `pip install -e ".[dev]"`, `pip freeze --exclude-editable`, the `-r` shape, `--strict` | needs a `pyproject.toml` revert, proven by an empty `git diff main` |
+| B | append a vulnerable line to `requirements-audit.txt` inside the workflow | the audit command only | never proves the *generation* path works, which is the part that was rewritten |
+
+The class being closed is "a gate is changed and relied upon without anyone ever
+observing it refuse anything". What was changed here was the generation path, so
+only Route A observes the failure path of the thing that actually changed. Route B
+would have produced a red run that says nothing about whether `pip freeze
+--exclude-editable` captures what it is supposed to.
+
+**The control was confounded, and counting it as clean would overstate it.**
+`jinja2==2.11.3` is also rejected by `scripts/audit_dependency_floors.py`
+(`exit=1`, *"minimum safe floor: 3.1.6"*), so the stimulus was not pip-audit
+specific. Step ordering rescues the attribution rather than the choice of stimulus:
+pip-audit runs first, so the floor step reported `skipped` and never executed. The
+red is therefore attributable to the pip-audit step alone. This is weaker than an
+unconfounded stimulus and stronger than the `lowest-direct` control, where both
+guards actually ran. An unconfounded stimulus would need a dependency that
+pip-audit flags on the *resolved* version while its declared floor stays clean,
+which no straightforward pin provides.
+
+**Nothing was left behind.** `git diff main -- pyproject.toml` is empty, `jinja2`
+appears nowhere in the tree, and `main` is untouched at `6c6ab21`.
+
+### The `build` job was observed refusing something, 2026-07-30
+
+`publish.yml`'s `build` job had never been red across all four runs it had ever
+had, and it guards the most public surface this project has.
+
+**Run <https://github.com/kuzivaai/SkillWatch/actions/runs/30530850014>**, branch
+`throwaway/build-negative-control` (deleted), head `1722028`. Stimulus: three lines
+of invalid TOML in `pyproject.toml`.
+
+```
+build    failure
+  success   Install build tools
+  failure   Build package
+  skipped   Run actions/upload-artifact@043fb46d...
+publish  skipped        <- never started; no steps were even listed for it
+```
+
+```
+* Creating isolated environment: venv+pip...
+ERROR Failed to parse /home/runner/work/SkillWatch/SkillWatch/pyproject.toml:
+      Expected '=' after a key in a key/value pair (at line 17, column 6)
+##[error]Process completed with exit code 1.
+```
+
+`publish` was **skipped and never started**. That is `needs: build` with no `if:`,
+the same ordering argument that isolated the pip-audit step from the floor step in
+the `security` control. Nothing was published: PyPI still serves exactly four
+releases, newest 0.4.1 from 2026-07-29.
+
+**How the workflow was made to run, and a prediction that was wrong.**
+`publish.yml` triggers only on `release: types: [published]`, so the job cannot be
+exercised from a branch at all. Two temporary triggers were added on the throwaway
+branch and removed with it: `workflow_dispatch:` and a `push:` trigger scoped to
+that branch name.
+
+The `push:` trigger was added as a fallback because `gh workflow run --ref` was
+**predicted to fail**, on the understanding that GitHub requires a
+`workflow_dispatch` trigger on the *default* branch. **That prediction was wrong.**
+`gh workflow run publish.yml --ref throwaway/build-negative-control` exited 0 and
+produced run 30530850014 with `event: workflow_dispatch`. The likely mechanism,
+**reasoned and not verified against GitHub's documentation**: the workflow *file*
+exists on the default branch, which is enough to resolve the workflow ID, and the
+dispatch then runs the version at the given ref, which declares the trigger. The
+observation that would settle it is dispatching a workflow whose file does not
+exist on the default branch at all.
+
+**Consequence: the `push:` trigger was unnecessary apparatus.** A later session
+controlling `publish.yml` needs only `workflow_dispatch:` on the throwaway branch.
+
+**A testability gap this exposed, logged in the ledger rather than fixed here.**
+A workflow reachable only by publishing a real release cannot be exercised at all
+without editing it, so every control against it changes the thing being controlled.
+That is a weaker form of evidence than the `ci.yml` controls, where the trigger was
+untouched, and it is stated rather than glossed.
+
+### `--strict` is load-bearing: demonstrated 2026-07-30
+
+For five sessions `--strict` was carried as a rule that had never been seen to fire,
+and this document said so: *"no case was constructed in which `--strict` changed the
+outcome of the `-r` shape"*. **That was true of the cases tried and false in
+general.** A case exists, and it was found by reading pip-audit's source rather than
+by guessing at inputs.
+
+`--strict` turns any `SkippedDependency` into a fatal (`_cli.py:557`). The skip that
+is reachable on *every* dependency source is `_service/pypi.py:85`: a package that
+resolves but whose `(name, version)` **404s on PyPI**, so it cannot be audited at
+all. Measured, pip-audit 2.10.1, against a locally built package deliberately absent
+from PyPI (`pypi.org/pypi/skillwatch-strict-probe-does-not-exist/json` returns 404):
+
+| Invocation | Exit | Output |
+|---|---|---|
+| `pip-audit --desc -r <file>` | **0** | `No known vulnerabilities found`, then a *Skip Reason* table naming the package. **It passes.** |
+| `pip-audit --strict --desc -r <file>` | **1** | `ERROR: skillwatch-strict-probe-does-not-exist: Dependency not found on PyPI and could not be audited` |
+
+**Without `--strict` this gate reports green over a dependency it never examined.**
+That is the same fail-open shape as an unparseable specifier treated as satisfied
+(ledger item 17) and a guard blind to the published artefact (item 35). The flag
+stays, and it is now a demonstrated catch rather than a stated intent.
+
+**Reachable in this project's real shape**, not only in a laboratory: `pip freeze`
+names whatever is installed, so a dependency from a private index, a VCS URL, or a
+release later removed from PyPI would produce exactly this skip.
+
+Cases that do **not** distinguish the flag, recorded so they are not retried:
+
+| Case | Without | With |
+|---|---|---|
+| resolvable package with advisories (`jinja2==2.11.3`) | 1 | 1 |
+| package with no advisories (`skillwatch==0.4.1`) | 0 | 0 |
+| nonexistent package name | 1 | 1 |
+| yanked release (`urllib3==2.0.3`) | 1 | 1 |
+| local sdist of a **published** version | 0 | 0 |
+| editable `-e .` in the requirements file | 0 | 0 |
+
+The editable and URL skips in `_collect_preresolved_deps` (`requirement.py:312-346`)
+are **unreachable in CI's shape**: that code path runs only under `--no-deps`, which
+this project does not pass.
+
+**Stated limit on this control.** It was run locally against pip-audit **2.10.1**,
+not in CI. CI installs whatever `pip install pip-audit` resolves at run time, so a
+future version could change the behaviour. The mechanism is a property of pip-audit
+and the requirements file rather than of the runner, which is why a local control was
+judged sufficient; the observation that would overturn that is a CI run where a
+skipped dependency does not fail the step.
+
+**One honest limit remains.**
+
+1. This audits the versions CI **installed**, which are the newest a resolver picks.
+   It still says nothing about what the declared ranges *permit* — that remains the
+   floor audit's job, and the reason the two checks are separate has not changed.
 
 The floor audit queries OSV for every `>=` floor declared in any table of
 `pyproject.toml` — runtime dependencies, every optional-dependency group, and

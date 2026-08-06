@@ -9,7 +9,8 @@ bans AI-written posts outright.
 Use this as the fact-check sheet you write *against*. If a sentence in a draft
 asserts something that is not on this page with a source, it does not go out.
 
-**Compiled:** 2026-07-29, against `main` and v0.4.0 on PyPI.
+**Compiled:** 2026-07-29 and reconciled 2026-07-31 against v0.4.1 and the current
+feature branch. This is a fact sheet, not evidence of commercial readiness.
 
 ---
 
@@ -180,11 +181,11 @@ core mechanic and has roughly 32,500 stars.
 
 | Fact | Value |
 |---|---|
-| Version | v0.4.0, live on PyPI |
+| Version | v0.4.1, live on PyPI (externally verified 2026-07-31) |
 | Licence | Apache-2.0 |
 | Python | 3.10–3.13, all four in CI |
 | Install | `pip install skillwatch` |
-| Tests | 404 passing, 96% line coverage |
+| Tests | 633 passing, 95.70% line coverage at session start; rerun before use |
 | Telemetry | none; local-only, nothing transmitted except fetching the URLs you specify |
 | Users | **none known as of 2026-07-29** — 0 stars, 0 forks, 0 external users |
 

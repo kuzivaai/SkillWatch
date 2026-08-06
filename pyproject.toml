@@ -77,7 +77,13 @@ anchor = [
     # that lets an attacker impersonate a pinned timestamp authority — FreeTSA,
     # our default backend, is the advisory's worked example.
     "rfc3161-client>=1.0.6",
-    "cryptography>=48.0.1",
+    # >=50.0.0 is a security floor, not a feature floor. This floor read >=48.0.1
+    # until 2026-08-05, when scripts/audit_dependency_floors.py went red against
+    # newly published advisories: every release below 50.0.0 is affected by
+    # GHSA-g6cj-pr64-35w5, GHSA-jwv3-5hgf-82ww, GHSA-m2h6-j472-rp4c and
+    # PYSEC-2026-3552/3553/3554. The auditor derives the 50.0.0 minimum itself;
+    # it is not typed in here by hand.
+    "cryptography>=50.0.0",
 ]
 dev = [
     "pytest>=9.0.3",
@@ -102,7 +108,7 @@ dev = [
     "tomli>=2.0.1; python_version < '3.11'",
     # so the anchoring tests run in CI (same security floors as [anchor]):
     "rfc3161-client>=1.0.6",
-    "cryptography>=48.0.1",
+    "cryptography>=50.0.0",
 ]
 
 [tool.setuptools.packages.find]

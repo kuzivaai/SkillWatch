@@ -1,0 +1,213 @@
+# SkillWatch design-partner pilot
+
+Participant execution uses the
+[`pilot/PARTICIPANT-RUNBOOK.md`](pilot/PARTICIPANT-RUNBOOK.md), maintainer
+[`pilot/MAINTAINER-CHECKLIST.md`](pilot/MAINTAINER-CHECKLIST.md), and
+[`pilot/OBSERVATION-TEMPLATE.csv`](pilot/OBSERVATION-TEMPLATE.csv). This file
+remains the sole authority for pilot thresholds and route decisions.
+
+## Pilot-executability audit (2026-08-01)
+
+| Requirement | Current authoritative artefact | Direct evidence | Gap | Consequence | Smallest action |
+|---|---|---|---|---|---|
+| Qualification, user/buyer and routing | This protocol | Repository review | None in protocol | — | Checklist links here |
+| Supported install and Python | Package metadata plus participant runbook | Candidate and PyPI 0.4.1 installed in clean Python 3.12 environments | Human OS range untested | Environment-specific failure remains possible | Record OS/Python per attempt |
+| Discovery and first baseline | CLI plus participant runbook | Maintainer clean-room succeeded with a public URL; restricted operator's `example.com` resolved reserved and failed | No deterministic public demo URL | A rehearsal may end before baseline | Require a participant-owned public workflow URL; record failure, never bypass SSRF |
+| Repeated scan and evidence review | CLI plus participant runbook | Maintainer clean-room completed unchanged repeat, verify and ledger export | No genuine change or alert in rehearsal | Alert interpretation remains unverified by participants | Observe genuine pilot events |
+| Failure recovery and removal | Participant runbook | Missing-file and blocked-reference paths exercised; URL removal exercised | Removing an absent URL remains non-failing friction | Automation may miss a no-op removal | Record as non-blocking friction |
+| Data handling, measurements and exit | This protocol plus checklist/template | Artefacts inspected for manual collection only | No participant execution yet | Privacy and burden are unverified in practice | Obtain consent and record actual interventions |
+
+The clean-room work is an agent rehearsal, not user, demand, trust, retention or
+payment evidence.
+
+Purpose: determine whether periodic change monitoring and provenance create
+enough operational value to justify continued investment. This is evidence
+gathering, not launch copy, a pricing plan or proof of demand.
+
+## Participant hypotheses
+
+### Profile A — agent-security reviewer
+
+- User role: security engineer reviewing deployed skills or MCP configurations.
+- Potential buyer: application-security or AI-platform lead; the user and buyer
+  may be different people.
+- Workflow: reviews terminal-based agent assets and can identify referenced URLs.
+- Required problem: owns at least one deployed asset whose external references
+  can change after approval and has a real review decision attached to drift.
+- Disqualifiers: no deployed references, no authority to review changes, or no
+  willingness to run a local CLI.
+- Present substitute: manual revisit, repository diff, or generic web monitor.
+- Evidence value: can judge whether discovery, diff and provenance alter a
+  security decision.
+
+### Profile B — skill or MCP maintainer
+
+- User role: technical maintainer responsible for externally referenced content.
+- Potential buyer: maintainer, project sponsor or platform owner.
+- Workflow: publishes a SKILL.md/MCP config and periodically validates its links.
+- Required problem: concern about upstream documentation drift, removed content
+  or a stable URL serving materially different instructions.
+- Disqualifiers: references are immutable/pinned, changes have no operational
+  consequence, or a generic monitor already fully satisfies the need.
+- Present substitute: release checklist, cron plus hashes, changedetection.io.
+- Evidence value: can show whether automated discovery and a verifiable history
+  reduce an existing manual control.
+
+### Profile C — assurance consultant
+
+- User role: consultant performing periodic client evidence or supply-chain
+  reviews.
+- Potential buyer: consultancy principal or client assurance owner.
+- Workflow: collects change evidence across engagements and must explain what was
+  reviewed and when.
+- Required problem: repeated need to evidence the history of external references.
+- Disqualifiers: one-off assessment, inability to retain a local database, or no
+  client decision depends on provenance.
+- Present substitute: screenshots, spreadsheets, ticket history, generic monitor.
+- Evidence value: tests whether SkillWatch is stronger as an assurance asset than
+  as a standalone product.
+
+## Workflow and support boundary
+
+1. Install into a clean Python 3.10–3.13 virtual environment from the specified
+   artefact; record success, elapsed time, commands and intervention.
+2. Run discovery on an agreed real SKILL.md, MCP config or URL list. Record total
+   references, relevant references and anything missed or wrongly included.
+3. Establish the initial local baseline. Record time to the first baseline that
+   the participant considers useful.
+4. Run once every seven days and after any known upstream change. Weekly cadence
+   is periodic, limits burden, and creates five repeated review opportunities
+   after baseline during the 35-day observation window.
+5. For every genuine change, the participant reviews the diff first, then the
+   provenance/ledger evidence, recording separate usefulness judgements and the
+   resulting decision.
+6. Maintainer support covers installation clarification and defect capture, not
+   operating the participant’s monitoring, classifying alerts for them, or
+   changing their security decision.
+7. At exit, export only what the participant explicitly agrees to share, remove
+   the virtual environment/database if requested, and record whether they choose
+   to continue unprompted.
+
+### Duration basis
+
+The observation window is 35 days: baseline plus five seven-day intervals. The
+repository’s minutes-apart sample produced only 3 text changes across 199 pairs,
+so a short demo cannot establish value. Five weekly opportunities bound burden
+while allowing editorial change to occur. If no genuine change occurs, extend
+only by explicit agreement until either one genuine event is reviewed or 56 days
+total is reached; zero events at that point is itself evidence against the
+standalone monitoring value for that participant.
+
+## Data handling
+
+SkillWatch remains local-only and has no telemetry. The only product traffic is
+fetching participant-specified URLs. Measurements are recorded manually by
+agreement in a participant-owned or mutually agreed worksheet, or explicitly
+exported by the participant. No database, skill file, URL inventory, alert or
+ledger is uploaded automatically. Participants may redact URLs and content while
+retaining timings and decisions.
+
+Before observation, the maintainer supplies the complete CSV field list, records
+consent and redaction choices, names everyone permitted to access the agreed
+worksheet, and agrees a deletion or retention date. Withdrawal stops collection;
+maintainer-held copies are deleted by that date except for non-identifying
+aggregates the participant explicitly allowed.
+
+## Measurements and decisions
+
+Enroll at least three qualified participants, with no more than two from one
+profile. “Limited intervention” means at most one maintainer interaction and 30
+minutes of maintainer time after the documented install instructions are supplied.
+“Repeated use” means at least three of the five scheduled post-baseline runs;
+“continued unprompted use” means the final one occurs without a reminder.
+“Tolerable review cost” means a participant's median review is at most 15 minutes
+per actionable event and total review burden is at most 30 minutes in a week.
+Burden exceeds perceived value when either limit is exceeded and the participant
+says the resulting decision was not worth that time.
+
+A **genuine change** is a participant-confirmed edit to the publisher-controlled
+fetched representation, excluding fetch/render failures, transient transport
+differences and changes confirmed not to be upstream edits. Relevance and
+actionability are recorded separately. An **independent participant** is a user
+in a different organisation and decision chain; colleagues, a buyer/user pair,
+or a consultant/client relationship count once. The support pause begins after
+the penultimate scheduled run and lasts through the final seven-day interval; a
+run is unprompted only when participant-initiated without a reminder then.
+
+| Measure | Recording method | Decision it informs |
+|---|---|---|
+| Installation completion | yes/no, elapsed time, commands, intervention | Whether self-service use is viable |
+| Time to first useful baseline | timer plus participant judgement | Whether setup cost is tolerable |
+| Commands/manual decisions | count and notes | Workflow burden and integration need |
+| References discovered | total, relevant, missed | Incremental value over manual inventory |
+| Genuine changes observed | event log | Whether event frequency can sustain value |
+| Alerts reviewed | event log | Denominator for burden/actionability |
+| Operationally actionable | participant classification with reason | Whether alerts affect work |
+| Review time per event | timer | Whether burden exceeds value |
+| Benign-trigger burden | count and reason, separate from detector error | Whether tuning/context is adequate |
+| Evidence changed a decision | before/after decision and evidence used | Core operational-value test |
+| Repeated use | scan dates | Whether use survives first setup |
+| Continued unprompted use | participant-initiated run after support pause | Adoption rather than compliance |
+| Change detection vs provenance | separate 5-point preference plus reason | Which value proposition survives |
+| Integration request | requested destination, urgency and workflow owner | Whether integration-first distribution is preferred |
+| Stated willingness to pay | range/context, labelled stated preference | Interview signal only, never purchase evidence |
+| Actual commercial follow-through | paid engagement, procurement step, signed commitment, or none | Behavioral commercial evidence; kept distinct from stated preference |
+
+## Falsification and routing decisions
+
+### Continue a standalone product
+
+Supported only if qualified participants install with limited intervention,
+return without prompting, review genuine changes, and at least two independent
+participants report a decision changed at tolerable review cost. A stated price
+does not satisfy this without behavior.
+
+This route also requires at least two of the three enrolled participants to meet
+the repeated-use definition and at least one to complete an unprompted final run.
+If fewer than two participants observe any genuine event by their 56-day cap,
+the pilot cannot support the standalone route, regardless of interview sentiment.
+
+### Integrate into another tool
+
+Prefer integration when discovery/provenance is useful but participants reject a
+separate CLI, want findings in an existing scanner/ticket workflow, or generic
+monitoring supplies the change event while SkillWatch-specific evidence remains
+useful. At least two independent concrete integration requests naming a workflow
+owner and destination are required before building an adapter.
+
+### Consulting or assurance asset
+
+Prefer this route when consultants repeatedly use exports/ledger evidence in
+client decisions but end users do not operate the tool independently. Commercial
+viability additionally requires a paid engagement, procurement step or signed
+commitment; an interview statement does not qualify.
+
+### Pause or stop
+
+Pause or stop if qualified participants will not install; installation requires
+the maintainer to operate it; genuine changes are too rare by the 56-day cap;
+participants do not return after setup; generic monitors satisfy the workflow;
+provenance never changes a decision; or review burden exceeds perceived value.
+
+Apply routes in this order to avoid post-hoc selection: standalone only if every
+standalone threshold above is met; otherwise integration if monitoring is used
+but a separate CLI is rejected; otherwise consulting if only the assurance user
+repeats use and decision evidence matters; otherwise pause. Mixed evidence is
+reported as inconclusive and does not satisfy the standalone route.
+
+The strongest standalone falsifier is a qualified participant completing the
+workflow and preferring changedetection.io or an existing generic monitor because
+reference discovery and provenance add no decision value.
+
+## Claims boundary
+
+- Demonstrated repository facts: local-only operation, no telemetry, periodic
+  execution, URL discovery, local baseline/diff, ledger and measured synthetic
+  harness results.
+- Externally supported threat facts: indirect prompt injection and security-alert
+  review burden exist in the cited scopes; neither proves SkillWatch demand.
+- Pilot hypotheses: partners value automatic reference discovery, diffs or
+  provenance enough to repeat use or change decisions.
+- Prohibited claims: production/commercial readiness, real-world detection rate,
+  demand, purchase intent, prevention, comprehensive coverage, or superiority to
+  generic monitors.

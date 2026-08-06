@@ -100,6 +100,10 @@ FIGURE_SURFACES = [
 HARNESS_COMMANDS = [
     [sys.executable, str(REPO_ROOT / "analysis" / "measure_efficacy.py")],
     [sys.executable, str(REPO_ROOT / "analysis" / "measure_base_rate.py")],
+    # The organic real-page result. This is the OFFLINE reporter over the committed
+    # DELTA-PASS.json artefact, never `run_delta_pass.py` itself: that one re-fetches
+    # 201 live URLs, which would make CI non-deterministic and hammer third parties.
+    [sys.executable, str(REPO_ROOT / "analysis" / "report_delta_pass.py")],
 ]
 
 # `6/37 (16.2%` — a fraction immediately followed by a parenthesised percentage.
@@ -167,6 +171,13 @@ class AllowedFigures(NamedTuple):
 MIN_PROPORTIONS_PER_COMMAND = {
     "measure_efficacy.py": 18,   # 3 corpora x (fp, fn, precision, recall) + families
     "measure_base_rate.py": 10,  # 10 techniques, plus exposure and delta rows
+    # Only the three summary proportions (re-fetch success, the text-change gate,
+    # and the overall organic rate) are structurally guaranteed. The per-flag-code
+    # rows are data: a code that fired on no page prints no row, so counting them
+    # into the floor would make a legitimately quieter result look like a broken
+    # parse. Floor derived the same way as the two above: current output (10) minus
+    # the rows that may legitimately vanish (7).
+    "report_delta_pass.py": 3,
 }
 
 
@@ -236,8 +247,17 @@ FAMILY_RECALL_OVERALL = "recall-overall"
 FAMILY_RECALL_EVASIVE = "recall-evasive"
 FAMILY_FP = "false-positive-rate"
 FAMILY_FN = "false-negative-rate"
+# The synthetic benign false-positive rate and the organic real-page one are
+# DIFFERENT metrics over different populations, and they disagree by roughly a
+# factor of three. Without this split both classify as FAMILY_FP, which makes them
+# interchangeable to the correspondence check, so publishing the flattering
+# synthetic figure under a real-page label would pass every rule. That is the most
+# consequential substitution available on this project's surfaces, and it is the
+# same shape as the evasive/overall recall split directly below.
+FAMILY_FP_ORGANIC = "false-positive-rate-organic"
 
 _EVASIVE_RE = re.compile(r"\bevasive\b", re.IGNORECASE)
+_ORGANIC_RE = re.compile(r"\borganic\b|\breal[\s-]?page\b|\bdelta\b", re.IGNORECASE)
 _RECALL_RE = re.compile(r"\brecall\b|\bcatch(?:es)?\b", re.IGNORECASE)
 _PRECISION_RE = re.compile(r"\bprecision\b", re.IGNORECASE)
 _FP_RE = re.compile(r"false[\s-]?positive|\bfp\b", re.IGNORECASE)
@@ -270,7 +290,7 @@ def classify_metric(context: str) -> str | None:
 
 def _classify_one(context: str) -> str | None:
     if _FP_RE.search(context):
-        return FAMILY_FP
+        return FAMILY_FP_ORGANIC if _ORGANIC_RE.search(context) else FAMILY_FP
     if _FN_RE.search(context):
         return FAMILY_FN
     if _PRECISION_RE.search(context):
