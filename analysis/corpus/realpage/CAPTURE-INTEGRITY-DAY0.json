@@ -1,0 +1,1019 @@
+{
+  "archive": "realpage-2026-08-06 raw HTML capture",
+  "archive_file": {
+    "name": "fetched_pages.json",
+    "sha256": "604b07affd729b19867f871e68b5d67d550c2219780fddd9d65f3a396c8e497c",
+    "bytes": 60371694
+  },
+  "file_count": 1,
+  "location": "/home/mkuziva/.skillwatch-archive/realpage-2026-08-06/fetched_pages.json",
+  "not_committed": "third-party HTML, deliberately outside the repository.",
+  "note": "One file, so the file-level manifest is one hash. The per-page hashes are the useful granularity: they localise a partial or corrupted copy to specific URLs rather than only detecting that something is wrong.",
+  "pages": 201,
+  "sha256": "604b07affd729b19867f871e68b5d67d550c2219780fddd9d65f3a396c8e497c",
+  "bytes": 60371694,
+  "per_page": {
+    "https://aistudio.google.com/apikey": {
+      "bytes": 1230822,
+      "content_hash": "f13630759b0665cc1ff6fbe6459c9a4cf2bc8750baf168e71fef9014ba6a98e6",
+      "raw_html_sha256": "8d5a0a263d5610913bf00a5ae1a04a784ab20a4c4c2b443050b5d68fa85aa25a"
+    },
+    "https://api.chub.ai/search?search=<query": {
+      "bytes": 55471,
+      "content_hash": "955a84620319cf810bf5db87778119a0da62f99199c4f6ccefcabae8d00f2301",
+      "raw_html_sha256": "f79235307dfa984a1f64ff2e026fa7e10d8e8031b991d2eb7497e47f874c8c8a"
+    },
+    "https://api.devnet.solana.com": {
+      "bytes": 1035,
+      "content_hash": "6393d61438c4a1f19343a9f151a8a6f847262acb1c3ab0fa4c53752c3c8d166d",
+      "raw_html_sha256": "0beef381a85f233aa33edc94851d9454e933ddff145bdb2e5e070e8e6fcc9fdf"
+    },
+    "https://aws.amazon.com/products/databases/": {
+      "bytes": 327335,
+      "content_hash": "8bdd56480cf6637ca2fc2057b41bd325af628fcbc156b28bd3273a8ccb57b1bf",
+      "raw_html_sha256": "3c71d578b6ef43142a19d419d16920794245673b50c7635578b5b176357399b8"
+    },
+    "https://bags.fm": {
+      "bytes": 54080,
+      "content_hash": "acbac82dd670e86fcb7068916b497b429685070316fe25ae8ee49171f087a064",
+      "raw_html_sha256": "3f4cf94527ec209d221c7dd53045a71ae94455f260786cd037bc8a3030e771d9"
+    },
+    "https://bags.fm/ABC123": {
+      "bytes": 52841,
+      "content_hash": "055c60d1bf2cac1bc958e66af1ebd068e994f989df0ca53d6228dbad3b2713df",
+      "raw_html_sha256": "80d0e2db2af4f8d6500141c737f27654515b32ccf9fefaee4f885b074c52b929"
+    },
+    "https://basescan.org/tx/{txId}`": {
+      "bytes": 65978,
+      "content_hash": "f4d4539bbb46eb9ac2bb62254bf6c9a9c178530f636e9aea5e65059a7674d14b",
+      "raw_html_sha256": "bbaeaa9dd812c93a898b65a5155107ba8f88e4c2640d49a407da26d76427d2de"
+    },
+    "https://bscscan.com/tx/{txId}`": {
+      "bytes": 70835,
+      "content_hash": "f4d4539bbb46eb9ac2bb62254bf6c9a9c178530f636e9aea5e65059a7674d14b",
+      "raw_html_sha256": "12b1431c78994a8c014764c86dcb0f194fed340c0a497913efcb81e4ebe67d52"
+    },
+    "https://bytesagain.com": {
+      "bytes": 72588,
+      "content_hash": "336cc30a03cdd78b9a8e9963908b0a4782c61d09f453b68cf4878f3594132dcf",
+      "raw_html_sha256": "379b6e6dbe3fe7650ba0bd7d92206d852447c8d19804431a19e8049ed33d8b3b"
+    },
+    "https://cdn.jsdelivr.net": {
+      "bytes": 48828,
+      "content_hash": "46ca4bb6c17a0d475549d1e6820c1074a61c0efbb975bfedf76fd40f6cdca817",
+      "raw_html_sha256": "b5f4e4672df158fb714fd02b77adab16b714b819f9443188a884442fd4c88f43"
+    },
+    "https://chub.ai/characters/": {
+      "bytes": 2247,
+      "content_hash": "b478e81c0eb0a2a0621528400ea108139618485f1490b08bd10ebac02111b9fa",
+      "raw_html_sha256": "ef8c5d799459eaa873e87b547eb3da8e1e2257bcd39810ad3115843f4149b674"
+    },
+    "https://click.palletsprojects.com/": {
+      "bytes": 15408,
+      "content_hash": "63897eb5440407b0f560b0cabdf40ac0ba58e395a76bdc3b2a96d1fd7645d969",
+      "raw_html_sha256": "832b601886840f318d05e11c6da20f62c656eec3a1182ac6dc761909f3ba067d"
+    },
+    "https://codeflow-five.vercel.app/": {
+      "bytes": 604928,
+      "content_hash": "3db02e16b7be3305ef5eb166a5b4ae4a5c9a63945bcbbd122aee649790b75f1b",
+      "raw_html_sha256": "33eb03686e7fe985962cb536a019394524b943028d24e8045436a1e5bfef0851"
+    },
+    "https://creditopt.ai": {
+      "bytes": 376706,
+      "content_hash": "0c82c207d731126c4b6d643e4f713b3f7ef141700568bfa9782a9edb8f69c811",
+      "raw_html_sha256": "a220505d83d965bea79ae36d50991eeec9a126eb34061225a38b203f9aeb5704"
+    },
+    "https://discord.gg/9aFDCvqPgt": {
+      "bytes": 24480,
+      "content_hash": "69eca09463a751c3ee7f6188f3583eb93a2ba4dcdfa2da29a68c53c6fb4bc954",
+      "raw_html_sha256": "cff91cd4f5d749048e76c2e6ed1540e5f21de64669071984598be919990457aa"
+    },
+    "https://discord.gg/secrets`": {
+      "bytes": 169649,
+      "content_hash": "401a7d526bd70ea2ed54333323189fed07aa39b1b8f78b67d23d1506f286a7a0",
+      "raw_html_sha256": "76720cbe6cbccdddb101507f9c5af826ccbc46c3dc8c33c1dde4742078d214f4"
+    },
+    "https://discourse.canceridc.dev/": {
+      "bytes": 149105,
+      "content_hash": "b357a330d401a7205a74348cb8922de462c0558292ec000e505e8fe3e1afb105",
+      "raw_html_sha256": "345a52488f19642a37c70b64531e6327acd23db1da339a4f2b3bb6ed5d2280f1"
+    },
+    "https://docs.anthropic.com/en/docs/test-and-evaluate/strengthen-guardrails/reduce-hallucinations": {
+      "bytes": 778968,
+      "content_hash": "e6b7df2a0a85c19ec78797c89ee2977976c7a8e2f1d3d32bd4b3445e03aec18c",
+      "raw_html_sha256": "d3553560085aca0b8031782b7b31c856ec17b524efa99f7156d0e8d05f15f6cf"
+    },
+    "https://docs.astral.sh/uv/getting-started/installation/": {
+      "bytes": 88236,
+      "content_hash": "d9a3470ccfdfa63d5c4e3fe5500125f8145a6c0c6558a1120c3ca13e78bf03b6",
+      "raw_html_sha256": "b12d8df48f35896657ab8dc816adc9d18b90ddda2b12b8fa682cc4335b4b5926"
+    },
+    "https://docs.rs/ratatui-themes": {
+      "bytes": 25453,
+      "content_hash": "fb1a4c2773a24bff1484e67247bd4901eec1ba1e3711a55eb17e2cb8022703b0",
+      "raw_html_sha256": "b3405bde22ab01ebadeef31d527e86fb0a1f2049c41a70f4b717abe5d86fe23b"
+    },
+    "https://docs.runcomfy.com/cli/auth?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 232407,
+      "content_hash": "2f1d540e29f7fbd4cea1f29090445683f00060f86f3b478911c99281c729b42f",
+      "raw_html_sha256": "fb7444dec5357ae438932e12ed385e5f388ba2d2acc91b2f353595df26c5ef13"
+    },
+    "https://docs.runcomfy.com/cli/commands?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 300656,
+      "content_hash": "01a9d1a87d404688723dd54393cada8756dbf69a4c0ef321ebd8f549932b721b",
+      "raw_html_sha256": "9c6847297040a264d5f6ce5fa6a20b08db4e521942d1d2dfc6abb68575fac78d"
+    },
+    "https://docs.runcomfy.com/cli/install?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 249937,
+      "content_hash": "a60388cfa285cb06300aa6d7fd2e56962369ce79b1df50d44efe6e9b289e9cbc",
+      "raw_html_sha256": "f1fb6036eb840680d399b2595a1865e470289ee848e5858de654a2cdd57acbd0"
+    },
+    "https://docs.runcomfy.com/cli/introduction?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 209200,
+      "content_hash": "06dad10598707931a3a3b2e69796fe76a414925a2d87a307d7c938d1bc48f4c1",
+      "raw_html_sha256": "c97c031632a072b95001d524d38e76bd0bc0159ab5125ea33c17a40b46ddac97"
+    },
+    "https://docs.runcomfy.com/cli/quickstart?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 225700,
+      "content_hash": "804228927c92e514555bbd534191f44ad5f9d7389be2ca801ee7aec1d77895dc",
+      "raw_html_sha256": "3f1033da56909b715e260bb4c69f2594470a53211a33e428698eafb044326011"
+    },
+    "https://docs.runcomfy.com/cli/troubleshooting?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 265674,
+      "content_hash": "56d9bf1d6b7bf652dd42c8df66b239d21dacc76748b5717d58da16c253f9b0c4",
+      "raw_html_sha256": "d5b8233c56d06c3fa86b43a0fb319aa756fbcc6431dc4d52f144a34064e2c481"
+    },
+    "https://etherscan.io/tx/{txId}`": {
+      "bytes": 78291,
+      "content_hash": "f4d4539bbb46eb9ac2bb62254bf6c9a9c178530f636e9aea5e65059a7674d14b",
+      "raw_html_sha256": "638952eab4a48cdcd73d003e32fa6ea925fc14dd88f99f4c3981e24e691a8840"
+    },
+    "https://example.com": {
+      "bytes": 559,
+      "content_hash": "2c449548824ba3e1537e581fa1e79269d4594ce1d8ca66d4678ee3316fa6f0a7",
+      "raw_html_sha256": "ff67a9d764d6a2367a187734e697f6a53217db9a21c101d410a113ca871a299d"
+    },
+    "https://ffmpeg.org/documentation.html": {
+      "bytes": 9842,
+      "content_hash": "4430474269e1df2b28d0a30a764f9cc29b320461b04dff57d382ffa871bfbee8",
+      "raw_html_sha256": "8fa994affe0424a9bb5dea7ef521696a50336c55ea60afea8aa654d1928f1b42"
+    },
+    "https://ffmpeg.org/ffmpeg-codecs.html": {
+      "bytes": 287130,
+      "content_hash": "fb8d1e99577d9a160df9052cb6f06f247f4f9a1f0535bfc862f0c0ec3f41d116",
+      "raw_html_sha256": "5e3dc8331f7b8a34f1bab68127989cd61758a24477062d54a768e8a2568764b1"
+    },
+    "https://gavlahh.substack.com/p/your-ai-has-an-attention-problem": {
+      "bytes": 208703,
+      "content_hash": "508b15d6e049677e44965de24c72786e8a6cab3f19e8d7cf8ca6b65a9617184a",
+      "raw_html_sha256": "8f9b0081a3ca72a462c75fc8c750aa8ce4a4f370dfa497196a86fcd1addc0639"
+    },
+    "https://getmembrane.com": {
+      "bytes": 445032,
+      "content_hash": "deae087647aea58e2952fbe619f116b91aff5022d5724ade5bfd717fbefb4274",
+      "raw_html_sha256": "d42a8891826621f9a5fce2a7d83397e907d59a26d0e88a2f420dc34acd639bea"
+    },
+    "https://github.com/24601/surreal-skills": {
+      "bytes": 466839,
+      "content_hash": "f1054a0c0dc1115d1bdde13b5352db9af1f44cadb73bf7c78df1e06e23ec26ea",
+      "raw_html_sha256": "75fad585202940861a627862dda1997ce13e1c39e6cb0fd3c7b067641f776c9f"
+    },
+    "https://github.com/AIEngineerX": {
+      "bytes": 225713,
+      "content_hash": "72e2dd50502c9a37aa452498a016be913242471ec90bbea9877fcd282595deaf",
+      "raw_html_sha256": "5d7fd23b536c967e1ffe85b111fe0c2425036f40fc992055a95ccef4c19de365"
+    },
+    "https://github.com/DavidHDev/vue-bits": {
+      "bytes": 322528,
+      "content_hash": "7aa004a158eeca5740fc4e02bb93b56d2e48e27e10f33c6db286665ad750af3b",
+      "raw_html_sha256": "c8588e7daf6b519653bf8f49b4a7d0494929ffdb1132772870c5cd75512d2b52"
+    },
+    "https://github.com/Dicklesworthstone/cass_memory_system.git": {
+      "bytes": 1316408,
+      "content_hash": "9e21e87131d3a6d18c7d025ed5d5051dae41aa4b9b1b7f24d4d0536b0a842289",
+      "raw_html_sha256": "15e09d78dbbcba06a86156a25992d66b1f2b3edb5c0c710060faa5698434bc58"
+    },
+    "https://github.com/Dicklesworthstone/coding_agent_session_search": {
+      "bytes": 1373353,
+      "content_hash": "68cc330dc22549f94dbe7b003d2495c972741894e599f2cbcc25eda1345cfa0a",
+      "raw_html_sha256": "7789edda1eb01d394e596870112ea58a277c56823258e8bc9e92661a03bb06cb"
+    },
+    "https://github.com/Goldentrii/AgentRecall-X": {
+      "bytes": 430776,
+      "content_hash": "2a68b979df681eba6a7955268c3f19596fe9d62bae2153034638bbdc87393ecc",
+      "raw_html_sha256": "fd926f74c1bd443579bcb80325a6beba59f299ce52c9b276b3e2222fb6102669"
+    },
+    "https://github.com/ImagingDataCommons/IDC-Tutorials": {
+      "bytes": 312522,
+      "content_hash": "e6c1b3c6cebf4be644c5b250d5d266c367bcaac252b8b6377f1fadedded34b30",
+      "raw_html_sha256": "4cf1300ee3bc79a22000e4cd9b00a8aabfa837946175037e167e0fb08c27735e"
+    },
+    "https://github.com/ImagingDataCommons/SlicerIDCBrowser": {
+      "bytes": 257525,
+      "content_hash": "8cd98adf1bbd43bddab3097104eb0f1e8a095dc399e189e1c97fa5e22c089878",
+      "raw_html_sha256": "25dbdd1e38057f4b62acbb1f6a77ddcf7d2e07e73dd63f437c7feea8b36b71c5"
+    },
+    "https://github.com/ImagingDataCommons/idc-index": {
+      "bytes": 322164,
+      "content_hash": "7f009fb0bae146d895d46c1bb57b0b830adac1bd590f41c4a051be56e4da0425",
+      "raw_html_sha256": "749cbd7d93a881e9fc4f9c3382f442b334c708980216ca69ce86ac5da78c1c3a"
+    },
+    "https://github.com/ImagingDataCommons/imaging-data-commons-skill": {
+      "bytes": 279422,
+      "content_hash": "e379a6f1c6d55b53b85ec4c6cb8713005bc6d1f7cdd22be0d8ae8c1ab4643b4f",
+      "raw_html_sha256": "539319d7709ab4605c208a4123f3788e0d112203205a5e8c536929481d988903"
+    },
+    "https://github.com/ImagingDataCommons/imaging-data-commons-skill/releases": {
+      "bytes": 453875,
+      "content_hash": "a60329faeddadcd57c1e7c6eea286e4120af6f6f9a84e0390ec0f4fb43a7996b",
+      "raw_html_sha256": "4192d28abe79989c41920eed9c1c726fd01e5be8337b37ddc10d7bcc8bea8533"
+    },
+    "https://github.com/PublicDotCom/claw-skill-public-dot-com": {
+      "bytes": 273320,
+      "content_hash": "4779f95670d24acb7308096c484a8225253b0c19b134c07a32a0d1a99d8efca6",
+      "raw_html_sha256": "419384024bcfb830f67ab55a83d23b36ef94e440816b4f32339d5e40d88332a6"
+    },
+    "https://github.com/Virus-Axel/godot-solana-sdk": {
+      "bytes": 352019,
+      "content_hash": "20b4244bd836b6efb542c4c8eb485e20cdd20f87c33d2e9ad24886514eef89cc",
+      "raw_html_sha256": "03331195b68bcace80f130bac795d25f45b5160fa884aba3eb17a0f20c1ac83a"
+    },
+    "https://github.com/Virus-Axel/godot-solana-sdk/releases": {
+      "bytes": 493117,
+      "content_hash": "dd58213a9a3db9353285c0efbc522f0d8814028edda4c4b4599543ed8949e52f",
+      "raw_html_sha256": "5ea4bd9442e305b2704b6660de8a4b6085e9edd352a04a38578d8d2bb2aad45d"
+    },
+    "https://github.com/Vivixiao980/xhs-cover-skill": {
+      "bytes": 319575,
+      "content_hash": "e4d76a77c5d332211b3c01283c67026e70bd0879067ec4a00c89e3e5db7ca098",
+      "raw_html_sha256": "0d70b3050fb0cd081ca9adc0b6e601c77cfe11f466015bb9d133e49cd763fcdb"
+    },
+    "https://github.com/akillness/jeo-skills": {
+      "bytes": 528786,
+      "content_hash": "e713aedb48403ed5cdc496d85d177ce13a89deaecf701f94768c65cedcc9607c",
+      "raw_html_sha256": "d2b1fa62f7ef0695ebd0b2ed8b96d56784e83e0a34f6c3c25151df4ae038da38"
+    },
+    "https://github.com/alirezarezvani/claude-skills": {
+      "bytes": 525910,
+      "content_hash": "96e59362af2e4c794bbd4da703896b926bec8753fdc0dc8d7b83990b0cb7ad6c",
+      "raw_html_sha256": "7368d5eb34e6f1c4834c1cdf1b5a186d3115acec0f95d9c9aa8100e99116f6a4"
+    },
+    "https://github.com/braedonsaunders/codeflow": {
+      "bytes": 423570,
+      "content_hash": "4dfc5fd266f3c658e1a7d02ef42aeedc2ae1137cd7eaf387d077f696e8b23389",
+      "raw_html_sha256": "73f80202d95408116970097f7858cf93d10ee0e12c93f513c57c3e6eebf1e483"
+    },
+    "https://github.com/braedonsaunders/codeflow.git": {
+      "bytes": 423571,
+      "content_hash": "4dfc5fd266f3c658e1a7d02ef42aeedc2ae1137cd7eaf387d077f696e8b23389",
+      "raw_html_sha256": "c6b3d55caa4533a74953e63830e5e88eb35509b1b0634ce1c753b7096e62eb58"
+    },
+    "https://github.com/braedonsaunders/codeflow/tree/main/card": {
+      "bytes": 276205,
+      "content_hash": "df91fdf3a55f400582983447603129158cb17d953de8b36f773307e96ace9c8f",
+      "raw_html_sha256": "43f027125b0754c29b4a5732aca88b1b07d9c31d37099562b86e494f2139791c"
+    },
+    "https://github.com/bytesagain/ai-skills": {
+      "bytes": 514013,
+      "content_hash": "2c38ec3eb15fc1c6d81f9e95e08d8e520a08b46e7b41598daa8191800cee7fd2",
+      "raw_html_sha256": "9e9a92c80fad8854133b582dd132585d73a73d3009377a87cc02ee1f269ac81d"
+    },
+    "https://github.com/clockless-org/html-anything": {
+      "bytes": 387785,
+      "content_hash": "80d86da8e960267c81fd918df60d3d49e46f28b0d4ccc69d4e0e2f68ef9d4778",
+      "raw_html_sha256": "8c12cb4d056f0f69cca606c1e1f5b72ffeefb6fc793f6b48ee0b16c8fc035b99"
+    },
+    "https://github.com/cloudflare/cloudflare-docs/issues/1234": {
+      "bytes": 257188,
+      "content_hash": "cf14801db44e4ea70329fb121488a27c2672be7a470611f2892fd2801535c29c",
+      "raw_html_sha256": "fb7439bcaf474698ac54e8f03b8687bfdb94c1bce6169164719408be2fe49ebc"
+    },
+    "https://github.com/coreyhaines31/marketingskills/blob/main/LICENSE": {
+      "bytes": 233113,
+      "content_hash": "d05ec07334b2656c5131622e1ef80861e63aca91dcb0b40559397897946a38b2",
+      "raw_html_sha256": "3601052595c10d915985f4eba5a2c8b2e923d88024f3b4e585c1f1dc57024be8"
+    },
+    "https://github.com/coreyhaines31/marketingskills/tree/main/skills/ab-testing": {
+      "bytes": 228105,
+      "content_hash": "a09198022387655fb78e5afb86e6eda0950ae431f0c2f1c6559914494c1d32e7",
+      "raw_html_sha256": "87920a217f9da76828a4fa602ec6bce89429418eed2edd14816d467191eda544"
+    },
+    "https://github.com/eze-is/web-access": {
+      "bytes": 300428,
+      "content_hash": "2bb55631bf7023e1a827d9babbaf15aa8cda9dbf6c51421b32fbdbea42dba46b",
+      "raw_html_sha256": "e2e3097019b64f3809d223282886770ca1e9f2de34201277a8bb97eb7689bcae"
+    },
+    "https://github.com/icodeface/wayback-archiver": {
+      "bytes": 389675,
+      "content_hash": "0c683070392eee7b69f8c80747fa41dc493ac105b34e5c0d9a7b5dd8dfd557b7",
+      "raw_html_sha256": "16529c114e43721d7f4652deed0280427f5d715305458f3c0f76250e666b0843"
+    },
+    "https://github.com/icodeface/wayback-archiver/releases": {
+      "bytes": 442449,
+      "content_hash": "7e5eec53ef61e897a03783d968a28d5487755a773d6924926b4733aff0f3493b",
+      "raw_html_sha256": "a9cdc5e52cd6fe9b1e9582c1592af15135c57fd3c8b7113cfed693ad44bc8a5a"
+    },
+    "https://github.com/imagingdatacommons/idc-index": {
+      "bytes": 322163,
+      "content_hash": "7f009fb0bae146d895d46c1bb57b0b830adac1bd590f41c4a051be56e4da0425",
+      "raw_html_sha256": "19ec144059a3dced4b10f8e833fbdfe71348bc9e15b3fb589c6a39e40b7c3f73"
+    },
+    "https://github.com/login": {
+      "bytes": 46939,
+      "content_hash": "9ecb66ced88e40ef2edd06fa590594480c8e62e3e8cc67dd68cdc81dcca14f3b",
+      "raw_html_sha256": "5dc2456cecf9ed9002516d5f36355278bb0d380cd7d6d1ab176838b062419318"
+    },
+    "https://github.com/lsmith77/traktor-kontrol-qml-files": {
+      "bytes": 247995,
+      "content_hash": "da362ccf903d09dff0e5f9ae65ba89276cdb456b1b79301b257f835f8a8770b2",
+      "raw_html_sha256": "30fd3e356dc03898ef95c0ec071c57f417eb4f6a4bf04c1ecd14ea4449f4598c"
+    },
+    "https://github.com/lsmith77/traktor-logger": {
+      "bytes": 384731,
+      "content_hash": "1770ed0a68c406a7c578de19aa701da4dcc95d3803dbb83dae42945e2f625526",
+      "raw_html_sha256": "28c207f7bd6672e21a186ed21c9923ad924de98ae5aecce905088b425ab0ec90"
+    },
+    "https://github.com/membranedev/application-skills": {
+      "bytes": 251900,
+      "content_hash": "94a01bb33b2eef0fc3b3e64da3961e3fa3787e0fe3509b0dfbcb3e30e078e13f",
+      "raw_html_sha256": "5ab7ff9a6ee5e1f5ec01652cc83bdfc233fcba3787f8d6dbf572cedeb5e35525"
+    },
+    "https://github.com/microprediction/precise": {
+      "bytes": 317372,
+      "content_hash": "23f60d6761b17bd0ad67b89e13a049fa8a15746e6edba26768967a3a70492016",
+      "raw_html_sha256": "6b1edbd4033b3b62eb78ff678ff8fb1c1e51ec50eb51a48af8d635e7d0679570"
+    },
+    "https://github.com/microprediction/precise/blob/main/.claude/skills/assess-covariance-method/SKILL.md": {
+      "bytes": 287907,
+      "content_hash": "a6157f01d5119e02fb317e74d283ff39e7f10d39f5524548768669ffd0f501d7",
+      "raw_html_sha256": "f8a4c0ce1ed22b0a6279588027988cef84609c9bd4cc988003f9e0abe5efbb49"
+    },
+    "https://github.com/microprediction/precise/blob/main/.claude/skills/estimate-online-covariance/SKILL.md": {
+      "bytes": 252837,
+      "content_hash": "0feda1377bd5c9c9c164bb1442f5264c460676b2192df9920dbefe55094e49bb",
+      "raw_html_sha256": "921fd8a84f85cb16a7fd9d3110c64ded5927ad4b0954c294fe5c8bbee9b753c9"
+    },
+    "https://github.com/microprediction/precise/blob/main/.claude/skills/keyed-dynamic-universe/SKILL.md": {
+      "bytes": 249457,
+      "content_hash": "e7d78b50ac7c0f8d1356d95347416eb07902a38e895bbd88780f8b70ea8467df",
+      "raw_html_sha256": "e077673bbbc1b1e434157a0035fc8750e447f2d8ef25584daea865c91316cc96"
+    },
+    "https://github.com/mobiusml/hqq": {
+      "bytes": 362324,
+      "content_hash": "0fa8623d40c6e795266a62124f1199fb493694b584369f9b4d2b5dd48eba03cf",
+      "raw_html_sha256": "51b856b57c176c949db0ed8a1270bbbad88c54274b500213480a77f22e7037e0"
+    },
+    "https://github.com/pallets/click": {
+      "bytes": 289734,
+      "content_hash": "a5d279ee65cd7a01642bd170e5372965f531937838d499c7f173371f6b5d1107",
+      "raw_html_sha256": "dcd60dadddd87c9b04b21f5cc17a92147170cb91417911ae00d03ba61b5ce189"
+    },
+    "https://github.com/peixl/ifq-design-skills": {
+      "bytes": 392718,
+      "content_hash": "da9a10140ed12a5ce62ad6a6a0c5ae3e3aa59e852d84593e1ac1c171a504f372",
+      "raw_html_sha256": "1d2bfa249eca4be82d25dc4ee587cd60af9d0e1e0904d223194bd169bf254a44"
+    },
+    "https://github.com/rafsilva85/manus-credit-optimizer": {
+      "bytes": 245931,
+      "content_hash": "cfce43e2734022f619658e2bfbd29045a6944bd6a412e3368ac56bdd58ddd0df",
+      "raw_html_sha256": "375c3ca90aff05be37d169c1ebd47e3695fe0228108baf8335e61553eca99711"
+    },
+    "https://github.com/ricardodantas/ratatui-themes": {
+      "bytes": 366819,
+      "content_hash": "4886cb25b16a23bf3e5286131b23158ae9735d3b02acb0a36a67a9939194defc",
+      "raw_html_sha256": "70775d2aa9996470c7f559bcb8f8f63a61879098a9b87cbc63405110dcc0a29f"
+    },
+    "https://github.com/risingwavelabs/box0.git": {
+      "bytes": 318834,
+      "content_hash": "a75c2613c22a08855646281a77733f5ea27360e937b22c182dceacc8290247f1",
+      "raw_html_sha256": "dda4adfc2913def8ca1384ed0597142cb48e86f90c57e50173012c0ca2ba949d"
+    },
+    "https://github.com/settings/tokens": {
+      "bytes": 47126,
+      "content_hash": "9ecb66ced88e40ef2edd06fa590594480c8e62e3e8cc67dd68cdc81dcca14f3b",
+      "raw_html_sha256": "dd5be8130f59346345802010adc3294ce4f96032515fec78e7240dead5c1ab4b"
+    },
+    "https://github.com/surrealdb/surrealdb": {
+      "bytes": 560968,
+      "content_hash": "380c87fc0b8cfed0df3793aaefead41ad143f9f7e463094f11ac1833f4ad1644",
+      "raw_html_sha256": "fbee53b9771ad1bded2a6afd5ca0cd61585da31d56debe81d05cba4d2895b9be"
+    },
+    "https://github.com/surrealdb/surrealdb.js": {
+      "bytes": 339601,
+      "content_hash": "16271e52c1d35144bfa43a853bbc38a6b6df25568d1c622724e128bc5ad70ed7",
+      "raw_html_sha256": "f634c3cdcf63e6ae9c603913a319d75c3f295678a92d80ff4f0284fdf0238da3"
+    },
+    "https://github.com/surrealdb/surrealdb.py": {
+      "bytes": 530447,
+      "content_hash": "15c5fb91787be5dbf2da058ce7b577058272f5ca3b19bc85eba451f1beb2e95c",
+      "raw_html_sha256": "b49fef136a941fe78921aa390a8f4ba6fda4cf031fe9cf7819c6b6d6d20a5f65"
+    },
+    "https://github.com/surrealdb/surrealist": {
+      "bytes": 380029,
+      "content_hash": "89ef4e48a8ee65109e7cea99a8fe64b2505442ac096149f30a50b4be08c359b4",
+      "raw_html_sha256": "1a7092c104be454629587102b8f01faa4dba251af277d4e9e11ffeed0dbe28b4"
+    },
+    "https://github.com/surrealdb/surrealkit": {
+      "bytes": 441167,
+      "content_hash": "6676bf76a2ffa5ea44a197e4f5f71fcf754e12b803a1e7c095dd8f0976be2053",
+      "raw_html_sha256": "1e4c6165a25e299c9ef16be847b613fd526000bf84e47151e04e76f1ed424a92"
+    },
+    "https://github.com/surrealdb/surrealmcp": {
+      "bytes": 238983,
+      "content_hash": "824cf86cd911a7b6e17f8bd6e8abf8a59291c3bbf1963d79662a4fe764f78df3",
+      "raw_html_sha256": "bc8de43372fde4f5cb0983f97ed8181769b71cfe0fd905abe83d507b8a519fc9"
+    },
+    "https://github.com/thatrebeccarae": {
+      "bytes": 205071,
+      "content_hash": "04855fdefa05e1e02c1308e12125993283e834c37d9f77edfed470f5c5ee7f7a",
+      "raw_html_sha256": "4023ca9e18739f92e703722ab4e5d67881e306fffa4d75e6d3ff91e52f571105"
+    },
+    "https://github.com/thatrebeccarae/claude-marketing.git": {
+      "bytes": 513808,
+      "content_hash": "ee66395279ec873466c14cc2854a446334bec33cbe0ad084b8fa5105301094fb",
+      "raw_html_sha256": "e5994b5d047cfae0ca6fab742748d927306812565446690e3e3f78c178b6a85d"
+    },
+    "https://github.com/xiongqi123123/LeafLink": {
+      "bytes": 373234,
+      "content_hash": "5951c3330a0e88ef0db573a76a429e2d28d5cc71434e7fd0ba2efc12579312b7",
+      "raw_html_sha256": "17ea888703861e4f6b3cd84e98866249b60da2462defe3f2ff2064c656175cb7"
+    },
+    "https://godotengine.org/asset-library/asset/3232": {
+      "bytes": 7070,
+      "content_hash": "caca7ee7ba87125d9f4a9506bdf96839f13f59e5a494c0069940571b452c0bfd",
+      "raw_html_sha256": "1b318555483315f4b2fcc1898d36c60562b45e784ce83090542289935a900f59"
+    },
+    "https://graphsignal.com/docs/integrations/dstack/": {
+      "bytes": 50207,
+      "content_hash": "c5434f92002234329b46fc1b2956ad9e687bba7de6f99d6d0dd5adb18fd2c3d3",
+      "raw_html_sha256": "4844550f5e0ea21f9bdc773db6b7853bc961e39b2e836d248d253fa6677b43cb"
+    },
+    "https://graphsignal.com/docs/integrations/sglang/": {
+      "bytes": 50220,
+      "content_hash": "0bd5bfb54abd85db9550aaecd048c066efcffc16843bd752a699a6e8f57f5e66",
+      "raw_html_sha256": "c3508df6df414526e683aee44633fda93d42e1ae3e8ce8bcbf1f6a5fb4845b8b"
+    },
+    "https://graphsignal.com/docs/integrations/vllm/": {
+      "bytes": 49154,
+      "content_hash": "a11b8ad96bf0c0dc1cb31ac2fb3507a9cb496c78cf33a78b48ebd2bebc5ae03a",
+      "raw_html_sha256": "44dbb8b0f4b2632aed90d17208e8a796a629a450cd2ccff62505ad102b66b318"
+    },
+    "https://graphsignal.com/docs/reference/profiler-api/": {
+      "bytes": 35401,
+      "content_hash": "9e26c791800a0ed2deb3d170823f889f64d4d238d5c4bd29544cd86b470b4441",
+      "raw_html_sha256": "6d0845c622be17d5267ed174d06ce4c04c57285bc5535ee71f2eb8b796b7591b"
+    },
+    "https://help.sendspark.com/en/": {
+      "bytes": 253175,
+      "content_hash": "53d52e782ed8c29d6f6231ca09939ba3fd16cfafbcd5841bece33e8c360143bb",
+      "raw_html_sha256": "9670ffd39e58fdfd71fc7a8f820ea8b9ebc1febe8f52a388921666360ba1a886"
+    },
+    "https://hhxg.top": {
+      "bytes": 216526,
+      "content_hash": "1b4b3ee3d04aa8e559bba9d9ce03a48da3cac9fbd94837df354402a4b4eb9313",
+      "raw_html_sha256": "d29f09f2ed1022ccf8010e0e3e9a3cd45dbe204029d7e029cfc6be2c2964cde0"
+    },
+    "https://hhxg.top/etf.html": {
+      "bytes": 149263,
+      "content_hash": "32b24051c8c5601281f84fb1e970094f85eac9ff24503171e168afe2446800ad",
+      "raw_html_sha256": "7ca06cff6d2cd310d9a6fd6fd7c635d0611a1b10defbf9191d75f01b01991305"
+    },
+    "https://huggingface.co/mobiuslabsgmbh": {
+      "bytes": 240109,
+      "content_hash": "f51c1dc1a1145a2549d4f46193490d0b265c9e3a97a3b6c7456aa0bd266857d0",
+      "raw_html_sha256": "eebfe9d5675156de31e48754f89971d4a92b75f8d3f5e38fd39513dd7f5fbe65"
+    },
+    "https://idc-index.readthedocs.io/en/latest/indices_reference.html": {
+      "bytes": 126133,
+      "content_hash": "6dcf4e05da474f71e709bcd36824a93caff3471ee3427b2f50c9fa91f475eb03",
+      "raw_html_sha256": "162771f2c0b3c848dbb01dd00810a4da96e2703031bfc03400997565a35dc8b4"
+    },
+    "https://kit.svelte.dev/docs/adapter-static": {
+      "bytes": 204403,
+      "content_hash": "1f986dff77c0699e8cc0cfac7b72fa185cd82b48dc40008e740dc6ccaadbd87e",
+      "raw_html_sha256": "39b1898a25e1dc6b403a68d4e97c1e3da10d9913e776eeec7f81214327d358f3"
+    },
+    "https://learn.canceridc.dev/": {
+      "bytes": 456271,
+      "content_hash": "1a0d3c3723ec588225db8579af99e32834fef03b19df3a37baa53000d348ae09",
+      "raw_html_sha256": "40f40bc6c780dae2ef05ee925461ae45e979b142fe7bb81202eed7a958f1c37a"
+    },
+    "https://moltbook.com": {
+      "bytes": 34546,
+      "content_hash": "aacbf18ebb74f5b381f36217a5c0a9fd69e9d88a135cca58d06a315a7cfc068c",
+      "raw_html_sha256": "a393639bb769fb7e834dc09bd728881f21be3f506e09685d67a6b3192134bacf"
+    },
+    "https://moltbook.com/u/Bagsy": {
+      "bytes": 21766,
+      "content_hash": "65d7cc637df6ce7969f23d4f84a985a4b03e1a59319f80b7d54f849736a7c0e1",
+      "raw_html_sha256": "8bf63f7c8da33a1c8f802e87633390663d3f3cecd84609b8ca823847a273e406"
+    },
+    "https://moltbook.com/u/ChadGhost": {
+      "bytes": 21826,
+      "content_hash": "7ab0920ad0088372b0ce250111d48f79ae2e424af72cf98c8a414d48ed0f68fc",
+      "raw_html_sha256": "0949ae127b2838fbe3c28306943551cdb76a617399807f053c066e9a48919580"
+    },
+    "https://mp.weixin.qq.com/s/ARTICLE_ID": {
+      "bytes": 31611,
+      "content_hash": "c19bb708cfd10762a4d557f824f1c38d623727f0f669de339d241c61973e1bf3",
+      "raw_html_sha256": "19950b8b97165a54422952ceda3c7a5acbac025160c212bfbb3b76add41d86a9"
+    },
+    "https://openrouter.ai/api/v1`": {
+      "bytes": 148127,
+      "content_hash": "0856fc8ee8079c56d0ec8aae37bc2e1616e526942a96a79b85abac2a8d6cb8fe",
+      "raw_html_sha256": "3e9997e527e131a2cccbef03741b1cc5c260e77f10a09ae3b8288d67f73a3c2a"
+    },
+    "https://opentelemetry.io/docs/specs/semconv/gen-ai/": {
+      "bytes": 172613,
+      "content_hash": "91f8c04866bb01b449a8b74a7f1458d4bfdce46d6bf71516df5e526370712725",
+      "raw_html_sha256": "cdca24702fbcec28f7ff4f9529f63b19f818945fceaf547eae94865c6fc8b5ed"
+    },
+    "https://owasp.org/www-project-top-10-for-large-language-model-applications/": {
+      "bytes": 43876,
+      "content_hash": "4b20786a93a209e95416b4aaf83e12a36fe45b67ce477eaa6865c5d189f950d7",
+      "raw_html_sha256": "8cdd7474e94608b624cb6f6a8b5c8e690bdb74e12e0f1126c23c10d7447fe035"
+    },
+    "https://owasp.org/www-project-web-security-testing-guide/stable/": {
+      "bytes": 96505,
+      "content_hash": "b889afc09c73c2b6bdae8b2686f63e7c06c920dea5bcd84dd05a3b8c0bb246e7",
+      "raw_html_sha256": "b9d213f563840ad079a93e3cca29f78475d9e3eb3fa0a2f5dd05f240338f83a8"
+    },
+    "https://pavics-weaver.readthedocs.io/en/latest/cli.html": {
+      "bytes": 522779,
+      "content_hash": "4240d91ad9e00382f99b6348f3fbc4731e933e80944c13e5d924e0ec08edf1c3",
+      "raw_html_sha256": "0539df213327a2aac03bab7d4d8910895ae9617a35a58401cb41b4f4ac8bc362"
+    },
+    "https://pavics-weaver.readthedocs.io/en/latest/processes.html": {
+      "bytes": 591198,
+      "content_hash": "59c98600aeb795f1ad1eb27aa3ab9ab2072de841a76e9add376e62aab54fe8e7",
+      "raw_html_sha256": "7bef0963768d44a2d0a09369cc64c57f0a5874776966c30f7893d01e809dc559"
+    },
+    "https://pavics-weaver.readthedocs.io/en/latest/processes.html#inputs-outputs": {
+      "bytes": 591198,
+      "content_hash": "59c98600aeb795f1ad1eb27aa3ab9ab2072de841a76e9add376e62aab54fe8e7",
+      "raw_html_sha256": "7bef0963768d44a2d0a09369cc64c57f0a5874776966c30f7893d01e809dc559"
+    },
+    "https://pawbytes.io/store?utm_source=agentic_marketing_suite&utm_medium=free_skill&utm_campaign=premium_playbooks&utm_content=paw-mkt-email": {
+      "bytes": 121946,
+      "content_hash": "0178d5c95c3a95c49d4ae0f35e90e0ad95c5b8f20b0b78960555bee32fbd0762",
+      "raw_html_sha256": "39afb0f20487ed6362efe5cd219c2736334a49498db327de2af5e41d0ab491bc"
+    },
+    "https://portal.imaging.datacommons.cancer.gov/": {
+      "bytes": 35661,
+      "content_hash": "7b1e559c615afac6efa1e1e84f618d718e4de1083e47f5c4f4216a687b81da04",
+      "raw_html_sha256": "683797d1a14e7141da62c093945280e9eed9983ee30a534ebb70c1a2fa15c4a7"
+    },
+    "https://portal.imaging.datacommons.cancer.gov/explore/": {
+      "bytes": 4494520,
+      "content_hash": "94d7154b60d04ba275fcf1772b1857419da5ca7605ca05597565f1fb1a7dc171",
+      "raw_html_sha256": "545d026f4942b0e6c4d7b4f63700ac095ac6ce5e53eeffa85a9887218fad1414"
+    },
+    "https://precise.microprediction.org": {
+      "bytes": 12563,
+      "content_hash": "42c564edf9753cc3021c5c0b85732be5f8232f30338d1090d72182541a4461ac",
+      "raw_html_sha256": "12fc1f81f27381ffd824ac78fe52141c92d9abe9c38853bf28423108daa0062c"
+    },
+    "https://precise.microprediction.org/papers/schur-likelihood/": {
+      "bytes": 30849,
+      "content_hash": "37946cf0088c6de6a65d85d2b04a11d000661e3bdd47cd47aa3839aa8b1f3db9",
+      "raw_html_sha256": "c042f2dc497bae4e1a2cfba9907928ca46be08ae9a09a8f49f6a2243e06abc3f"
+    },
+    "https://public.com/settings/v2/api": {
+      "bytes": 9365,
+      "content_hash": "727e8742308734232c0de03b23f5febf2c905377d6e23b31f032b54a3562dbe0",
+      "raw_html_sha256": "2bc84515f48a0652fbde9c2fccd990defc203a3b890af9beb342ddea7c708618"
+    },
+    "https://public.com/signup": {
+      "bytes": 31889,
+      "content_hash": "0c3e37f1d5cf6895fdec9f9f2f8d6084b1f5a02cf84b073e1c655f1e21ce6d0d",
+      "raw_html_sha256": "9af6a9324ce2de807765b27f2b0f9f7b274b12a1d1f5ef2998c3bbcdb547b3b0"
+    },
+    "https://pypi.org/project/precise/": {
+      "bytes": 115145,
+      "content_hash": "46990ff2f193f417d4b0585a10fb13c684e8c261e0245e38438839fd19d5249a",
+      "raw_html_sha256": "e794255135e4364f461562b0070290328e6f3686afef902f5f0ceaeaba7892b2"
+    },
+    "https://rafaamaral.gumroad.com/l/credit-optimizer-v5": {
+      "bytes": 37644,
+      "content_hash": "a9c6bd7629eac33e4d0c1ec3f42336444f591320d4c0aab71d3cdc2352c16c35",
+      "raw_html_sha256": "2c3dd9be517346dac7f9b8fa3859192b2373b42a3652cb33456da2c85de62e2a"
+    },
+    "https://raw.githubusercontent.com/Dicklesworthstone/cass_memory_system/main/install.sh": {
+      "bytes": 9067,
+      "content_hash": "e4eb90a7df6120f3eb382932fa8d9e377628c6883cdee02c88b69130ef8c7264",
+      "raw_html_sha256": "74ed38d0627faccd70b4afb76a341b89fddd2670ae96d3fa5e1565b94049dec3"
+    },
+    "https://raw.githubusercontent.com/Goldentrii/AgentRecall-X/main/warroom/install.html": {
+      "bytes": 24193,
+      "content_hash": "fa5d66b4ee9756237add34751a458cefd9c41b6c3c08735b40fd739db1062de1",
+      "raw_html_sha256": "d898649da517f7946eaa2f2294f509552d94421ab84c6d2a2f21d0c57fba894b"
+    },
+    "https://raw.githubusercontent.com/eddmann/strava-cli/main/install.sh": {
+      "bytes": 1793,
+      "content_hash": "bcc7982e099b6afece42d370a332e979ccde2224bafb0e3b9b9cdf06be59c003",
+      "raw_html_sha256": "c6c95458ebb4711492a7ffae51c392f95406242ae350c69c6711e8afd47fa2f1"
+    },
+    "https://refero.design": {
+      "bytes": 4515,
+      "content_hash": "bad42d045a795117274d1eeb661e87da757d67019c1e19b988511125f557fd7b",
+      "raw_html_sha256": "c91ceba56aa0a3953d21d0b9a6ed3781eb1899d96c347d987add107e70504ad0"
+    },
+    "https://rich.readthedocs.io/": {
+      "bytes": 23140,
+      "content_hash": "cba56b636900b72397c051d698b4ecb13f6d4f5fc457a0a0864330e8fca77d1a",
+      "raw_html_sha256": "420d068c64ec5a3cf0f89f95637cefee3920ed5e8174ba1155831d71286990ce"
+    },
+    "https://sendspark.com": {
+      "bytes": 73722,
+      "content_hash": "09eddf5a387dc2d9d03aa64d90467b9cfa6e85ad0a1b61041d58dee9cda91316",
+      "raw_html_sha256": "09744503738b725569c2b24583516f0e43f7114047e0d1c53fcf872e64a5c01b"
+    },
+    "https://surrealdb.com/docs": {
+      "bytes": 163424,
+      "content_hash": "5921819dd2b4868a04a27a39855dd08118e76ac466406979c84b603f4fe3e8bd",
+      "raw_html_sha256": "73ae2f72ad23416206f6f69330863367e89d82e2fd2b4513eb0af95f9bee1283"
+    },
+    "https://surrealdb.com/docs/surrealdb/installation": {
+      "bytes": 309153,
+      "content_hash": "7372d246d68a0fa12957d4ccb6667f9b1560100be0677309c64581d15433d812",
+      "raw_html_sha256": "25a5573cea4a25fb230b3caa2c18242720f0cc859e7f1adec1670810247be8ac"
+    },
+    "https://svelte.dev/docs/svelte-store": {
+      "bytes": 174296,
+      "content_hash": "0bbc3b89fdd39b65c8a4dfdb965c767635fa84f2f3a216143e963c9dc09608b8",
+      "raw_html_sha256": "eae4e66861897908e06c5167522b59206cd2ef7aafba61c8b3ce877d240f1674"
+    },
+    "https://svelte.dev/docs/svelte/what-are-runes": {
+      "bytes": 80901,
+      "content_hash": "c9a13cca3e50f2cacc928bbe629d0f3484db05ac7c71034eb664e36ae96c7a1c",
+      "raw_html_sha256": "9d27d0844edf46236cbbab7ca1ab347c676a1602cb549060a0db4a284ef5ddca"
+    },
+    "https://t.me/": {
+      "bytes": 19924,
+      "content_hash": "a215ffe94ac60cf1dcfcbaa3f2e07040ef34c27d0db6f63faa070004f5fcdd42",
+      "raw_html_sha256": "29f1dbd51384c76c7791be1b8804f1ce85126ab4f456890700286617f35aa704"
+    },
+    "https://trac.ffmpeg.org/wiki": {
+      "bytes": 4496,
+      "content_hash": "3dfc7aa6959236de0190d07d9b95ebf85e6d19081f8c9428c61ffe2a64fb7bbb",
+      "raw_html_sha256": "bd1ca5d038892e4dc5e3bebb91d17748c431ce9ad03129b714de901db14224e9"
+    },
+    "https://unpkg.com": {
+      "bytes": 41606,
+      "content_hash": "e7bc06186cfd41b35b8c07b3b01bf65512afc5008668f506b0c2b2db19a2fc11",
+      "raw_html_sha256": "85f5b3c4bcf3a1280311857a80f5ac4b6a777307def677502c15212cb088e10f"
+    },
+    "https://v.douyin.com/xxxxxxx/": {
+      "bytes": 72914,
+      "content_hash": "311e2a39806c1932fde3dd3f8c68d3eb5819be319f3dfb4e100265028df35ee5",
+      "raw_html_sha256": "9b56a6acdcb27eb620b5ee1ad870ad67964c70131b6fc31e8bd946b39c1e309e"
+    },
+    "https://vimeo.com/xkstudio": {
+      "bytes": 77892,
+      "content_hash": "13fb839810976b44381590976f9bdf6af27e2e82d7247b060e661c2508b2fe41",
+      "raw_html_sha256": "b0f214e4592379b933b8170e55d2104fa6af1259a96e9d54c9a8339e07a37419"
+    },
+    "https://washinmura.jp": {
+      "bytes": 2583461,
+      "content_hash": "28cee1a073b00c6aa594583a7efb668f19da084e49fe4cf1b7776f527c532c26",
+      "raw_html_sha256": "8cea0bc5cfc5d0dd1db1447f11a2bae500d311cb2686126ef3a5831e139105d0"
+    },
+    "https://www.behance.net/yokohara6e48": {
+      "bytes": 726274,
+      "content_hash": "99c3977b57b9bd685616953fd98cf419376129cd426d9ff011cd6656a5b4e04d",
+      "raw_html_sha256": "e69a6c0190cd25d8a768177fe20f79d8e17d2afffab67bea47c13ae26c8eb7da"
+    },
+    "https://www.doubao.com/chat/`": {
+      "bytes": 349263,
+      "content_hash": "0c5c30f2f0799688858034a81923d8f55527516253e233ba29e5b208828ded2a",
+      "raw_html_sha256": "f06da3442ca7e2bf66b332df395511792010ecb51f2ef49e7770322e019d4e01"
+    },
+    "https://www.douyin.com/jingxuan?modal_id=7655645985318085322": {
+      "bytes": 72914,
+      "content_hash": "311e2a39806c1932fde3dd3f8c68d3eb5819be319f3dfb4e100265028df35ee5",
+      "raw_html_sha256": "9b56a6acdcb27eb620b5ee1ad870ad67964c70131b6fc31e8bd946b39c1e309e"
+    },
+    "https://www.douyin.com/video/": {
+      "bytes": 72914,
+      "content_hash": "311e2a39806c1932fde3dd3f8c68d3eb5819be319f3dfb4e100265028df35ee5",
+      "raw_html_sha256": "9b56a6acdcb27eb620b5ee1ad870ad67964c70131b6fc31e8bd946b39c1e309e"
+    },
+    "https://www.douyin.com/video/7647145112421633320": {
+      "bytes": 72914,
+      "content_hash": "311e2a39806c1932fde3dd3f8c68d3eb5819be319f3dfb4e100265028df35ee5",
+      "raw_html_sha256": "9b56a6acdcb27eb620b5ee1ad870ad67964c70131b6fc31e8bd946b39c1e309e"
+    },
+    "https://www.douyin.com/video/7655645985318085322": {
+      "bytes": 72914,
+      "content_hash": "311e2a39806c1932fde3dd3f8c68d3eb5819be319f3dfb4e100265028df35ee5",
+      "raw_html_sha256": "9b56a6acdcb27eb620b5ee1ad870ad67964c70131b6fc31e8bd946b39c1e309e"
+    },
+    "https://www.evanmiller.org/ab-testing/sample-size.html": {
+      "bytes": 6608,
+      "content_hash": "0bb652948b5a8a9d31c27d0393a4ee8327478d87953b8023b7f7f1ffd4de57e3",
+      "raw_html_sha256": "0fb7d6c9b6b3450fdd81050111016219a520cd9fbfb74fd61c5a02081b32d62e"
+    },
+    "https://www.gesetze-im-internet.de/hgb/__89b.html": {
+      "bytes": 7210,
+      "content_hash": "ac55b48c7c5d222589773d13af35e808f1d2cf6ff5a1d60719976bb075e03707",
+      "raw_html_sha256": "fc5471b612f9ecde9bb5b8f5824bf7467b8e13ba8d70e4d1543f6382a06b0be4"
+    },
+    "https://www.gesetze-im-internet.de/zpo/__916.html": {
+      "bytes": 3875,
+      "content_hash": "31503987304e069fb41d95f718bfdce131920effce2714f2e2ee1442b8146345",
+      "raw_html_sha256": "93623b2d8e450d911930a6d1f274b1f8156f31a5d3ef794a04c15b6bfb1c557b"
+    },
+    "https://www.gesetze-im-internet.de/zpo/__935.html": {
+      "bytes": 3651,
+      "content_hash": "9420713c2c81b7a7ac090ff6ac4d3fa3b76a1f7055ac76ce14bb0eadf926a13d",
+      "raw_html_sha256": "1a3bf76f29a64b1ee19ade839334a9547248af22cfa83474abb40f10db99fea0"
+    },
+    "https://www.gesetze-im-internet.de/zpo/__945.html": {
+      "bytes": 3871,
+      "content_hash": "938fb9b723ab968d86e673659073bc37edcdf064679d1a51b26e8ad79d36f279",
+      "raw_html_sha256": "981a69ebf9608b5097e64d37364503f1dbdf4b1c3bf41eec0f73089a3df0d15c"
+    },
+    "https://www.goofish.com/item?id=\u5546\u54c1ID": {
+      "bytes": 10574,
+      "content_hash": "f35ad53bfbacb50ea33a79d90766ec0e94e92f8c161ce0c0ba419b1dc252ff6b",
+      "raw_html_sha256": "cfc3dacababcf9b36098dbf7df846fd1bef942627fb767ff334cc5afe9dd7c54"
+    },
+    "https://www.helius.dev": {
+      "bytes": 798663,
+      "content_hash": "9d001fe2fc341ec1c400f3f7b84ef69bf033ef2bd8b9d00cbe58210d4f57c1c4",
+      "raw_html_sha256": "1fc29ab3b7ac6768eb552ded3d2422fdec205ec419d4671536e1f3d5403b3ad6"
+    },
+    "https://www.optimizely.com/sample-size-calculator/": {
+      "bytes": 158338,
+      "content_hash": "adb895f2b09c63485c0e91f8a236851402da86a387c4d87138fd51941ba88d97",
+      "raw_html_sha256": "d54d7733a3779e4ac3d33d195c9097e86708e5ae8e70c32b7bca8ef674656204"
+    },
+    "https://www.runcomfy.com": {
+      "bytes": 257455,
+      "content_hash": "450bfabe2d39e47348199c93490c498d57adeca746145d953fa38971ab4410f7",
+      "raw_html_sha256": "304ce7a94fc9802092a15135567c207377d67e4f4fcb4dd177f31e18c8a5879a"
+    },
+    "https://www.runcomfy.com/?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 257791,
+      "content_hash": "450bfabe2d39e47348199c93490c498d57adeca746145d953fa38971ab4410f7",
+      "raw_html_sha256": "d03e70585369a246a347a5beb2b011243241153665f525df739b9a47e6bb3b35"
+    },
+    "https://www.runcomfy.com/models": {
+      "bytes": 414065,
+      "content_hash": "8686d5d63edcc3a87d71c54ab80651ddc2becd1314798930bad6e19fff9ce2ff",
+      "raw_html_sha256": "37b109510d4bf9933271459988f2f307c3353a90a34c276700ac926e65cf44ba"
+    },
+    "https://www.runcomfy.com/models/all?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 1545844,
+      "content_hash": "d5a683f9935cf30d38b11990f12501e564e69326ec24cd5616a40c28d0859780",
+      "raw_html_sha256": "b2e9cdf72f18b0642fef4c4715d20edfd72f9e7ae15cd5357f9a8bf2437ab3db"
+    },
+    "https://www.runcomfy.com/models/collections/flux-kontext?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 132271,
+      "content_hash": "d9f0e4a86ae6497d71a3c640b64aa34a0f6e7e0dc0a612613260283b0f35c65e",
+      "raw_html_sha256": "d0387f64a5bd92ebe34c9b7041a779d25e9c118b52529f9492586d4cc6418605"
+    },
+    "https://www.runcomfy.com/models/collections/hailuo?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 181877,
+      "content_hash": "3195cb379f834f167c0cd0e02b6db70e9420499a682639214ee02cd36fad68bc",
+      "raw_html_sha256": "4048e8b5e2f0624e2f24fc62ccabc39699d4622e41558bc7f0639c883e72678b"
+    },
+    "https://www.runcomfy.com/models/collections/kling?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 265485,
+      "content_hash": "4c8ab6d37d1f988d9debb22d90cbdf2595dd86238791b2d3529d051c9b2b23e0",
+      "raw_html_sha256": "222efc0feebd03acaa85a86ecb50136622714eead7c4e32b45b763af63073fbf"
+    },
+    "https://www.runcomfy.com/models/collections/nano-banana?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 148664,
+      "content_hash": "a49bcec4ce95db2c569d6fd37f9146ce3937c9339403029cfd9d006e25779991",
+      "raw_html_sha256": "049de017bcfad807248777a8b97003bb711d8fe3219d3de3a6449ed35ab8af8e"
+    },
+    "https://www.runcomfy.com/models/collections/qwen-image?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 171298,
+      "content_hash": "c46af526b70bf734492d0a27b1627c9ec34c0baf8a8a4dacd19e2ebffdaa7442",
+      "raw_html_sha256": "e78af18fd7599fbdb77ac294cc0176b477cfccd32875a9bec1fb8b61cb21b140"
+    },
+    "https://www.runcomfy.com/models/collections/recently-added?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 342162,
+      "content_hash": "72b9354d6afc620997f6e3c9a942c96653765d211a20cbc81f42d1e4e4dbc301",
+      "raw_html_sha256": "c22e92b522669fbd004708729b8ffa6f18dd19078eb04f18b86ac65b7ca13053"
+    },
+    "https://www.runcomfy.com/models/collections/seedance?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 186658,
+      "content_hash": "a00ee369be9c19547b6b4bd04bb94ba89b6b79320549271a6ce16e96b56be2f7",
+      "raw_html_sha256": "cb131a6bf00452ddacfa1fe01368a0118f27ceb61a20904b150b8c8642ffaafc"
+    },
+    "https://www.runcomfy.com/models/collections/seedream?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 154931,
+      "content_hash": "ad34f7a073ae336f1d250ca255abd81288be4d7ce9a0a9ca286a327a6419d7df",
+      "raw_html_sha256": "d4ba45674df3a4ceb781849fda70ce681bdd59ee1952edacfd8070723ed7a036"
+    },
+    "https://www.runcomfy.com/models/collections/veo-3?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 167821,
+      "content_hash": "ab6c971b4c21657b62cdc587ed205182229cf55705bc2f342b3c9c02941827f9",
+      "raw_html_sha256": "0d598278de085a36c4e3f0cb13b55f2bf6b0073604aae1e51866cf8950e143c6"
+    },
+    "https://www.runcomfy.com/models/collections/wan-models?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 235471,
+      "content_hash": "213d67d98ccfabf463676423762538e23d1ff0949e99882401b094b6f9f534dc",
+      "raw_html_sha256": "5031dc2f09ae8d94d6315245c8782978467e1ff76a3af750b23b7669d6be7c2c"
+    },
+    "https://www.runcomfy.com/models/feature/character-swap?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 129489,
+      "content_hash": "f69ffb8449bd6b42e0a19ef84702550446ca46695394c3451497c3b8ff1b2b3a",
+      "raw_html_sha256": "3f068e43a1b34a8e442f3853eae91d5149b8b8139a95706368f2dde39e5ac759"
+    },
+    "https://www.runcomfy.com/models/feature/lip-sync?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 131957,
+      "content_hash": "c65716265800e925dfb833c50738e267998168a615242e87624f346b9c4d8823",
+      "raw_html_sha256": "9179872c4f8537474ecb434fcab4f96fa6d832bfa8250206e709ff8d37ea10cb"
+    },
+    "https://www.runcomfy.com/models/feature/upscale-video?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 129375,
+      "content_hash": "f9cdbaf44c091159d5bc83746d461c7239b5ecdea985cb1eed6999d1e3281bf7",
+      "raw_html_sha256": "6ceb43bb42f6675e0aea98a292ea20aec157e5069d86e95406ef25ef7c3ffb9a"
+    },
+    "https://www.runcomfy.com/models?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli": {
+      "bytes": 414553,
+      "content_hash": "8686d5d63edcc3a87d71c54ab80651ddc2becd1314798930bad6e19fff9ce2ff",
+      "raw_html_sha256": "c72f08a12239d1f6aaab872e46b7eabbf1316d6fe0fcc9a3be37f47e5b0314ef"
+    },
+    "https://www.semanticscholar.org/product/api": {
+      "bytes": 38423,
+      "content_hash": "ef629717c7554fbec81226417ef9b35d379506801b19cf955219effe8f51d040",
+      "raw_html_sha256": "e44e94c49f3dee8af281fddfb7ee132609f55ebed7d97ef574d6ba9a3307fb33"
+    },
+    "https://www.skills.sh/agentspace-so/runcomfy-agent-skills/ai-avatar-video": {
+      "bytes": 102265,
+      "content_hash": "02f6a0191983398702bc8d2d369143b6515401a246d66920339a6c23e1816646",
+      "raw_html_sha256": "92c4065513d5a9f74ebb7107cca94d48b6a77b6abe1190fb0cb6b08f6058d179"
+    },
+    "https://www.skills.sh/agentspace-so/runcomfy-agent-skills/ai-image-generation": {
+      "bytes": 134889,
+      "content_hash": "d9ca8f5439e94f9207574f6f2653cda6f39191ff5742157a46ad137d2c8d8e13",
+      "raw_html_sha256": "8af74e0223e3c0de4280794fd093fcd338e6b97ddf54a923ff68976ddd548986"
+    },
+    "https://www.skills.sh/agentspace-so/runcomfy-agent-skills/ai-video-generation": {
+      "bytes": 120696,
+      "content_hash": "cc570ef4ed08a2fb8e21127f7d8824af1ae6d4564830dd942d5095fea6e2f009",
+      "raw_html_sha256": "f8cf1086b5c16f51a173eb278b9a64b0247c480e207d628b0941d363445aca48"
+    },
+    "https://www.skills.sh/agentspace-so/runcomfy-agent-skills/controlnet-pose": {
+      "bytes": 89896,
+      "content_hash": "454b832cf9f3311673d7b42682d8f4413bf90410844dbb6f900fbf59671e20f5",
+      "raw_html_sha256": "d1a9bffd7e4c6cd9f8bef93072a76026328ae342d9669cf3a12f02c743354433"
+    },
+    "https://www.skills.sh/agentspace-so/runcomfy-agent-skills/face-swap": {
+      "bytes": 105100,
+      "content_hash": "4817254633e75d5700ec997865c5cb5f95f20181ec5d22305d9e868f583dcba7",
+      "raw_html_sha256": "00f85cd5fa58dab68553f71077a8456483a158b84a55e122af6ad383b6b88f3b"
+    },
+    "https://www.skills.sh/agentspace-so/runcomfy-agent-skills/image-edit": {
+      "bytes": 103485,
+      "content_hash": "45c7341d39a7320202c47f0150e98803cd893e97d7432816c4a48f5974e9a5e5",
+      "raw_html_sha256": "e094df7a53f6a4c5fb561e18d340901913c58fd7f82b0cbe33053efd8dc9f529"
+    },
+    "https://www.skills.sh/agentspace-so/runcomfy-agent-skills/image-inpainting": {
+      "bytes": 92465,
+      "content_hash": "dc45da24629527a4331662ec4129e653d1100f91d3bb1591b9889ad78ecbf29e",
+      "raw_html_sha256": "6c1faba4a5d14c76d3d3d24c07b1ca108160b20e1dac128bcd3d30b987bd0298"
+    },
+    "https://www.skills.sh/agentspace-so/runcomfy-agent-skills/image-outpainting": {
+      "bytes": 90742,
+      "content_hash": "76b252234c4356e7785434d63b2040f98a4294f6ad87e2f6d687a56e74ced724",
+      "raw_html_sha256": "1bed3dc39860e946528fb9cd31b058a55c2315e5866fc1e96aa8a1f948457e10"
+    },
+    "https://www.skills.sh/agentspace-so/runcomfy-agent-skills/image-to-video": {
+      "bytes": 96820,
+      "content_hash": "fa10ead33e885a5533b23b4e676fcc59aac0375640e9cdeec3f5f5ae790dbefd",
+      "raw_html_sha256": "27e57aae8d4ed70031fa2ac31757c559c7fcc929d1e223a9a7666214baafbe74"
+    },
+    "https://www.skills.sh/agentspace-so/runcomfy-agent-skills/lipsync": {
+      "bytes": 94068,
+      "content_hash": "f1505498b60cc4ea2bba1405379ac9e4f2973b1f3823d65a9bd78b3ee9a943f2",
+      "raw_html_sha256": "6f5e058724f2e4d64dafcab8d9303ad5fcde9079c362277d978dfb24c1d87ad4"
+    },
+    "https://www.skills.sh/agentspace-so/runcomfy-agent-skills/relight": {
+      "bytes": 88491,
+      "content_hash": "c7a47ee1b2f94472fc30d7b930bae0e0c1b0475aafa7dc980aa5b6e3956ae623",
+      "raw_html_sha256": "f6699d705593bffbe93319ec702aa870de18fa8a27b7676aa067022bacb79065"
+    },
+    "https://www.skills.sh/agentspace-so/runcomfy-agent-skills/video-edit": {
+      "bytes": 96552,
+      "content_hash": "d9be5d0741757d7457410b204710c72aa7d40263ed03582c28304ce437c87569",
+      "raw_html_sha256": "9700e825fc9dac34e6d8bbbd96267db4a8423b8bedf942b7fe2b6e9d7e8d680d"
+    },
+    "https://www.skills.sh/agentspace-so/runcomfy-agent-skills/video-extend": {
+      "bytes": 86291,
+      "content_hash": "be86b783befe39533227b167dd3d8a02be1497a1bb436b36e85736a23acffbc5",
+      "raw_html_sha256": "b75acdcb857e7aafdf2e2a4895de916d1b80e7285593a896158785000344d435"
+    },
+    "https://www.tampermonkey.net/": {
+      "bytes": 22041,
+      "content_hash": "349470ee6e1ae3313aee7a4f722e216ecca05420b3dc76c9729814fd9078d806",
+      "raw_html_sha256": "612e2d709ff33c1ad12f7c26523e580816b49eaa51d90166ff78a7d118461aa7"
+    },
+    "https://www.xxyy.io": {
+      "bytes": 5178,
+      "content_hash": "0c771f80618963da63bb33b1942c163616574f24b3fda7421eee52fccd3e694e",
+      "raw_html_sha256": "d27b3bf8bbb2bd861dd211a3730e9d1721db5320935ee56ff6c5ca7e1be5c289"
+    },
+    "https://www.xxyy.io/apikey": {
+      "bytes": 5178,
+      "content_hash": "0c771f80618963da63bb33b1942c163616574f24b3fda7421eee52fccd3e694e",
+      "raw_html_sha256": "d27b3bf8bbb2bd861dd211a3730e9d1721db5320935ee56ff6c5ca7e1be5c289"
+    },
+    "https://www.xxyy.io/wallet/manager?chainId={chain}": {
+      "bytes": 5178,
+      "content_hash": "0c771f80618963da63bb33b1942c163616574f24b3fda7421eee52fccd3e694e",
+      "raw_html_sha256": "d27b3bf8bbb2bd861dd211a3730e9d1721db5320935ee56ff6c5ca7e1be5c289"
+    },
+    "https://www.youtube.com/@MatthewEncina": {
+      "bytes": 1725939,
+      "content_hash": "e55ff2de3bf91e12452510a30d3a381d7775117370538707bf8d6d637a106002",
+      "raw_html_sha256": "0fd7911d06b77c0503d96608ed67dd4e252c79e19a65cc121e531fb85e7948a6"
+    },
+    "https://www.youtube.com/watch?v=n1E9IZfvGMA": {
+      "bytes": 1493783,
+      "content_hash": "b4da81e139e3db1ac9691caa9584f05109fb8632fdac97d8913dd28f0cbefc73",
+      "raw_html_sha256": "09b7128add24e880f428c0ca16da702f42674dc9103822d2070072ccf644596a"
+    },
+    "https://www.zhihu.com/": {
+      "bytes": 44576,
+      "content_hash": "806372e2d76b6348e95ca02256ca3838edd0a5a344f517d32cc8da48f5ca58c8",
+      "raw_html_sha256": "fa119f974fce70f7a4f56d8427fdbf2067f51d2289b3e44fbaab697197343a1b"
+    },
+    "https://x.com/": {
+      "bytes": 34342,
+      "content_hash": "78667eaee6ee9b1bb2ea2130d31aecf3ece7d97785df5bb8ad2fbd586bb305db",
+      "raw_html_sha256": "5b14f718af3085c7a2b5668f594dead6480eaf8ab9d0d480828fbfa12b9babff"
+    },
+    "https://x.com/KingJing001": {
+      "bytes": 202642,
+      "content_hash": "a1145c0b27106386f814e6ac4ecc83ffc0c4e6a37ff5123f18ab755dd3799067",
+      "raw_html_sha256": "64ab42d63475e6586efbe111325429bc06d45443ffd8df459b92ed22c1554433"
+    },
+    "https://x.com/i/bookmarks": {
+      "bytes": 272302,
+      "content_hash": "bff06bcf89ebcb47dee74d380411560af09ef355af28ba6eae64c76d1b89b70a",
+      "raw_html_sha256": "cba04684e4fd5b8ec6269accc65733f33992a7b1ef77ec1590fd7560fdf57ccb"
+    },
+    "https://x.com/i/lists/1234567890\\n\\n\ud83d\udca1": {
+      "bytes": 272302,
+      "content_hash": "bff06bcf89ebcb47dee74d380411560af09ef355af28ba6eae64c76d1b89b70a",
+      "raw_html_sha256": "039a32e2315e3b7cb8794ac240925c890d95756cce310c70e77d6af075e8704e"
+    },
+    "https://x.com/i/lists/2021198996157710621": {
+      "bytes": 272302,
+      "content_hash": "bff06bcf89ebcb47dee74d380411560af09ef355af28ba6eae64c76d1b89b70a",
+      "raw_html_sha256": "5aec98d90eee65107f6a9dff74a1f83e381367085f54e6411ea42d0c1c9373aa"
+    },
+    "https://x.com/i/lists/xxx": {
+      "bytes": 272302,
+      "content_hash": "bff06bcf89ebcb47dee74d380411560af09ef355af28ba6eae64c76d1b89b70a",
+      "raw_html_sha256": "c7535a673bf3757c39cf60f23fda170c9c9c5f0d7c447cce5e29039d6a656a52"
+    },
+    "https://x.com/op7418/status/2022721414462374031": {
+      "bytes": 406769,
+      "content_hash": "08ca0a2e1177dcf01d4932b9c6a1f19e588d28d95405b134b8240520ef0dcea9",
+      "raw_html_sha256": "2f2eed8db73c9cb5e6eb5838533f8f2430680d9788071fa2246ee3e0a967c872"
+    },
+    "https://xhscover.vivi.wiki": {
+      "bytes": 476,
+      "content_hash": "f701f95f2cd0ca3991acaa309ec798bd107912548b327be06a5e0e13c09b9d70",
+      "raw_html_sha256": "952b5bead76a40d005655de5565b3636f0d9c67aa5fa7ff5775ee47641d7ace3"
+    },
+    "https://xxyy.io": {
+      "bytes": 5178,
+      "content_hash": "0c771f80618963da63bb33b1942c163616574f24b3fda7421eee52fccd3e694e",
+      "raw_html_sha256": "d27b3bf8bbb2bd861dd211a3730e9d1721db5320935ee56ff6c5ca7e1be5c289"
+    },
+    "https://youtube.com/watch?v=": {
+      "bytes": 908554,
+      "content_hash": "b4da81e139e3db1ac9691caa9584f05109fb8632fdac97d8913dd28f0cbefc73",
+      "raw_html_sha256": "19636fd3ab5f4d9f53a41d9a78b48ab437e84cb0e2e66f800f792d42bef42f83"
+    },
+    "https://zenwiki.gitbook.io/solana-godot-sdk-docs": {
+      "bytes": 329018,
+      "content_hash": "367ddf436854983b0ea4c8bddd0707641975daf2eb6d2e86a2c7124cea5e3bcb",
+      "raw_html_sha256": "23d61acfa39bf417ed0ac42ff44873013bfa6bd79ab3356518fe849ca9a0175d"
+    }
+  },
+  "copies": [
+    {
+      "path": "/home/mkuziva/.skillwatch-archive/realpage-2026-08-06/fetched_pages.json",
+      "role": "primary"
+    },
+    {
+      "path": "/mnt/d/skillwatch-archive/realpage-2026-08-06/fetched_pages.json",
+      "role": "copy"
+    },
+    {
+      "path": "/mnt/c/Users/mkuzi/skillwatch-archive/realpage-2026-08-06/fetched_pages.json",
+      "role": "copy"
+    }
+  ],
+  "why": "Day-0 for the K3 seven day measurement. Without it the next measurement would run against the 2026-07-29 baseline and produce a fourteen day or longer interval, not comparable with the 47.4% seven day result.",
+  "independence": "PARTIAL, and the limit is physical, exactly as recorded for the 2026-07-29 archive. All copies share one physical disk on this machine.",
+  "verify_with": "python3 analysis/capture_day0.py --verify"
+}
