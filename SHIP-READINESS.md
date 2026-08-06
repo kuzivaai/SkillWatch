@@ -27,8 +27,9 @@ passes a gate.
 
 **Verdict: HOLD.** Condition 2 not demonstrated; Condition 5 fail.
 Condition 2 evidence: 6/37 (16.2%), 95% Wilson interval [7.7%, 31.1%]. This lower-is-better gate uses the upper bound.
+Organic real-page false-positive rate: 18/38 (47.4%), 95% Wilson interval [32.5%, 62.7%] against a 30% gate: fail. Condition 2's figure is the synthetic corpus; this one is measured on real pages and is what transfers to deployment.
 Zero users is the binding commercial constraint, distinct from the unresolved condition 2 evidence gate.
-Organic delta evidence: pending. Private pilot: permissible_evidence_gathering. General commercial readiness: not_demonstrated.
+Organic delta evidence: complete. Private pilot: permissible_evidence_gathering. General commercial readiness: not_demonstrated.
 <!-- readiness:end -->
 
 ## Current `hidden_content` boundary

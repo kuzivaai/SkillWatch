@@ -92,9 +92,9 @@ with `git ls-files 'scripts/*.py'` rather than counting by hand; which of them a
 gates is recorded in the gate table below, and `tests/test_gate_table.py` fails if
 a new one is added without being classified.
 
-Six tracked modules under `analysis/`: `build_realpage_corpus.py`,
+Seven tracked modules under `analysis/`: `build_realpage_corpus.py`,
 `make_baseline.py`, `measure_base_rate.py`, `measure_efficacy.py`,
-`run_delta_pass.py`, `verify_capture.py`. The efficacy harness is
+`report_delta_pass.py`, `run_delta_pass.py`, `verify_capture.py`. The efficacy harness is
 `analysis/measure_efficacy.py`; the rest of `analysis/` except `corpus/` and these
 tracked modules is gitignored.
 
@@ -507,7 +507,12 @@ floor auditor: opting out is a written declaration with a reason.
 - `analysis/run_delta_pass.py`: a measurement harness. Its date guard was observed
   refusing on 2026-07-30 (`exit=3`, *"REFUSING: today is 2026-07-30; this pass is
   scheduled for 2026-08-05 or later"*), but a scheduling guard is not a gate on the
-  repository's correctness.
+  repository's correctness. **It ran on 2026-08-05**; the result is
+  `analysis/corpus/realpage/DELTA-PASS.json`.
+- `analysis/report_delta_pass.py`: the offline reporter over that artefact, and a
+  harness command in `figure_rules.py`. Its stdout is part of the reference set the
+  figure gate checks against, which makes it the subject of a gate rather than one,
+  the same reasoning as `measure_efficacy.py` above. It reports; it measures nothing.
 <!-- gate-table:not-a-gate-end -->
 
 ### The facts in this file are claims too

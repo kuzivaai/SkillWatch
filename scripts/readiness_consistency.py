@@ -16,6 +16,7 @@ STATUS_PATH = ROOT / "docs" / "readiness-status.json"
 SHIP_PATH = ROOT / "SHIP-READINESS.md"
 LEDGER_PATH = ROOT / "OPEN-ITEMS.md"
 HANDOVER_POINTER_PATH = ROOT / "docs" / "current-handover.txt"
+DELTA_PASS_PATH = ROOT / "analysis" / "corpus" / "realpage" / "DELTA-PASS.json"
 CURRENT_OPEN = "<!-- readiness:current -->"
 CURRENT_CLOSE = "<!-- readiness:end -->"
 VALID_STATUSES = {"pass", "fail", "not_demonstrated", "pending"}
@@ -53,6 +54,19 @@ def load_status() -> dict[str, Any]:
     return cast(dict[str, Any], json.loads(STATUS_PATH.read_text(encoding="utf-8")))
 
 
+def organic_observed() -> tuple[int, int] | None:
+    """Return (flagged, gate_open) from the delta pass artefact, or None if absent.
+
+    Derived from the artefact rather than declared, for the same reason the figure
+    gate parses the harness's own stdout: a second hand-maintained copy of a number
+    is free to drift from the first, and the stale copy still looks authoritative.
+    """
+    if not DELTA_PASS_PATH.is_file():
+        return None
+    data = json.loads(DELTA_PASS_PATH.read_text(encoding="utf-8"))
+    return int(data["flagged"]), int(data["gate_open"])
+
+
 def harness_metrics() -> dict[str, tuple[int, int]]:
     result = subprocess.run(
         [sys.executable, str(ROOT / "analysis" / "measure_efficacy.py")],
@@ -75,6 +89,59 @@ def harness_metrics() -> dict[str, tuple[int, int]]:
             raise AssertionError(f"harness did not emit {name}")
         metrics[name] = (int(match.group(1)), int(match.group(2)))
     return metrics
+
+
+def organic_errors(status: dict[str, Any]) -> list[str]:
+    """Check the declared organic result against the artefact and its own arithmetic.
+
+    Condition 2 is bound to the SYNTHETIC efficacy harness and, by construction, can
+    only ever render `pass` or `not_demonstrated`. A Wilson bound that misses a gate
+    cannot distinguish "too few trials to say" from "decided, against us". The organic
+    real-page rate needs that third outcome, because it is the figure that transfers
+    to deployment and it can be refuted outright: when the whole 95% interval sits on
+    the wrong side of the gate, no larger sample rescues it.
+
+    So the three statuses here are `pass` (upper bound meets the gate), `fail` (lower
+    bound exceeds it: refuted, not merely undemonstrated) and `not_demonstrated`
+    (the interval straddles the gate).
+    """
+    observed = organic_observed()
+    declared = status.get("organic_delta_result")
+    errors: list[str] = []
+    if observed is None:
+        if declared is not None:
+            errors.append("organic_delta_result is declared but no result artefact exists")
+        return errors
+    if declared is None:
+        errors.append("a delta pass artefact exists but organic_delta_result is not declared")
+        return errors
+    claimed = (int(declared["successes"]), int(declared["trials"]))
+    if claimed != observed:
+        errors.append(
+            f"organic_delta_result claims {claimed}, artefact records {observed}"
+        )
+        return errors
+    if declared.get("direction") != "lower_is_better":
+        errors.append(
+            f"organic_delta_result direction {declared.get('direction')} conflicts with "
+            "the organic false-positive rate, which is lower-is-better"
+        )
+        return errors
+    low, high = wilson_interval(*claimed)
+    threshold = float(declared["threshold"])
+    if high <= threshold:
+        expected = "pass"
+    elif low > threshold:
+        expected = "fail"
+    else:
+        expected = "not_demonstrated"
+    if declared.get("status") != expected:
+        errors.append(
+            f"organic_delta_result status {declared.get('status')} conflicts with the "
+            f"95% Wilson interval [{low:.3f}, {high:.3f}] and threshold {threshold:.3f}: "
+            f"expected {expected}"
+        )
+    return errors
 
 
 def condition_map(status: dict[str, Any]) -> dict[int, dict[str, Any]]:
@@ -164,6 +231,7 @@ def validate_status(status: dict[str, Any], metrics: dict[str, tuple[int, int]])
     delta_complete = (ROOT / "analysis" / "corpus" / "realpage" / "DELTA-PASS.json").is_file()
     if (status["organic_delta"] == "complete") != delta_complete:
         errors.append("organic delta status must agree with the registered result artefact")
+    errors.extend(organic_errors(status))
 
     for number, item in conditions.items():
         if item.get("basis") != "wilson_bound":
@@ -221,6 +289,18 @@ def render_current(status: dict[str, Any], metrics: dict[str, tuple[int, int]]) 
             f"Condition {item['id']} evidence: {k}/{n} ({k / n:.1%}), 95% Wilson interval "
             f"[{low:.1%}, {high:.1%}]. This {str(item['direction']).replace('_', '-')} "
             f"gate uses the {bound_name} bound."
+        )
+    organic = status.get("organic_delta_result")
+    if organic:
+        k, n = int(organic["successes"]), int(organic["trials"])
+        low, high = wilson_interval(k, n)
+        evidence_lines.append(
+            f"Organic real-page false-positive rate: {k}/{n} ({k / n:.1%}), 95% Wilson "
+            f"interval [{low:.1%}, {high:.1%}] against a "
+            f"{float(organic['threshold']):.0%} gate: "
+            f"{str(organic['status']).replace('_', ' ')}. Condition 2's figure is the "
+            f"synthetic corpus; this one is measured on real pages and is what "
+            f"transfers to deployment."
         )
     lines.extend(
         [

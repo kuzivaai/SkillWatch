@@ -1,0 +1,214 @@
+{
+  "ran": "2026-08-05",
+  "baseline_captured": "2026-07-29",
+  "urls": 201,
+  "refetched_ok": 197,
+  "gate_open": 38,
+  "flagged": 18,
+  "by_code": {
+    "suspicious_script": 11,
+    "credential_reference": 3,
+    "new_domains": 2,
+    "new_exec_command": 3,
+    "new_base64": 2,
+    "major_deletion": 1,
+    "hidden_content": 3
+  },
+  "per_page": [
+    {
+      "url": "https://basescan.org/tx/{txId}`",
+      "flags": [
+        "suspicious_script"
+      ]
+    },
+    {
+      "url": "https://bscscan.com/tx/{txId}`",
+      "flags": [
+        "suspicious_script"
+      ]
+    },
+    {
+      "url": "https://bytesagain.com",
+      "flags": []
+    },
+    {
+      "url": "https://codeflow-five.vercel.app/",
+      "flags": [
+        "suspicious_script"
+      ]
+    },
+    {
+      "url": "https://discourse.canceridc.dev/",
+      "flags": []
+    },
+    {
+      "url": "https://etherscan.io/tx/{txId}`",
+      "flags": [
+        "suspicious_script"
+      ]
+    },
+    {
+      "url": "https://ffmpeg.org/ffmpeg-codecs.html",
+      "flags": []
+    },
+    {
+      "url": "https://github.com/Dicklesworthstone/coding_agent_session_search",
+      "flags": [
+        "credential_reference"
+      ]
+    },
+    {
+      "url": "https://github.com/ImagingDataCommons/imaging-data-commons-skill/releases",
+      "flags": [
+        "new_domains",
+        "new_exec_command"
+      ]
+    },
+    {
+      "url": "https://github.com/akillness/jeo-skills",
+      "flags": [
+        "credential_reference"
+      ]
+    },
+    {
+      "url": "https://github.com/alirezarezvani/claude-skills",
+      "flags": []
+    },
+    {
+      "url": "https://github.com/braedonsaunders/codeflow",
+      "flags": [
+        "new_base64",
+        "new_exec_command",
+        "suspicious_script"
+      ]
+    },
+    {
+      "url": "https://github.com/braedonsaunders/codeflow.git",
+      "flags": [
+        "new_base64",
+        "new_exec_command",
+        "suspicious_script"
+      ]
+    },
+    {
+      "url": "https://github.com/braedonsaunders/codeflow/tree/main/card",
+      "flags": []
+    },
+    {
+      "url": "https://github.com/coreyhaines31/marketingskills/blob/main/LICENSE",
+      "flags": []
+    },
+    {
+      "url": "https://github.com/coreyhaines31/marketingskills/tree/main/skills/ab-testing",
+      "flags": [
+        "credential_reference"
+      ]
+    },
+    {
+      "url": "https://github.com/ricardodantas/ratatui-themes",
+      "flags": []
+    },
+    {
+      "url": "https://github.com/surrealdb/surrealmcp",
+      "flags": [
+        "major_deletion"
+      ]
+    },
+    {
+      "url": "https://hhxg.top",
+      "flags": [
+        "hidden_content"
+      ]
+    },
+    {
+      "url": "https://hhxg.top/etf.html",
+      "flags": [
+        "suspicious_script"
+      ]
+    },
+    {
+      "url": "https://learn.canceridc.dev/",
+      "flags": [
+        "hidden_content",
+        "suspicious_script"
+      ]
+    },
+    {
+      "url": "https://owasp.org/www-project-top-10-for-large-language-model-applications/",
+      "flags": []
+    },
+    {
+      "url": "https://rafaamaral.gumroad.com/l/credit-optimizer-v5",
+      "flags": []
+    },
+    {
+      "url": "https://refero.design",
+      "flags": []
+    },
+    {
+      "url": "https://vimeo.com/xkstudio",
+      "flags": [
+        "suspicious_script"
+      ]
+    },
+    {
+      "url": "https://washinmura.jp",
+      "flags": []
+    },
+    {
+      "url": "https://www.behance.net/yokohara6e48",
+      "flags": [
+        "hidden_content",
+        "suspicious_script"
+      ]
+    },
+    {
+      "url": "https://www.doubao.com/chat/`",
+      "flags": [
+        "suspicious_script"
+      ]
+    },
+    {
+      "url": "https://www.runcomfy.com",
+      "flags": []
+    },
+    {
+      "url": "https://www.runcomfy.com/?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli",
+      "flags": []
+    },
+    {
+      "url": "https://www.runcomfy.com/models",
+      "flags": []
+    },
+    {
+      "url": "https://www.runcomfy.com/models/all?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli",
+      "flags": []
+    },
+    {
+      "url": "https://www.runcomfy.com/models/collections/hailuo?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli",
+      "flags": []
+    },
+    {
+      "url": "https://www.runcomfy.com/models/collections/recently-added?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli",
+      "flags": []
+    },
+    {
+      "url": "https://www.runcomfy.com/models/collections/seedance?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli",
+      "flags": []
+    },
+    {
+      "url": "https://www.runcomfy.com/models?utm_source=skills.sh&utm_medium=skill&utm_campaign=runcomfy-cli",
+      "flags": []
+    },
+    {
+      "url": "https://x.com/KingJing001",
+      "flags": [
+        "new_domains"
+      ]
+    },
+    {
+      "url": "https://x.com/op7418/status/2022721414462374031",
+      "flags": []
+    }
+  ]
+}
