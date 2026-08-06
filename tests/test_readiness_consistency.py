@@ -147,7 +147,12 @@ def test_current_metadata_fields_reject_arbitrary_or_stale_values() -> None:
     )
 
     status = readiness_consistency.load_status()
-    status["organic_delta"] = "complete"
+    # Flip the field away from whatever the artefact currently justifies. This was
+    # pinned to "complete", which was only the wrong spelling while no artefact
+    # existed; the 2026-08-05 delta pass wrote one, and the pinned value silently
+    # became the correct answer, so the assertion tested nothing.
+    artefact_exists = readiness_consistency.DELTA_PASS_PATH.is_file()
+    status["organic_delta"] = "pending" if artefact_exists else "complete"
     assert (
         "organic delta status must agree with the registered result artefact"
         in readiness_consistency.validate_status(status, metrics)
@@ -172,4 +177,10 @@ def test_ledger_review_date_cannot_predate_item_history() -> None:
     assert readiness_consistency.ledger_section_errors(ledger) == []
     stale = re.sub(r"(\*\*Last reviewed:\*\* )\d{4}-\d{2}-\d{2}", r"\g<1>2026-07-31", ledger)
     errors = readiness_consistency.ledger_section_errors(stale)
-    assert "ledger Last reviewed 2026-07-31 predates item history 2026-08-01" in errors
+    # The latest recorded item date is DERIVED, not pinned. It moves whenever an item
+    # is raised or closed, so pinning it made this test fail for the 2026-08-05 delta
+    # pass rather than for a regression in the rule it is meant to protect.
+    prefix = "ledger Last reviewed 2026-07-31 predates item history "
+    matching = [error for error in errors if error.startswith(prefix)]
+    assert matching, errors
+    assert matching[0][len(prefix):] > "2026-07-31"

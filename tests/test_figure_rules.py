@@ -238,15 +238,16 @@ class TestTheFloorIsDerivedNotPicked:
         # The case that would fail a global check on healthy output: each command
         # meets its own minimum, eight proportions overlap, so the deduplicated set
         # is 20 — below a global floor of 28.
-        from pathlib import Path as _P
+        # Every command meets its own minimum exactly. DERIVED from the minimums
+        # rather than listing commands by index: the indexed version silently
+        # omitted report_delta_pass.py when it was registered on 2026-08-05, and the
+        # test then failed inside the fail-closed branch for a missing command
+        # instead of testing the floor, which is the opposite of what it asserts.
         overlapping = figure_rules.AllowedFigures(
             pairs={(i, 100) for i in range(20)}, raw=allowed.raw,
             labels=allowed.labels,
-            per_command={
-                _P(figure_rules.HARNESS_COMMANDS[0][-1]).name: 18,
-                _P(figure_rules.HARNESS_COMMANDS[1][-1]).name: 10,
-            })
-        # Must NOT raise: 18 >= 18 and 10 >= 10, both minimums met.
+            per_command=dict(figure_rules.MIN_PROPORTIONS_PER_COMMAND))
+        # Must NOT raise: every command sits exactly on its own minimum.
         figure_rules.find_figure_violations("no figures here", allowed=overlapping)
 
     def test_every_harness_command_has_an_expectation(self):

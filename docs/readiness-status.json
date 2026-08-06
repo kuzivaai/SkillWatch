@@ -1,10 +1,22 @@
 {
   "schema_version": 1,
-  "evaluated_at": "2026-07-31",
+  "evaluated_at": "2026-08-05",
   "verdict": "HOLD",
   "commercial_constraint": "zero_users",
   "readiness_gate": "condition_2",
-  "organic_delta": "pending",
+  "organic_delta": "complete",
+  "organic_delta_result": {
+    "metric": "organic_real_page_false_positive_rate",
+    "direction": "lower_is_better",
+    "successes": 18,
+    "trials": 38,
+    "threshold": 0.30,
+    "status": "fail",
+    "measured_on": "2026-08-05",
+    "baseline_captured": "2026-07-29",
+    "source": "analysis/corpus/realpage/DELTA-PASS.json",
+    "summary": "Measured on 201 real pages re-fetched seven days after the baseline. The whole 95% Wilson interval [32.5%, 62.7%] sits above the 30% gate, so this is refuted rather than undemonstrated: a larger sample does not rescue it. The synthetic corpus estimated 16.2%; the real-page rate is roughly three times that."
+  },
   "pilot_status": "permissible_evidence_gathering",
   "general_commercial_readiness": "not_demonstrated",
   "conditions": [
