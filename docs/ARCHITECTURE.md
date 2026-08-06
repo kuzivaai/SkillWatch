@@ -30,6 +30,15 @@ Input (SKILL.md / MCP config / URL list)
 | `detector.py` | Rule-based detection on diffs/HTML + plain-language flag explanations | bs4 |
 | `sarif.py` | SARIF 2.1.0 output for GitHub Code Scanning | (stdlib) |
 | `formatter.py` | Terminal output with colours and summary tables | (stdlib) |
+| `ledger.py` | Append-only hash-chained record, chain verification | hashlib (stdlib) |
+| `anchoring.py` | RFC 3161 external timestamping of the ledger head | rfc3161-client, cryptography (optional `anchor` extra) |
+| `cloak.py` | Cloaking detection across fetch strategies | requests |
+| `__init__.py` | Version declaration | (none) |
+
+Thirteen modules, which is the count `git ls-files 'skillwatch/*.py'` returns.
+`tests/test_public_document_currency.py` derives it the same way and fails if this
+table stops matching. The table listed nine until 2026-08-06, omitting `ledger.py`,
+`anchoring.py`, `cloak.py` and `__init__.py`, because nothing checked it.
 
 ## Key Decisions
 
@@ -45,42 +54,25 @@ Input (SKILL.md / MCP config / URL list)
 
 ## SQLite Schema
 
-```sql
-CREATE TABLE IF NOT EXISTS urls (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    url TEXT UNIQUE NOT NULL,
-    source_type TEXT NOT NULL,  -- 'skill_md', 'mcp_config', 'manual'
-    source_path TEXT,
-    added_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
+Seven tables, which is the count of `CREATE TABLE IF NOT EXISTS` statements under
+`skillwatch/`. The full DDL is not reproduced here. It used to be, for three of the
+seven, and the copy went stale: a schema pasted into prose is a second copy of a
+fact, free to drift from the first, and this one did. The source of truth is the
+`SCHEMA` constant in `skillwatch/store.py`.
 
-CREATE TABLE IF NOT EXISTS snapshots (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    url_id INTEGER NOT NULL REFERENCES urls(id),
-    fetched_at TEXT NOT NULL DEFAULT (datetime('now')),
-    content_hash TEXT NOT NULL,
-    content_text TEXT,
-    raw_html TEXT,
-    raw_html_hash TEXT,
-    status_code INTEGER,
-    error TEXT
-);
+| Table | Holds | Defined in |
+|---|---|---|
+| `urls` | Each monitored URL, its source type and source path | `store.py` |
+| `snapshots` | Fetched text and raw HTML per observation, capped at 50 per URL for disk | `store.py` |
+| `alerts` | A detected change, its diff, flag codes, severity and reviewed state | `store.py` |
+| `sources` | Each skill file or config, its content hash and extracted URLs, so drift in the definition itself is visible | `store.py` |
+| `ledger` | Append-only hash-chained record of what each URL served and when. Never pruned, so the tamper-evident history outlives pruned snapshots | `store.py`, verified by `ledger.py` |
+| `anchors` | External attestations of a ledger head, including an RFC 3161 token in `proof` | `store.py`, written by `anchoring.py` |
+| `flag_feedback` | Local accept or reject decisions per flag code and content fingerprint | `store.py` |
 
-CREATE TABLE IF NOT EXISTS alerts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    url_id INTEGER NOT NULL REFERENCES urls(id),
-    detected_at TEXT NOT NULL DEFAULT (datetime('now')),
-    prev_snapshot_id INTEGER REFERENCES snapshots(id),
-    new_snapshot_id INTEGER REFERENCES snapshots(id),
-    diff_text TEXT,
-    flags TEXT,  -- JSON array: ["new_script_tag", "download_command", ...]
-    severity TEXT NOT NULL DEFAULT 'info',  -- 'info', 'warning', 'critical'
-    reviewed INTEGER NOT NULL DEFAULT 0
-);
-
-CREATE INDEX IF NOT EXISTS idx_snapshots_url ON snapshots(url_id, fetched_at DESC);
-CREATE INDEX IF NOT EXISTS idx_alerts_url ON alerts(url_id, detected_at DESC);
-```
+`tests/test_public_document_currency.py` derives the table count from the source and
+fails if this table stops matching. This section documented three tables until
+2026-08-06, omitting `sources`, `ledger`, `anchors` and `flag_feedback`.
 
 ## CLI Interface
 
@@ -109,4 +101,11 @@ skillwatch alert <alert-id>
 
 ## Configuration
 
-All settings are controlled via CLI flags (`--db`, `--delay`, `--timeout`, `--quiet`). There is no config file in v0.1.
+All settings are controlled via CLI flags (`--db`, `--delay`, `--timeout`, `--quiet`).
+There is no config file. This sentence read "no config file in v0.1" until 2026-08-06,
+which had been carried unchanged through 0.2.0, 0.3.0, 0.4.0 and 0.4.1. Version
+literals are not repeated in this document for that reason; `pyproject.toml` declares
+the version and `tests/test_claude_md_currency.py` checks it.
+
+The `## CLI Interface` section above is illustrative, not exhaustive. There are 15
+subcommands; it shows the common ones. `skillwatch --help` is authoritative.
