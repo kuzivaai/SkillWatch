@@ -1,5 +1,12 @@
 # SkillWatch business and operations handover
 
+> **SUPERSEDED:** This file is not the designated current handover.
+> `docs/current-handover.txt` designates `HANDOVER-PILOT-READINESS-2026-08-01.md`,
+> which is the authoritative continuation. What is preserved here is this file's
+> own scope (the commercial and operations dossier) and not readiness authority:
+> current readiness values are derived from `docs/readiness-status.json` and
+> rendered in `SHIP-READINESS.md`, never from narrative prose here.
+
 **Date:** 2026-08-01
 
 **Audience:** a maintainer or reviewer with no session memory.
