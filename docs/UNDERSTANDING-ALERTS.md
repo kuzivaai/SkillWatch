@@ -6,7 +6,9 @@ piece of advice: **what to do**. This guide explains each flag in ordinary words
 and how to decide whether a change is a real problem.
 
 > **The honest limit.** SkillWatch cannot tell you for certain that a change is an
-> attack. In testing, roughly **1 in 5 alerts is a false alarm**. It points you at
+> attack. The synthetic evaluation and its uncertainty are reported in
+> `SHIP-READINESS.md`; they do not predict the proportion of false alarms in a
+> participant's live stream. SkillWatch points you at
 > what changed and why it might matter; the judgement is still yours. If you are not
 > sure, treat the change as suspicious until you have checked it.
 

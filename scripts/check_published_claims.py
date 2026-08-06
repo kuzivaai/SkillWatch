@@ -12,12 +12,22 @@ the live page stays stale until you release, and you cannot release until the
 live page is not stale. Run it on a schedule or after a release. Never as a
 precondition for one.
 
-It answers two questions:
+It answers three questions:
 
 1. Do the shared claim rules fire against the live long description?
 2. Does the live text diverge from `README.md` at HEAD in any claim-bearing
    region — i.e. has a correction been made in the repository that users cannot
    yet see?
+3. Does `CLAUDE.md`'s statement of what PyPI serves match what PyPI actually
+   serves?
+
+Question 3 is here rather than in the test suite for the same reason this whole
+script is separate from the gate. `CLAUDE.md` briefs every session, and on
+2026-07-30 it asserted *"PyPI serves 0.3.0 (2026-07-11)"* while PyPI had served
+0.4.1 since 2026-07-29. Only the live index can settle that, and only a release
+can make the claim true again — so it is a finding, never a precondition for
+releasing. The *other* half of that sentence, what this repository declares, is
+checkable offline and is asserted by `tests/test_claude_md_currency.py` instead.
 
 A non-zero exit means "the published page does not match what this repository
 says", which is the normal state between correcting a claim and releasing it. It
@@ -39,6 +49,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -87,6 +98,21 @@ CLAIM_MARKERS = (
     "does not catch",
     "base-rate",
 )
+
+
+# CLAUDE.md's claim about what is published, in the exact form the test suite
+# requires it to be written. A claim written in prose that nothing parses is a
+# claim nothing can check, which is how the previous one stayed wrong for a day.
+CLAUDE_PYPI_CLAIM_RE = re.compile(r"PyPI serves (\d+\.\d+\.\d+) \((\d{4}-\d{2}-\d{2})\)")
+
+
+def claude_md_pypi_claim() -> tuple[str, str] | None:
+    """The version and check-date CLAUDE.md claims PyPI serves, or None."""
+    path = REPO_ROOT / "CLAUDE.md"
+    if not path.exists():
+        return None
+    match = CLAUDE_PYPI_CLAIM_RE.search(path.read_text(encoding="utf-8"))
+    return (match.group(1), match.group(2)) if match else None
 
 
 def fetch_live_description(package: str) -> tuple[str, str]:
@@ -140,14 +166,30 @@ def main() -> int:
     else:
         drift.append("README.md missing from the repository — drift not computed")
 
+    claim = claude_md_pypi_claim()
+    stale_claims: list[str] = []
+    if claim is None:
+        stale_claims.append(
+            "CLAUDE.md carries no parseable 'PyPI serves X.Y.Z (YYYY-MM-DD)' claim, "
+            "so its currency cannot be checked at all"
+        )
+    elif claim[0] != version:
+        stale_claims.append(
+            f"CLAUDE.md says PyPI serves {claim[0]} (checked {claim[1]}); PyPI "
+            f"actually serves {version}. CLAUDE.md briefs every session, so a wrong "
+            f"version there is a wrong premise for all of them."
+        )
+
     if args.json:
         print(
             json.dumps(
                 {
                     "package": args.package,
                     "live_version": version,
+                    "claude_md_claim": list(claim) if claim else None,
                     "violations": [v._asdict() for v in violations],
                     "drift": drift,
+                    "stale_claims": stale_claims,
                 },
                 indent=2,
             )
@@ -167,8 +209,18 @@ def main() -> int:
             )
         else:
             print("No claim-marker drift between HEAD and the live page.")
+        print()
+        if stale_claims:
+            print(f"{len(stale_claims)} stale claim(s) in CLAUDE.md:")
+            for entry in stale_claims:
+                print(f"  {entry}")
+        else:
+            print(
+                f"CLAUDE.md's published-version claim matches the live index "
+                f"({claim[0] if claim else '?'})."
+            )
 
-    return 1 if (violations or drift) else 0
+    return 1 if (violations or drift or stale_claims) else 0
 
 
 if __name__ == "__main__":

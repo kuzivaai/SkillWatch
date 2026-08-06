@@ -46,6 +46,21 @@ analysis/*
 # which is committed evidence the scheduled delta pass reads. An untracked
 # generator of a committed artefact is the shape of items 24 and 34.
 !analysis/make_baseline.py
+# The capture verifier, tracked 2026-07-30. It is the thing that FAILS when the
+# irreplaceable 2026-07-29 capture is missing or has rotted, and both
+# run_delta_pass.py and make_baseline.py import it before loading those bytes. An
+# untracked verifier is no verifier: it would exist on one machine, which is the
+# same single-point-of-failure shape as the capture it protects (ledger item 55).
+!analysis/verify_capture.py
+# The offline reporter over DELTA-PASS.json, tracked 2026-08-05. It is a harness
+# command in scripts/figure_rules.py: an untracked harness means CI cannot
+# establish what the current organic figures are, and figure_rules fails closed
+# on a harness command it cannot run. Same reasoning as verify_capture.py above:
+# a gate input that lives on one machine is not a gate input.
+!analysis/report_delta_pass.py
+# Dated session evidence logs are permanent handover inputs. Re-include them so
+# a session cutoff cannot leave the only evidence in an ignored local file.
+!analysis/session-log-*.md
 # DELTA-REHEARSAL.json is deliberately NOT re-included. It is a zero-change
 # delta produced by feeding one snapshot in as both sides, so it is not a
 # measurement. Committing it would put a figure in the repository that a
@@ -57,6 +72,11 @@ DECISION.md
 AUDIT-REPORT.md
 .handover.md
 .moat-handover.md
+
+# Generated in CI by the security job: the resolved dependency set that
+# pip-audit --strict audits. Regenerated every run; committing it would be a
+# second copy of the resolution, free to drift from the real one.
+requirements-audit.txt
 
 # Generated overview docs with local filesystem paths
 docs/skillwatch-overview.js

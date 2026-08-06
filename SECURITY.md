@@ -14,18 +14,37 @@ For issues involving the SSRF protection, DNS pinning, or escape sequence stripp
 
 ## Supported versions
 
-Only the latest release is supported with security fixes.
+Only the latest published release is supported with security fixes.
 
 | Version | Supported |
 |---------|-----------|
-| 0.2.x   | Yes       |
-| < 0.2   | No        |
+| Latest published release | Yes |
+| Any earlier release | No |
+
+The table deliberately names **no version literal**. It read `0.2.x | Yes` from
+2026-07-02 until 2026-08-06, through the 0.3.0, 0.4.0 and 0.4.1 releases, so it
+told a reporter that a series three releases out of date was the supported one,
+while the sentence above it said only the latest was. A second copy of a fact is
+free to drift from the first, and the stale copy still looks authoritative. The
+current release is what `pyproject.toml` declares and what PyPI serves; both are
+checked, offline by `tests/test_claude_md_currency.py` and against the live index
+by `scripts/check_published_claims.py`.
 
 ---
 
 ## Security Evidence Register
 
 Last updated: 2026-07-02. Commit: 9f79b1e (code fixes applied same date).
+
+> **This register is a DATED SNAPSHOT, not a current statement.** Everything below
+> describes the repository as it stood on 2026-07-02 and is preserved as evidence of
+> what was found and fixed then. Do not read any version number in it as current. The
+> dependency table in particular lists `cryptography 44.0.3`, which was the resolved
+> transitive version on that date; the declared floor is now higher, and
+> `pyproject.toml` plus `scripts/audit_dependency_floors.py` are authoritative for it.
+> Whether this register should be refreshed or left as a dated record is an open
+> maintainer decision, carried in ledger item 84. It is labelled rather than silently
+> updated because rewriting a dated evidence record in place destroys the evidence.
 
 ### SEC-001: User-Supplied Regex ReDoS (FIXED)
 
