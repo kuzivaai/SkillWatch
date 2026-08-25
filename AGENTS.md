@@ -10,13 +10,13 @@ not use ignored local handovers as an authority source.
 The branch `feat/archive-durability-and-strict-audit` contains five reconciled
 commits above `origin/main`:
 
-1. `852fd72` — capture absence/corruption verification, durable copy registry,
+1. `b40dd4e` — capture absence/corruption verification, durable copy registry,
    derived mypy scope, and strict resolved-dependency auditing.
-2. `17ab8f1` — continuity-ledger closures and corrected dependency-floor history.
-3. `fe66903` — observed-red security control, complete gate accounting, and
+2. `86e3a84` — continuity-ledger closures and corrected dependency-floor history.
+3. `614fa5e` — observed-red security control, complete gate accounting, and
    mechanically checked onboarding facts.
-4. `fd4f4a9` — workflow behavior/trigger digests and drift enforcement.
-5. `4b366c5` — observed-red build control and demonstrated load-bearing
+4. `bc4ae39` — workflow behavior/trigger digests and drift enforcement.
+5. `8ddc49c` — observed-red build control and demonstrated load-bearing
    `pip-audit --strict` behavior.
 
 An independent adversarial review on 2026-07-31 received only the five-commit
@@ -35,10 +35,10 @@ tested against production PyPI without explicit maintainer authority.
 
 The subsequent push-readiness pass added four focused local commits:
 
-1. `ed3ee71` — make dated session evidence logs trackable.
-2. `fa748d4` — persist the repository, PR #34, and remote baseline.
-3. `86f77ff` — reconcile ledger items 22 and 60 and add continuity tests.
-4. `55c067d` — close two further MEDIUM adversarial findings by proving existing
+1. `e617b2a` — make dated session evidence logs trackable.
+2. `8769ea7` — persist the repository, PR #34, and remote baseline.
+3. `563071d` — reconcile ledger items 22 and 60 and add continuity tests.
+4. `7f1016f` — close two further MEDIUM adversarial findings by proving existing
    logs are tracked and encoding the `22 -> 60` supersession structurally.
 
 The second independent review received only the session diff, committed test

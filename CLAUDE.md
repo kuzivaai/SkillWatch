@@ -261,7 +261,7 @@ command's *own parse* is compared against its *own* minimum. Their sum is never
 compared against anything.
 
 This sentence previously said "the floor is their sum." That was wrong as of commit
-`6c6ab21` and is corrected here on 2026-07-30. Two reasons the sum cannot be a
+`3571fad` and is corrected here on 2026-07-30. Two reasons the sum cannot be a
 threshold. It double-counts: five proportions are produced by both commands, so the
 sum (28) is not commensurable with the deduplicated distinct count (34). And it would
 reject healthy output: efficacy 18 and base_rate 10 with eight overlapping meets both
@@ -270,16 +270,16 @@ output is a gate someone removes.
 
 The history, since three documents disagreed about it:
 
-- At `8d35321` a genuine global comparison did gate — `if len(allowed.pairs) < 20`, a
+- At `8865e2d` a genuine global comparison did gate — `if len(allowed.pairs) < 20`, a
   hand-picked constant against an actual count of 34. Ledger item 47.
-- At `fa49fc5` enforcement became per-command. `derived_floor()` still existed but its
+- At `a7055b5` enforcement became per-command. `derived_floor()` still existed but its
   value was only ever **printed**, never compared. The misleading part from here on
   was the printed juxtaposition of "floor 28" beside "34 distinct".
-- At `6c6ab21` `derived_floor()` was deleted and the print replaced with an explicit
+- At `3571fad` `derived_floor()` was deleted and the print replaced with an explicit
   statement that the two numbers are not comparable.
 
-So "a global floor check was removed" is true of `8d35321`→`fa49fc5`, and "no global
-comparison ever gated" is true only from `fa49fc5` onwards. Both statements were in
+So "a global floor check was removed" is true of `8865e2d`→`a7055b5`, and "no global
+comparison ever gated" is true only from `a7055b5` onwards. Both statements were in
 the repository, unqualified, describing different eras as if they described the same
 one.
 

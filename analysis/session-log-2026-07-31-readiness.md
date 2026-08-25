@@ -11,9 +11,9 @@ sandbox: workspace-write
 approval: managed escalation
 writes: repository and /tmp; outside paths require approval
 network: restricted by default; approved fetch and GitHub reads succeeded
-start_head: de2a998498293ad17f6b1990e19dc8868c614293
-origin/main: 6c6ab215742b8d4913b9193a8df49e645f5cd060
-upstream: de2a998498293ad17f6b1990e19dc8868c614293
+start_head: 8feb510d2ea84cbbd0900eb33db9ee40bcd4d8ce
+origin/main: 3571fad2158512d6fadd42a2454a3d35b818fbe0
+upstream: 8feb510d2ea84cbbd0900eb33db9ee40bcd4d8ce
 branch: feat/archive-durability-and-strict-audit
 local-only commits: none
 remote-only commits: none
@@ -22,7 +22,7 @@ initial_diff_check_exit=0
 ```
 
 PR #34 was reproduced via GitHub: OPEN, non-draft, MERGEABLE/CLEAN, head
-`de2a998498293ad17f6b1990e19dc8868c614293`, base `main`, 12 commits, 17 changed
+`8feb510d2ea84cbbd0900eb33db9ee40bcd4d8ce`, base `main`, 12 commits, 17 changed
 files, +4525/-1090. All nine CI checks passed. Its title and body still described
 the earliest archive/strict-audit unit and claimed 595 tests.
 
@@ -1296,8 +1296,8 @@ Required test coverage of 90% reached. Total coverage: 95.70%
 ## Continuation verification — legacy handover sibling surface
 
 On the next verification turn, the repository was clean at
-`aaa6a283204d89ac6cfe7bd933aaa1a8dc8c94f3`, four commits ahead of unchanged
-upstream `de2a998498293ad17f6b1990e19dc8868c614293`; fetch and PR reads exited 0.
+`ae3bb8b1878a861d4728c15f1262ee838decded0`, four commits ahead of unchanged
+upstream `8feb510d2ea84cbbd0900eb33db9ee40bcd4d8ce`; fetch and PR reads exited 0.
 PR #34 remained OPEN, MERGEABLE/CLEAN at the upstream head with all nine checks
 passing. Production code still had no diff from `origin/main`.
 

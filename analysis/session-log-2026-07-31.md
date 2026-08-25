@@ -57,22 +57,22 @@ $ git status --short
 [no output]
 
 $ git log --oneline origin/main..HEAD
-ed3ee71 Make session evidence durable
-39cc419 Add tracked Codex transition handover
-f6b75c8 Close adversarial assurance findings
-4b366c5 Observe the build gate red; settle --strict as load-bearing
-fd4f4a9 Make the gate table see behaviour, not just names
-fe66903 Prove the security gate can fail; audit every gate; correct the version claim
-17ab8f1 docs(ledger): close items 16, 22, 55-58; correct the global-floor record
-852fd72 Make the capture's absence detectable; adopt pip-audit --strict
+e617b2a Make session evidence durable
+4627843 Add tracked Codex transition handover
+e394108 Close adversarial assurance findings
+8ddc49c Observe the build gate red; settle --strict as load-bearing
+bc4ae39 Make the gate table see behaviour, not just names
+614fa5e Prove the security gate can fail; audit every gate; correct the version claim
+86e3a84 docs(ledger): close items 16, 22, 55-58; correct the global-floor record
+b40dd4e Make the capture's absence detectable; adopt pip-audit --strict
 
 $ git rev-list --count origin/feat/archive-durability-and-strict-audit..HEAD
 3
 
 $ git log --oneline origin/feat/archive-durability-and-strict-audit..HEAD
-ed3ee71 Make session evidence durable
-39cc419 Add tracked Codex transition handover
-f6b75c8 Close adversarial assurance findings
+e617b2a Make session evidence durable
+4627843 Add tracked Codex transition handover
+e394108 Close adversarial assurance findings
 
 $ git diff main..HEAD --stat -- skillwatch/
 [no output]
@@ -137,7 +137,7 @@ github.com
   - Token scopes: 'gist', 'read:org', 'repo', 'workflow'
 
 $ gh pr view 34 --repo kuzivaai/SkillWatch --json ...
-{"baseRefName":"main","headRefName":"feat/archive-durability-and-strict-audit","headRefOid":"4b366c501b5cbfc4c856eddaa3d1d48a469fff7b","isDraft":false,"mergeStateStatus":"CLEAN","mergeable":"MERGEABLE","number":34,"state":"OPEN","title":"Close the archive single-point-of-failure class; settle pip-audit --strict","updatedAt":"2026-07-30T09:51:56Z","url":"https://github.com/kuzivaai/SkillWatch/pull/34"}
+{"baseRefName":"main","headRefName":"feat/archive-durability-and-strict-audit","headRefOid":"8ddc49caef96e2e9df4f0c53b29b40dd01a6fbab","isDraft":false,"mergeStateStatus":"CLEAN","mergeable":"MERGEABLE","number":34,"state":"OPEN","title":"Close the archive single-point-of-failure class; settle pip-audit --strict","updatedAt":"2026-07-30T09:51:56Z","url":"https://github.com/kuzivaai/SkillWatch/pull/34"}
 
 Recorded check rollup: all nine CI checks SUCCESS on run 30532398379:
 test (3.10), test (3.11), test (3.12), test (3.13), security,
@@ -145,20 +145,20 @@ lowest-direct (3.10), lowest-direct (3.11), lowest-direct (3.12),
 lowest-direct (3.13).
 
 $ git rev-parse origin/main origin/feat/archive-durability-and-strict-audit
-6c6ab215742b8d4913b9193a8df49e645f5cd060
-4b366c501b5cbfc4c856eddaa3d1d48a469fff7b
+3571fad2158512d6fadd42a2454a3d35b818fbe0
+8ddc49caef96e2e9df4f0c53b29b40dd01a6fbab
 
 $ git fetch origin --prune
 [no output]
 
 $ git rev-parse origin/main origin/feat/archive-durability-and-strict-audit
-6c6ab215742b8d4913b9193a8df49e645f5cd060
-4b366c501b5cbfc4c856eddaa3d1d48a469fff7b
+3571fad2158512d6fadd42a2454a3d35b818fbe0
+8ddc49caef96e2e9df4f0c53b29b40dd01a6fbab
 ```
 
 Remote references were byte-identical before and after fetch. No force-push is
 needed. PR #34 is OPEN, non-draft, mergeable/CLEAN, but its head is still the
-remote branch at `4b366c5`; it does not yet include the three local commits.
+remote branch at `8ddc49c`; it does not yet include the three local commits.
 
 ## Full test suite with coverage
 
@@ -306,26 +306,26 @@ Required test coverage of 90% reached. Total coverage: 95.70%
 
 ```text
 $ git commit -m "Make continuity claims self-consistent" ...
-[feat/archive-durability-and-strict-audit 86f77ff] Make continuity claims self-consistent
+[feat/archive-durability-and-strict-audit 563071d] Make continuity claims self-consistent
  3 files changed, 193 insertions(+), 3 deletions(-)
  create mode 100644 tests/test_continuity.py
 
 $ git status --short
 
 $ git log --oneline -5
-86f77ff Make continuity claims self-consistent
-fa748d4 Record repository and PR baseline
-ed3ee71 Make session evidence durable
-39cc419 Add tracked Codex transition handover
-f6b75c8 Close adversarial assurance findings
+563071d Make continuity claims self-consistent
+8769ea7 Record repository and PR baseline
+e617b2a Make session evidence durable
+4627843 Add tracked Codex transition handover
+e394108 Close adversarial assurance findings
 
-$ git diff -U0 39cc419..HEAD -- . ':!analysis/session-log-2026-07-31.md' | rg -ni 'skip|xfail|ignore|disable|noqa|type: ignore|TODO|FIXME|(^|[^A-Za-z])(pin|pinned|pins|version pin)' || true
+$ git diff -U0 4627843..HEAD -- . ':!analysis/session-log-2026-07-31.md' | rg -ni 'skip|xfail|ignore|disable|noqa|type: ignore|TODO|FIXME|(^|[^A-Za-z])(pin|pinned|pins|version pin)' || true
 Matches occurred only in the `.gitignore` filename and the ledger/test prose
 about closing the ignored-log defect and preserving historical `pip-audit`
 skip evidence. There are no new suppressions, pins, skips, exclusions, stubs,
 hardcoded values, TODOs, FIXMEs, `noqa`, or `type: ignore` directives.
 
-$ git diff --check 39cc419..HEAD
+$ git diff --check 4627843..HEAD
 
 $ git diff --quiet main..HEAD -- skillwatch/; echo detection_diff_exit=$?
 detection_diff_exit=0
@@ -349,7 +349,7 @@ MEDIUM — `.gitignore` hunk `!analysis/session-log-*.md`; `tests/test_continuit
 MEDIUM — `tests/test_continuity.py:33-46`, especially exact phrase exclusion and substring cross-links. The module claims continuity evidence is “internally current,” and the session evidence says “the measured contradiction” is now regression-tested, but these tests enforce only today’s wording/links, not semantic consistency. Item 22 passes as long as it contains the literal `Superseded by item 60` and avoids exactly `no case was found in which `--strict` changed the outcome`; item 60 passes if the characters `item 22` appear anywhere. A synonymous contradiction (e.g. “we never identified an outcome altered by `--strict`”) plus those cross-links passes. Likewise `item 22` could occur in unrelated prose in item 60. The evidence accurately demonstrates this one historical wording failed, but overclaims a class closure. Reproducible check: on a throwaway edit, replace item 22’s final two sentences with `Superseded by item 60. We never identified an outcome altered by --strict.` and retain `item 22` in item 60; run the two ledger tests and observe green despite contradiction with item 60’s DEMONSTRATED/load-bearing claim. This should be described as an instance regression test unless assertions parse mutually exclusive status/facts rather than prose substrings.
 
 Exact sources/commands used only:
-1. `git diff 39cc419..86f77ff -- .gitignore tests/test_continuity.py`
+1. `git diff 4627843..563071d -- .gitignore tests/test_continuity.py`
 2. `sed -n '163,299p' /home/USER/skillwatch/analysis/session-log-2026-07-31.md` (covers exactly requested 163-242 and 243-299)
 3. `sed -n '1,10000p' /home/USER/skillwatch/OPEN-ITEMS.md`
 4. `rg '^\\| (22|60|67) \\|' /home/USER/skillwatch/OPEN-ITEMS.md` (targeted reread of the authorized ledger only)

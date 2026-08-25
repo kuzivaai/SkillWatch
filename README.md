@@ -324,7 +324,7 @@ items, and it is described in full in
 `skillwatch/detector.py` is byte-identical between the two releases, so no
 detection behaviour changed. The 0.3.0-era corpus, however, was never committed —
 the benign and adversarial sets entered version control in a single commit
-(`309d359`) at the time of the expansion, so there is no earlier tracked state to
+(`7b6cd5c`) at the time of the expansion, so there is no earlier tracked state to
 diff against. The first ten evasive items in the current corpus score 5/10,
 matching what 0.3.0 published, and the benign false-positive count is the same
 four items; both are consistent with the original set having been carried forward

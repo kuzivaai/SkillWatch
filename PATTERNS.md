@@ -122,7 +122,7 @@ first entered version control:
 
 ```
 $ git log --date=short --reverse --pretty="%ad %h %s" -- skillwatch/detector.py | head -1
-2026-06-26 45c2739 feat: SkillWatch v0.1.0 — continuous URL content monitoring for AI skills
+2026-06-26 93ae333 feat: SkillWatch v0.1.0 — continuous URL content monitoring for AI skills
 ```
 
 **Evidenced.** On that date the newest upstream release was **v3.5.1**, published

@@ -7,7 +7,7 @@ flag, and looked exactly like a passing test.
 
 `_Concealment` is three-valued precisely so that unparseable CSS is not silently
 reported as "nothing is hidden" — the same fail-open shape as `specifier_allows`
-in the dependency auditor (ledger item 17). But at 2a11dd0 every line that
+in the dependency auditor (ledger item 17). But at b0e6f1f every line that
 produces UNEVALUABLE was uncovered:
 
     skillwatch/detector.py  307  14  95%  ... 622, 668, 671-672, ... 709, 715-716,

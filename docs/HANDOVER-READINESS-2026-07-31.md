@@ -39,11 +39,11 @@ review, passed two context-restricted adversarial reviews, and closed ledger ite
 ## Repository and PR state reproduced before editing
 
 - Branch: `feat/archive-durability-and-strict-audit`.
-- Start HEAD/upstream: `de2a998498293ad17f6b1990e19dc8868c614293`.
-- `origin/main`: `6c6ab215742b8d4913b9193a8df49e645f5cd060`.
+- Start HEAD/upstream: `8feb510d2ea84cbbd0900eb33db9ee40bcd4d8ce`.
+- `origin/main`: `3571fad2158512d6fadd42a2454a3d35b818fbe0`.
 - Initial local-only commits: none; remote-only commits: none; tree clean.
 - `git diff --quiet origin/main..HEAD -- skillwatch/` exited 0.
-- PR #34: OPEN, non-draft, MERGEABLE/CLEAN, head `de2a998`, base `main`,
+- PR #34: OPEN, non-draft, MERGEABLE/CLEAN, head `8feb510`, base `main`,
   12 commits, 17 files, +4525/-1090, nine checks passing. Its title/body were
   stale and described the earliest scope plus 595 tests.
 
@@ -92,7 +92,7 @@ unobserved external demand or real-world efficacy.
 
 ## Material changes and commits
 
-### `f22a312` — Make readiness status mechanically consistent
+### `4639f41` — Make readiness status mechanically consistent
 
 Added the structured source, validator and targeted suite; replaced SHIP with a
 concise current scoreboard; archived the old narrative; reconciled README,
@@ -101,7 +101,7 @@ initial direction mutation unexpectedly passed, exposing that metric direction
 was trusted from the mutable JSON. An independent metric registry fixed that
 hole before commit.
 
-### `c5024e7` — Define a falsifiable design-partner pilot
+### `205f65a` — Define a falsifiable design-partner pilot
 
 Added a five-source research matrix and pilot. The matrix labels all access as
 partial and does not claim demand. The pilot distinguishes user/buyer, uses a
@@ -110,7 +110,7 @@ manual/exported measurement only, three qualified participants, explicit burden
 and repeat-use thresholds, route precedence and standalone/integration/
 assurance/pause falsifiers.
 
-### `6fc38af` — Close adversarial readiness-truth gaps
+### `8cd178b` — Close adversarial readiness-truth gaps
 
 Fixed every reproduced review finding: synthetic “safe pages” overclaim,
 hard-coded verdict clauses, duplicate IDs, stale-able top-level metadata,
@@ -199,7 +199,7 @@ Default: **PILOT**.
 
 ## Scope integrity
 
-`git diff --name-status de2a998..HEAD -- skillwatch/`, `analysis/corpus/`,
+`git diff --name-status 8feb510..HEAD -- skillwatch/`, `analysis/corpus/`,
 `analysis/run_delta_pass.py` and `pyproject.toml` produced no changes. Detector,
 corpora, baseline, dependencies, telemetry and production features are
 unchanged. No push, PR edit, merge, tag, release, publish or third-party contact
@@ -224,7 +224,7 @@ export PYTHONDONTWRITEBYTECODE=1
 .venv/bin/python -m build
 .venv/bin/python analysis/run_delta_pass.py  # must refuse before 2026-08-05
 git diff --check
-git diff --name-status de2a998498293ad17f6b1990e19dc8868c614293..HEAD -- skillwatch/ analysis/corpus/ analysis/run_delta_pass.py pyproject.toml
+git diff --name-status 8feb510d2ea84cbbd0900eb33db9ee40bcd4d8ce..HEAD -- skillwatch/ analysis/corpus/ analysis/run_delta_pass.py pyproject.toml
 git status --short --branch
 ```
 

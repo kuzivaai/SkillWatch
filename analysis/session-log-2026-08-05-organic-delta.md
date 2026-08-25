@@ -1,6 +1,6 @@
 # Session log, 2026-08-05: the organic delta pass ran
 
-Branch `feat/archive-durability-and-strict-audit`, starting from `99decb0`.
+Branch `feat/archive-durability-and-strict-audit`, starting from `a98ff8c`.
 
 ## What this unit did
 
@@ -14,11 +14,11 @@ were red on arrival.
 
 | Gate | Exit | Finding |
 |---|---:|---|
-| `scripts/readiness_consistency.py` | 1 | `HANDOVER-BUSINESS-OPERATIONS-2026-08-01.md`, added by the immediately preceding commit `99decb0`, carried no supersession marker. The commit that added it broke the gate that governs it. |
+| `scripts/readiness_consistency.py` | 1 | `HANDOVER-BUSINESS-OPERATIONS-2026-08-01.md`, added by the immediately preceding commit `a98ff8c`, carried no supersession marker. The commit that added it broke the gate that governs it. |
 | `scripts/audit_dependency_floors.py` | 1 | `cryptography>=48.0.1` permits GHSA-g6cj-pr64-35w5, GHSA-jwv3-5hgf-82ww, GHSA-m2h6-j472-rp4c and PYSEC-2026-3552/3553/3554. Derived minimum safe floor 50.0.0. |
 
 The dependency red was **new since 2026-08-01 without any repository change**: the
-floor had not moved since `9e7b2a3`, so the advisories were published underneath a
+floor had not moved since `61e23cf`, so the advisories were published underneath a
 static declaration. That is the failure mode the floor auditor exists to catch, and
 it caught it.
 

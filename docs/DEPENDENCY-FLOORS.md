@@ -124,7 +124,7 @@ pip-audit flags on the *resolved* version while its declared floor stays clean,
 which no straightforward pin provides.
 
 **Nothing was left behind.** `git diff main -- pyproject.toml` is empty, `jinja2`
-appears nowhere in the tree, and `main` is untouched at `6c6ab21`.
+appears nowhere in the tree, and `main` is untouched at `3571fad`.
 
 ### The `build` job was observed refusing something, 2026-07-30
 

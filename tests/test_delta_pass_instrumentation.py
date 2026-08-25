@@ -46,7 +46,7 @@ def _load(name: str):  # type: ignore[no-untyped-def]
 run_delta_pass = _load("run_delta_pass")
 
 # The commit before the item 82 instrumentation.
-PRE_CHANGE = "f30b441"
+PRE_CHANGE = "d89232b"
 
 SECRET = "CANARY-e3f1a9-do-not-leak-this-page-text"
 

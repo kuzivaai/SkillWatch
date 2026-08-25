@@ -22,9 +22,9 @@ No integration was built and no remote write occurred.
 
 ## Initial repository and public state
 
-- Start `39e85a654435908a38898332dccfbc314b7ad16f`; branch
-  `feat/archive-durability-and-strict-audit`; upstream `de2a998498293ad17f6b1990e19dc8868c614293`;
-  `origin/main` `6c6ab215742b8d4913b9193a8df49e645f5cd060`.
+- Start `aac04fd42b4d307a92accb2ea717a498b490a4f3`; branch
+  `feat/archive-durability-and-strict-audit`; upstream `8feb510d2ea84cbbd0900eb33db9ee40bcd4d8ce`;
+  `origin/main` `3571fad2158512d6fadd42a2454a3d35b818fbe0`.
 - Initial tree clean and 11 commits ahead. PR #34 OPEN, CLEAN and MERGEABLE but
   at the older upstream revision. All nine reported PR checks passed.
 - PyPI served 0.4.1. Public main README differed from the candidate README and
@@ -77,7 +77,7 @@ agent mechanical rehearsal, not user or demand evidence.
 - `docs/UNDERSTANDING-ALERTS.md`: removed an invalid live false-alarm extrapolation.
 - `OPEN-ITEMS.md`: items 77–78 open; 79–80 closed with evidence.
 
-Commits: `44fa051 Record pilot-readiness baseline`; `c0bbe8e Make pilot baseline
+Commits: `edf58b4 Record pilot-readiness baseline`; `048e571 Make pilot baseline
 failures actionable`.
 
 ## Assurance
@@ -108,7 +108,7 @@ diff for detector, corpora, delta runner and `pyproject.toml`: empty.
 
 `/tmp/skillwatch-pr34-proposed.md` contains the complete proposed PR title/body;
 `/tmp/skillwatch-maintainer-actions.md` contains normal-push, CI and review
-commands. Final branch head before this handover commit was `c0bbe8e`, 25 commits
+commands. Final branch head before this handover commit was `048e571`, 25 commits
 and 43 changed files versus origin/main, and 13 commits ahead of upstream.
 
 Recommendation: after reviewing this handover, the maintainer should fetch,
@@ -125,8 +125,8 @@ remains open because an agent rehearsal is not a user.
 
 ## Final bounded verification update
 
-Final verification commit: `60dbd8f Record final pilot workflow verification`.
-The candidate wheel was built from `e74b89a5de2e0ccd684886d211accf43361fd3a8`
+Final verification commit: `78a9f10 Record final pilot workflow verification`.
+The candidate wheel was built from `32f9e5aee35e3ebfb0c4a8c5eea18645ea9feda6`
 and has SHA-256 `2719b78bea0f68ce1a49f431fad078f2257ca2ed1af6d0d311fceb2a3322e231`.
 The project-owned README URL returned HTTP 200 and was accepted without an SSRF
 bypass. With approved read-only network access, the fresh isolated run installed

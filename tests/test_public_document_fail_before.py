@@ -12,7 +12,7 @@ both in the blocking suite.
 **Why a pinned SHA rather than `HEAD~1` or a fixture.** A relative reference moves as
 commits land and would silently start comparing the wrong thing. A copied fixture is a
 second copy of the defect, free to drift from what the defect actually was. `git show`
-at a fixed commit is the artefact itself, and 99decb0 is the last commit before any of
+at a fixed commit is the artefact itself, and a98ff8c is the last commit before any of
 the three corrections.
 """
 
@@ -31,7 +31,7 @@ from tests.test_public_document_currency import (
 
 # The commit immediately before the 2026-08-06 corrections. All three documents are in
 # their defective state here.
-PRE_FIX = "99decb0"
+PRE_FIX = "a98ff8c"
 
 
 def show(path: str) -> str:

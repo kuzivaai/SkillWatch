@@ -25,7 +25,7 @@ Created and committed:
 
 Commit:
 
-`0218f33 Add objective SkillWatch business operations dossier`
+`0f8460f Add objective SkillWatch business operations dossier`
 
 The dossier covers product behavior, boundaries, evidence classifications,
 users and buyers, pilot operations, commercial options, competitive position,
@@ -42,9 +42,9 @@ Measured on 2026-08-01 19:23 UTC:
 
 ```text
 branch: feat/archive-durability-and-strict-audit
-HEAD: 0218f33613434a6cf8a2b5e02bcfafce4dc0bb9e
-origin/main: 6c6ab215742b8d4913b9193a8df49e645f5cd060
-upstream: 2d8c3321dee476dc34c237d3c6c93e81b97ac7b0
+HEAD: 0f8460fa5c586f175ea89d9c4c8f27b7cc803cf1
+origin/main: 3571fad2158512d6fadd42a2454a3d35b818fbe0
+upstream: e803295f7b8ba25edf8ae241e33853642492bc62
 ahead/behind upstream: 0 1
 working tree: clean
 ```
@@ -52,7 +52,7 @@ working tree: clean
 The business dossier commit is local and has not been pushed. No remote write,
 PR edit, merge, release or publication was performed in this unit.
 
-The branch is otherwise already pushed through `2d8c332`. The new documentation
+The branch is otherwise already pushed through `e803295`. The new documentation
 commit is one local commit ahead of the remote tracking branch.
 
 ## Evidence classifications
@@ -60,7 +60,7 @@ commit is one local commit ahead of the remote tracking branch.
 ### Demonstrated
 
 - The repository contains the business and operations dossier.
-- The dossier was committed as `0218f33`.
+- The dossier was committed as `0f8460f`.
 - The preceding candidate workflow passed its recorded clean-room verification:
   installation, valid URL acceptance, baseline scan, unchanged repeat, ledger
   verification/export, removal and rejected-input handling.
@@ -154,7 +154,7 @@ effectiveness, superiority, certification or a moat.
 
 ```text
 git diff --check: pass
-business dossier commit: 0218f33
+business dossier commit: 0f8460f
 working tree after commit: clean
 ```
 
