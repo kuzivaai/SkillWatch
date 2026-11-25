@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import math
 import re
 import subprocess
 import sys
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, cast
 
@@ -22,6 +23,7 @@ CURRENT_CLOSE = "<!-- readiness:end -->"
 VALID_STATUSES = {"pass", "fail", "not_demonstrated", "pending"}
 METRIC_DIRECTIONS = {"benign_false_positive_rate": "lower_is_better"}
 VALID_VERDICTS = {"GO", "HOLD"}
+MAX_READINESS_AGE_DAYS = 7
 EXPECTED_BASES = {
     1: "documentation_route",
     2: "wilson_bound",
@@ -160,20 +162,47 @@ def current_measured_section(readme: str) -> str:
     return parts[1].split("\n## ", 1)[0] if len(parts) == 2 else ""
 
 
-def validate_status(status: dict[str, Any], metrics: dict[str, tuple[int, int]]) -> list[str]:
+def utc_today() -> date:
+    return datetime.now(timezone.utc).date()
+
+
+def readiness_date_errors(
+    status: dict[str, Any], *, today: date, require_current: bool = False
+) -> list[str]:
+    """Permit a dated historical HOLD in maintenance; never permit future evidence."""
+    value = status.get("evaluated_at")
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value):
+        return ["evaluated_at must be a YYYY-MM-DD date"]
+    try:
+        evaluated_at = date.fromisoformat(value)
+    except ValueError:
+        return [f"invalid evaluated_at {value}"]
+    age = (today - evaluated_at).days
+    if age < 0 or (
+        age > MAX_READINESS_AGE_DAYS
+        and (require_current or status.get("verdict") != "HOLD")
+    ):
+        return [f"evaluated_at is not current: age {age} days"]
+    return []
+
+
+def publish_preflight_errors(status: dict[str, Any], *, today: date) -> list[str]:
+    """A past review that still coherently says HOLD is never a release approval."""
+    errors = readiness_date_errors(status, today=today, require_current=True)
+    if status.get("verdict") != "GO":
+        errors.append("publishing requires a current GO verdict")
+    return errors
+
+
+def validate_status(
+    status: dict[str, Any], metrics: dict[str, tuple[int, int]], *, today: date | None = None
+) -> list[str]:
     errors: list[str] = []
     conditions = condition_map(status)
     nonpassing = [number for number, item in conditions.items() if item["status"] != "pass"]
     if status["verdict"] not in VALID_VERDICTS:
         errors.append(f"invalid verdict {status['verdict']}")
-    try:
-        evaluated_at = date.fromisoformat(str(status["evaluated_at"]))
-    except ValueError:
-        errors.append(f"invalid evaluated_at {status['evaluated_at']}")
-    else:
-        age = (date.today() - evaluated_at).days
-        if age < 0 or age > 7:
-            errors.append(f"evaluated_at is not current: age {age} days")
+    errors.extend(readiness_date_errors(status, today=today or utc_today()))
     for field, allowed in VALID_TOP_LEVEL.items():
         if status.get(field) not in allowed:
             errors.append(f"invalid {field} {status.get(field)}")
@@ -373,10 +402,25 @@ def handover_errors() -> list[str]:
     return errors
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--publish", action="store_true", help="require fresh GO and full evidence")
+    mode.add_argument("--publish-preflight", action="store_true", help="check fresh GO before installing dependencies")
+    args = parser.parse_args(argv)
     status = load_status()
+    today = utc_today()
+    if args.publish or args.publish_preflight:
+        preflight = publish_preflight_errors(status, today=today)
+        if preflight:
+            for error in preflight:
+                print(f"FAIL: {error}")
+            return 1
+        if args.publish_preflight:
+            print("Publish date and verdict preflight passed; full evidence check is still required.")
+            return 0
     metrics = harness_metrics()
-    errors = validate_status(status, metrics)
+    errors = validate_status(status, metrics, today=today)
     ship = SHIP_PATH.read_text(encoding="utf-8")
     if current_block(ship) != render_current(status, metrics):
         errors.append("SHIP-READINESS current block differs from generated readiness status")
@@ -386,7 +430,10 @@ def main() -> int:
         for error in errors:
             print(f"FAIL: {error}")
         return 1
-    print("Readiness status, generated scoreboard, harness metrics, and ledger sections agree.")
+    print(
+        f"Last recorded readiness: {status['verdict']} ({status['evaluated_at']} UTC). "
+        "Readiness status, generated scoreboard, harness metrics, and ledger sections agree."
+    )
     return 0
 
 

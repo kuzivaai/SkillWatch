@@ -7,7 +7,7 @@
 # CVE-2026-24049 (GHSA-8rrh-rw8j-w5fx, CWE-22, HIGH) — arbitrary file permission
 # modification via path traversal in `wheel unpack`. Found by the floor audit the
 # moment `wheel` was given a bound at all; it had none before.
-requires = ["setuptools>=83.0.0", "wheel>=0.46.2"]
+requires = ["setuptools>=84.1.0", "wheel>=0.46.2"]
 build-backend = "setuptools.build_meta"
 
 [project]

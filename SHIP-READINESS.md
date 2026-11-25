@@ -1,11 +1,18 @@
 # Ship readiness
 
-This is the concise current scoreboard. Its machine-readable source is
+This is the last recorded readiness scoreboard. The evaluation date is recorded
+in its source; a historical HOLD is not a new review or a release approval. Its machine-readable source is
 `docs/readiness-status.json`; `scripts/readiness_consistency.py` derives and
 validates the block below against the current efficacy harness. Historical
 measurements and superseded decisions are preserved in
 `docs/archive/SHIP-READINESS-HISTORY-2026-07-31.md` and are not inputs to the
-current verdict.
+recorded verdict.
+
+Maintenance CI checks the recorded evidence even when a HOLD is older than
+seven days. PyPI release builds require a GO dated within seven UTC days and
+a passing consistency check. The recorded zero-demand decision and other
+existing evidence rules are unchanged. This gate only applies to revisions
+that contain it; it does not enforce policy on historical tags.
 
 ## Evaluation rule
 

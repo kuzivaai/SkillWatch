@@ -15,8 +15,12 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6
         with:
           python-version: "3.12"
-      - name: Install build tools
-        run: pip install build
+      - name: Reject HOLD or stale evidence before installing dependencies
+        run: python scripts/readiness_consistency.py --publish-preflight
+      - name: Install build and readiness-check dependencies
+        run: pip install build .
+      - name: Require a fresh, evidence-backed GO
+        run: python scripts/readiness_consistency.py --publish
       - name: Build package
         run: python -m build
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7
