@@ -72,3 +72,15 @@ file. `docs/readiness-status.json` is the structured current source;
 `scripts/readiness_consistency.py` checks it against the efficacy harness,
 condition-specific evidence and ledger sections. Read that scoreboard before
 making any readiness statement.
+
+## SkillWatch proof boundaries
+
+- Keep the evidence and release gates defined in `CLAUDE.md` and the continuity ledger. Use the CI matrix for dependency or runtime changes; use `python3 scripts/figure_rules.py` for public figures. Repeat the negative control before relying on a changed gate; don't carry historical proof forward under a new executable hash.
+- For a user-flow change, demonstrate the documented CLI path with a local, synthetic source change. Do not claim alert rate is false-positive rate without labelled ground truth. Distinguish synthetic, real-page and production outcomes.
+- Read the recorded readiness verdict before making product claims. Never manufacture GO, refresh evidence dates without a run, or test production PyPI as a negative control.
+
+## Acceptance and evidence
+
+- State the user-visible outcome, affected entry points, and proof required before editing. A list introduced by “etc.” is examples, not the full scope; expand to material dependencies unless the request sets a limit. Never infer extra authority.
+- Verify the real entry point for the intended audience on the exact revision, and exercise one relevant failing case and the recovery or refusal. A unit test, build, mock, or green PR is not proof of a user outcome or deployment.
+- Before marking done, report what was actually exercised, where, the revision, the result and any untested surface. Use an independent reviewer for material risk; resolve or explicitly leave their findings open. Record the cause and regression check when a defect is proven.
