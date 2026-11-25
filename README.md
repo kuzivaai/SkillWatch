@@ -1,6 +1,15 @@
 # SkillWatch
 
-SkillWatch watches the web pages that AI tools rely on, and tells you when something changes. It exists because those pages can be swapped to contain harmful instructions after the AI tool has already been reviewed and approved.
+**SkillWatch is an open-source Python command-line tool that detects changes to web pages referenced by AI agent skills and MCP configurations.** It does this on a schedule you configure, not continuously. It does not block the agent from using a changed page.
+
+| Question | Answer |
+| --- | --- |
+| What can I monitor? | Individual page URLs or URLs extracted from a `SKILL.md` file or MCP configuration. SkillWatch does not follow links transitively. |
+| What happens when a page changes? | SkillWatch compares the extracted text with the previous observation, shows the diff, and records the observation in a local, hash-chained log. |
+| Does a flag mean an attack? | No. A flag is a prompt to review. A scan with no flags does not show that a source is safe. See the [evaluation and limitations](SHIP-READINESS.md). |
+| Where does the data go? | Records are stored in a local SQLite database. The CLI fetches the sources you specify; optional external timestamping is separate. |
+
+[Quick start](#quick-start) · [Published package on PyPI](https://pypi.org/project/skillwatch/) · [How to interpret alerts](docs/UNDERSTANDING-ALERTS.md)
 
 [![CI](https://github.com/kuzivaai/SkillWatch/actions/workflows/ci.yml/badge.svg)](https://github.com/kuzivaai/SkillWatch/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/skillwatch)](https://pypi.org/project/skillwatch/)
