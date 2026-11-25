@@ -75,3 +75,45 @@ class ReleaseGateTests(unittest.TestCase):
             self.assertEqual(policy.main(["--publish-preflight"]), 0)
             with self.assertRaisesRegex(RuntimeError, "evidence is unavailable"):
                 policy.main(["--publish"])
+
+
+    def test_publish_workflow_preflight_rejects_hold_fixture(self):
+        """Local negative control of the checked-in command, not a hosted run."""
+        import yaml
+
+        jobs = yaml.safe_load(
+            (ROOT / ".github" / "workflows" / "publish.yml").read_text(encoding="utf-8")
+        )["jobs"]
+        build = jobs["build"]
+        steps = build["steps"]
+        command = "python scripts/readiness_consistency.py --publish-preflight"
+        steps_with_command = [i for i, step in enumerate(steps) if step.get("run") == command]
+        self.assertEqual(len(steps_with_command), 1)
+        preflight = steps_with_command[0]
+        for index, step in enumerate(steps):
+            if step.get("run") != command and "run" in step:
+                self.assertGreater(index, preflight)
+        self.assertNotIn("if", build)
+        self.assertNotIn("continue-on-error", build)
+        self.assertNotIn("if", steps[preflight])
+        self.assertNotIn("continue-on-error", steps[preflight])
+        self.assertEqual(jobs["publish"].get("needs"), "build")
+        self.assertNotIn("if", jobs["publish"])
+        with TemporaryDirectory() as tmp:
+            fixture = Path(tmp)
+            script = fixture / "scripts" / CHECK.name
+            script.parent.mkdir()
+            script.write_bytes(CHECK.read_bytes())
+            doc = fixture / "docs" / "readiness-status.json"
+            doc.parent.mkdir()
+            doc.write_text(
+                json.dumps({"evaluated_at": policy.utc_today().isoformat(), "verdict": "HOLD"}),
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [sys.executable, str(script), "--publish-preflight"],
+                cwd=fixture, capture_output=True, text=True, timeout=15, check=False,
+            )
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(result.stdout, "FAIL: publishing requires a current GO verdict\n")
+        self.assertEqual(result.stderr, "")
