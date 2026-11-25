@@ -1,3 +1,5 @@
+@AGENTS.md
+
 # SkillWatch
 
 Periodic URL content monitoring for AI agent skills and MCP tools.
