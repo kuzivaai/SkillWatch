@@ -127,9 +127,13 @@ def test_current_metadata_fields_reject_arbitrary_or_stale_values() -> None:
         assert f"invalid {field} arbitrary" in readiness_consistency.validate_status(status, metrics)
 
     status = readiness_consistency.load_status()
-    status["evaluated_at"] = (date.today() - timedelta(days=8)).isoformat()
+    today = date(2026, 11, 25)
+    status["evaluated_at"] = (today - timedelta(days=8)).isoformat()
+    status["verdict"] = "HOLD"
+    assert readiness_consistency.validate_status(status, metrics, today=today) == []
+    status["verdict"] = "GO"
     assert "evaluated_at is not current: age 8 days" in readiness_consistency.validate_status(
-        status, metrics
+        status, metrics, today=today
     )
 
     status = readiness_consistency.load_status()
